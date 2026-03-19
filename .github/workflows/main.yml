@@ -1,40 +1,53 @@
-# description of this workflow, can be anything you want
-name: Package and release
+name: Release
 
-# we need to let GitHub know _when_ we want to release.
-# this is typically only when we create a new tag.
-# make sure your tags are annotated!
 on:
   push:
     tags:
-      - '**'
+      - "v*"
+  workflow_dispatch:
 
-# a workflow is built up as jobs, and within these jobs are steps
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-
-  # "release" is a job, you can name it anything you want
   release:
-
-    # we can run our steps on pretty much anything, but the "ubuntu-latest" image is a safe bet
     runs-on: ubuntu-latest
 
-    # specify the environment variables used by the packager, matching the secrets for the project on GitHub
     env:
       CF_API_KEY: ${{ secrets.CF_API_KEY }}
-      WOWI_API_TOKEN: ${{ secrets.WOWI_API_TOKEN }}
       WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
-      GITHUB_OAUTH: ${{ secrets.GHUB_TOKEN }}  # this secret is pre-provided for the workflow and does not
-                                                 # need to be added yourself, we just reference it here.
+      GITHUB_OAUTH: ${{ secrets.GHUB_OAUTH }}
 
-    # "steps" holds a list of all the steps needed to package and release our AddOn
     steps:
-
-      # we first have to clone the AddOn project, this is a required step
-      - name: Clone project
+      - name: Check out repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # gets entire git history, needed for automatic changelogs
+          fetch-depth: 0
 
-      # once cloned, we just run the GitHub Action
-      - name: Package and release
+      - name: Validate release secrets
+        shell: bash
+        run: |
+          missing=0
+          for var in CF_API_KEY WAGO_API_TOKEN GITHUB_OAUTH; do
+            if [ -z "${!var}" ]; then
+              echo "::error title=Missing secret::$var is not configured for this repository."
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Package and publish addon
         uses: BigWigsMods/packager@v2
+
+      - name: Upload packaged zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: Preybreaker-release-${{ github.ref_name }}
+          path: .release/*.zip
+          if-no-files-found: error

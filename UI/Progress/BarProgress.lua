@@ -178,6 +178,7 @@ function ns.CreateBarProgress(parent, createValueText)
     frame.Fill:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", Layout.BarFillInsetX, Layout.BarFillInsetY)
 
     frame.Spark = CreateSlice(frame, AtlasNames.Spark, "OVERLAY", 2)
+    frame.Spark:SetBlendMode("ADD")
     frame.Spark:Hide()
 
     if createValueText then
