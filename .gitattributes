@@ -1,0 +1,9 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Keep repository metadata out of generated source archives.
+.gitattributes export-ignore
+.gitignore     export-ignore
+.github/       export-ignore
+.pkgmeta       export-ignore
+AGENTS.md      export-ignore

@@ -6,7 +6,7 @@ This project publishes tagged releases on GitHub. Changes are grouped under `Unr
 
 ## [Unreleased]
 
-## [v1.0.0.2be7451] - 2026-03-19
+## [v1.0.0.@project-abbreviated-hash@] - 2026-03-19
 
 ### Added
 
@@ -17,7 +17,7 @@ This project publishes tagged releases on GitHub. Changes are grouped under `Unr
 
 ### Changed
 
-- Promoted release versioning to the `v1.0.0.<github-revision>` format for GitHub-tagged builds.
+- Promoted release versioning to the `v1.0.0.<github-revision>` format for packaged builds by switching the release metadata to the packager's `@project-abbreviated-hash@` substitution token.
 - Rewrote the README to focus on the addon's purpose and feature set in more natural user-facing language while keeping license and thanks information intact.
 - Split locale bootstrap from per-language translations and moved more settings-panel, preview, and compartment text through `L[...]` so runtime copy no longer relies on English strings.
 - Removed free-floating placement and grid controls so the tracker stays widget-attached with simple X/Y offsets only.

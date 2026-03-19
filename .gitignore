@@ -1,0 +1,83 @@
+# Local AI / assistant workspaces
+.codex/
+.claude/
+.cursor/
+.aider*
+.roo/
+.continue/
+.windsurf/
+.copilot/
+.codeium/
+.help/
+.playwright/
+.playwright-cli/
+.release/
+AGENTS.md
+
+# Local Python environments and caches
+.venv/
+venv/
+env/
+ENV/
+.python-version
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+
+# Editor / IDE
+.vscode/
+.idea/
+*.code-workspace
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# Logs, temp files, and scratch output
+*.log
+*.tmp
+*.temp
+.tmp/
+tmp/
+temp/
+.cache/
+.local/
+
+# Secrets / local environment
+.env
+.env.*
+*.local
+*.secret
+secrets.*
+token.*
+credentials.*
+*.pem
+*.key
+
+# Build and packaging output
+build/
+dist/
+release/
+releases/
+artifacts/
+out/
+package/
+*.egg-info/
+*.zip
+*.7z
+*.rar
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,34 @@
+name: Package
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build packaged addon
+        uses: BigWigsMods/packager@v2
+        with:
+          args: -d
+
+      - name: Upload packaged zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: Preybreaker-package
+          path: .release/*.zip
+          if-no-files-found: error
