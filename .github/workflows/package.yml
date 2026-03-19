@@ -49,5 +49,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Preybreaker-alpha-${{ github.ref_name }}
-          path: .release/*.zip
+          path: Preybreaker-*.zip
           if-no-files-found: error
