@@ -43,11 +43,12 @@ jobs:
           fi
 
       - name: Package and publish addon
+        id: packager
         uses: BigWigsMods/packager@v2
 
       - name: Upload packaged zip
         uses: actions/upload-artifact@v4
         with:
           name: Preybreaker-release-${{ github.ref_name }}
-          path: Preybreaker-*.zip
-          if-no-files-found: warn
+          path: ${{ steps.packager.outputs.archive_path }}
+          if-no-files-found: error

@@ -43,11 +43,41 @@ jobs:
           fi
 
       - name: Package and publish alpha build
+        id: packager
         uses: BigWigsMods/packager@v2
+
+      - name: Publish GitHub alpha prerelease
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ARCHIVE_PATH: ${{ steps.packager.outputs.archive_path }}
+        run: |
+          short_sha="${GITHUB_SHA::7}"
+          tag="alpha-${short_sha}"
+          title="Alpha ${short_sha}"
+          notes=$(cat <<EOF
+          Automated alpha prerelease for commit ${short_sha}.
+
+          Commit: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}
+          Workflow: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          EOF
+          )
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "GitHub prerelease already exists for $tag"
+            exit 0
+          fi
+
+          gh release create "$tag" "$ARCHIVE_PATH" \
+            --target "$GITHUB_SHA" \
+            --title "$title" \
+            --notes "$notes" \
+            --prerelease \
+            --latest=false
 
       - name: Upload packaged zip
         uses: actions/upload-artifact@v4
         with:
           name: Preybreaker-alpha-${{ github.ref_name }}
-          path: Preybreaker-*.zip
-          if-no-files-found: warn
+          path: ${{ steps.packager.outputs.archive_path }}
+          if-no-files-found: error
