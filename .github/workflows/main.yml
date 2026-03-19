@@ -43,12 +43,23 @@ jobs:
           fi
 
       - name: Package and publish addon
-        id: packager
         uses: BigWigsMods/packager@v2
+
+      - name: Locate packaged zip
+        id: package
+        shell: bash
+        run: |
+          archive_path=$(find .release -maxdepth 1 -type f -name '*.zip' | head -n 1)
+          if [ -z "$archive_path" ]; then
+            echo "::error title=Missing package::No packaged zip was found in .release."
+            exit 1
+          fi
+          echo "archive_path=$archive_path" >> "$GITHUB_OUTPUT"
 
       - name: Upload packaged zip
         uses: actions/upload-artifact@v4
         with:
           name: Preybreaker-release-${{ github.ref_name }}
-          path: ${{ steps.packager.outputs.archive_path }}
+          path: ${{ steps.package.outputs.archive_path }}
           if-no-files-found: error
+          include-hidden-files: true
