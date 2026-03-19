@@ -50,4 +50,4 @@ jobs:
         with:
           name: Preybreaker-release-${{ github.ref_name }}
           path: Preybreaker-*.zip
-          if-no-files-found: error
+          if-no-files-found: warn
