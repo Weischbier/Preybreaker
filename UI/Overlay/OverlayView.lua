@@ -16,7 +16,6 @@ local IsAnchorTargetUsable = AnchorResolver.IsAnchorTargetUsable
 local IsFrameObject = AnchorResolver.IsFrameObject
 local ResolveBestAnchorTarget = AnchorResolver.ResolveBestAnchorTarget
 local ResolveHostFrame = AnchorResolver.ResolveHostFrame
-local DescribeDrawLayer = AnchorResolver.DescribeDrawLayer
 
 ns.OverlayView = ns.OverlayView or {}
 
@@ -304,8 +303,6 @@ function ns.OverlayView:Anchor()
         target = UIParent
         kind = "fallback"
         resolution.target = target
-        resolution.targetSource = "fallback:invalidTarget"
-        resolution.fallbackPath = "invalidTarget->UIParent"
     end
 
     local host = ResolveHostFrame(target)
@@ -314,8 +311,6 @@ function ns.OverlayView:Anchor()
         target = UIParent
         kind = "fallback"
         resolution.target = target
-        resolution.targetSource = "fallback:invalidHost"
-        resolution.fallbackPath = "invalidHost->UIParent"
     end
 
     self.frame:ClearAllPoints()
@@ -363,15 +358,11 @@ function ns.OverlayView:Anchor()
 
     ns.Debug:Log(
         "anchor",
-        ns.Debug:KV("containerSource", resolution.containerSource),
         ns.Debug:KV("container", ns.Debug:DescribeObject(resolution.container)),
         ns.Debug:KV("widgetSource", resolution.widgetFrameSource),
         ns.Debug:KV("widget", ns.Debug:DescribeObject(resolution.widgetFrame)),
         ns.Debug:KV("targetKind", kind),
-        ns.Debug:KV("targetSource", resolution.targetSource),
-        ns.Debug:KV("fallbackPath", resolution.fallbackPath),
         ns.Debug:KV("target", ns.Debug:DescribeObject(target)),
-        ns.Debug:KV("targetLayer", DescribeDrawLayer(target)),
         ns.Debug:KV("host", ns.Debug:DescribeObject(host)),
         ns.Debug:KV("hostStrata", host and host:GetFrameStrata() or nil),
         ns.Debug:KV("overlayStrata", self.frame:GetFrameStrata()),

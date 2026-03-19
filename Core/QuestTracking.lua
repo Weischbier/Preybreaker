@@ -107,7 +107,6 @@ function ns.QuestTracking:GetState()
             activeQuestID = nil,
             ownedWatchQuestID = nil,
             ownedSuperTrackedQuestID = nil,
-            previousSuperTrackedQuestID = nil,
             pendingAutoTurnIn = nil,
         }
     end
@@ -136,16 +135,10 @@ function ns.QuestTracking:CleanupOwnedSuperTrack(questID, reason)
     end
 
     if GetSuperTrackedQuestID() == questID then
-        local restoreQuestID = state.previousSuperTrackedQuestID
-        if restoreQuestID and restoreQuestID > 0 and restoreQuestID ~= questID then
-            SetSuperTrackedQuestID(restoreQuestID)
-        else
-            SetSuperTrackedQuestID(0)
-        end
+        SetSuperTrackedQuestID(0)
     end
 
     state.ownedSuperTrackedQuestID = nil
-    state.previousSuperTrackedQuestID = nil
     LogTracking("cleanupSuperTrack", questID, reason)
 end
 
@@ -187,10 +180,9 @@ function ns.QuestTracking:ApplyAutoSuperTrack(questID)
         return
     end
 
-    state.previousSuperTrackedQuestID = currentSuperTrackedQuestID or 0
     if SetSuperTrackedQuestID(questID) then
         state.ownedSuperTrackedQuestID = questID
-        LogTracking("applySuperTrack", questID, state.previousSuperTrackedQuestID)
+        LogTracking("applySuperTrack", questID, nil)
     end
 end
 

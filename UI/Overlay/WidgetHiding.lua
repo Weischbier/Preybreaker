@@ -10,10 +10,57 @@ local _, ns = ...
 ns.OverlayView = ns.OverlayView or {}
 
 local Util = ns.Util
-local WidgetVis = ns.WidgetVisibility
 
-local CancelFrameEffect = WidgetVis.CancelFrameEffect
-local RestoreFrameEffect = WidgetVis.RestoreFrameEffect
+local function BuildFrameEffectInfo(frame)
+    local effectID = frame and frame.scriptedAnimationEffectID or nil
+    local modelSceneLayer = frame and frame.modelSceneLayer or nil
+    if not effectID or effectID == 0 or modelSceneLayer == nil then
+        return nil
+    end
+
+    if Enum and Enum.UIWidgetModelSceneLayer and modelSceneLayer == Enum.UIWidgetModelSceneLayer.None then
+        return nil
+    end
+
+    return {
+        scriptedAnimationEffectID = effectID,
+        modelSceneLayer = modelSceneLayer,
+    }
+end
+
+local function CancelFrameEffect(frame)
+    local effectController = frame and frame.effectController or nil
+    if not effectController or type(effectController.CancelEffect) ~= "function" then
+        return false
+    end
+
+    Util.SafeCall(effectController.CancelEffect, effectController)
+    frame.effectController = nil
+    return true
+end
+
+local function RestoreFrameEffect(frame)
+    if not frame or frame.effectController or not frame.widgetContainer then
+        return false
+    end
+
+    local effectInfo = BuildFrameEffectInfo(frame)
+    if not effectInfo then
+        return false
+    end
+
+    if type(frame.ApplyEffects) == "function" then
+        Util.SafeCall(frame.ApplyEffects, frame, effectInfo)
+        return frame.effectController ~= nil
+    end
+
+    if type(frame.ApplyEffectToFrame) == "function" then
+        Util.SafeCall(frame.ApplyEffectToFrame, frame, effectInfo, frame.widgetContainer, frame)
+        return frame.effectController ~= nil
+    end
+
+    return false
+end
 
 local function ShouldHideBlizzardWidget()
     local settings = ns.Settings

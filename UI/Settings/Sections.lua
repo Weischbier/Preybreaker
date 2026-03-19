@@ -109,8 +109,8 @@ function SP.CreateSections(frame)
                     key = "offsetX",
                     title = L["Horizontal position"],
                     description = L["Nudge the tracker left or right around the prey icon."],
-                    minValue = -80,
-                    maxValue = 80,
+                    minValue = -200,
+                    maxValue = 200,
                     step = 1,
                     formatter = function(value)
                         return string.format("%d", value)
@@ -127,8 +127,8 @@ function SP.CreateSections(frame)
                     key = "offsetY",
                     title = L["Vertical position"],
                     description = L["Nudge the tracker up or down around the prey icon."],
-                    minValue = -80,
-                    maxValue = 80,
+                    minValue = -200,
+                    maxValue = 200,
                     step = 1,
                     formatter = function(value)
                         return string.format("%d", value)

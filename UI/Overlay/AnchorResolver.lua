@@ -29,31 +29,6 @@ local function IsFrameObject(frame)
     return IsAnchorTargetUsable(frame) and frame:GetObjectType() == "Frame"
 end
 
-local function DescribeDrawLayer(target)
-    if not target then
-        return nil
-    end
-
-    if type(target.GetDrawLayer) == "function" then
-        local layer, subLevel = target:GetDrawLayer()
-        if layer and subLevel ~= nil then
-            return string.format("%s:%s", tostring(layer), tostring(subLevel))
-        end
-        if layer then
-            return tostring(layer)
-        end
-    end
-
-    if type(target.GetFrameStrata) == "function" then
-        local strata = target:GetFrameStrata()
-        if strata then
-            return "frame:" .. tostring(strata)
-        end
-    end
-
-    return nil
-end
-
 local function GetFrameWidgetID(frame)
     if not frame then
         return nil
@@ -174,5 +149,4 @@ ns.AnchorResolver.ResolveHostFrame = ResolveHostFrame
 ns.AnchorResolver.IsOverlayFrame = IsOverlayFrame
 ns.AnchorResolver.IsAnchorTargetUsable = IsAnchorTargetUsable
 ns.AnchorResolver.IsFrameObject = IsFrameObject
-ns.AnchorResolver.DescribeDrawLayer = DescribeDrawLayer
 ns.AnchorResolver.GetFrameWidgetID = GetFrameWidgetID
