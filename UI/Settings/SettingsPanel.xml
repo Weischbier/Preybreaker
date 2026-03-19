@@ -1,0 +1,343 @@
+<Ui xsi:schemaLocation="http://www.blizzard.com/wow/ui/..\FrameXML\UI.xsd">
+
+    <!-- PreybreakerToggleRowTemplate
+         A toggle field row with accent bar, checkbox, title, description, state text, and highlight.
+         Lua owns: OnClick, Refresh, backdrop colors. -->
+    <Button name="PreybreakerToggleRowTemplate" inherits="BackdropTemplate" registerForClicks="LeftButtonUp" virtual="true">
+        <Size x="100" y="62"/>
+        <Layers>
+            <Layer level="ARTWORK">
+                <Texture parentKey="AccentBar">
+                    <Size x="2"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="3" y="-3"/>
+                        <Anchor point="BOTTOMLEFT" x="3" y="3"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+            <Layer level="OVERLAY">
+                <FontString parentKey="Title" inherits="GameFontNormal" justifyH="LEFT">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="40" y="-9"/>
+                        <Anchor point="RIGHT" x="-62"/>
+                    </Anchors>
+                </FontString>
+                <FontString parentKey="Description" inherits="GameFontNormalSmall" justifyH="LEFT" wordwrap="true">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Title" relativePoint="BOTTOMLEFT" y="-2"/>
+                        <Anchor point="BOTTOMRIGHT" x="-62" y="10"/>
+                    </Anchors>
+                </FontString>
+                <FontString parentKey="StateText" inherits="GameFontHighlightSmall" justifyH="RIGHT">
+                    <Anchors>
+                        <Anchor point="RIGHT" x="-12"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+            <Layer level="HIGHLIGHT">
+                <Texture parentKey="Highlight" setAllPoints="true"/>
+            </Layer>
+        </Layers>
+        <Frames>
+            <CheckButton parentKey="Checkbox" inherits="UICheckButtonTemplate">
+                <Anchors>
+                    <Anchor point="LEFT" x="8"/>
+                </Anchors>
+            </CheckButton>
+        </Frames>
+    </Button>
+
+    <!-- PreybreakerSliderRowTemplate
+         A slider field row with title, value text, description, and slider.
+         Lua owns: OnValueChanged, Refresh, backdrop colors, slider min/max/step. -->
+    <Frame name="PreybreakerSliderRowTemplate" inherits="BackdropTemplate" virtual="true">
+        <Size x="100" y="94"/>
+        <Layers>
+            <Layer level="OVERLAY">
+                <FontString parentKey="Title" inherits="GameFontNormal" justifyH="LEFT">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="12" y="-10"/>
+                    </Anchors>
+                </FontString>
+                <FontString parentKey="ValueText" inherits="GameFontHighlightSmall" justifyH="RIGHT">
+                    <Anchors>
+                        <Anchor point="TOPRIGHT" x="-12" y="-10"/>
+                    </Anchors>
+                </FontString>
+                <FontString parentKey="Description" inherits="GameFontNormalSmall" justifyH="LEFT" wordwrap="true">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Title" relativePoint="BOTTOMLEFT" y="-3"/>
+                        <Anchor point="RIGHT" x="-12"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Frames>
+            <Slider parentKey="Slider" inherits="OptionsSliderTemplate" orientation="HORIZONTAL">
+                <Anchors>
+                    <Anchor point="BOTTOMLEFT" x="8" y="4"/>
+                    <Anchor point="BOTTOMRIGHT" x="-14" y="4"/>
+                </Anchors>
+            </Slider>
+        </Frames>
+    </Frame>
+
+    <!-- PreybreakerActionRowTemplate
+         An action button field row with title, description, and button.
+         Lua owns: OnClick, Refresh, backdrop colors, button text/width. -->
+    <Frame name="PreybreakerActionRowTemplate" inherits="BackdropTemplate" virtual="true">
+        <Size x="100" y="72"/>
+        <Layers>
+            <Layer level="OVERLAY">
+                <FontString parentKey="Title" inherits="GameFontNormal" justifyH="LEFT">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="12" y="-10"/>
+                    </Anchors>
+                </FontString>
+                <FontString parentKey="Description" inherits="GameFontNormalSmall" justifyH="LEFT" wordwrap="true">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Title" relativePoint="BOTTOMLEFT" y="-2"/>
+                        <Anchor point="LEFT" x="12"/>
+                        <Anchor point="RIGHT" x="-124"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Frames>
+            <Button parentKey="Button" inherits="UIPanelButtonTemplate">
+                <Size x="108" y="22"/>
+                <Anchors>
+                    <Anchor point="RIGHT" x="-12"/>
+                </Anchors>
+            </Button>
+        </Frames>
+    </Frame>
+
+    <!-- PreybreakerSectionCardTemplate
+         A section wrapper card with title, description, and accent line.
+         Lua owns: backdrop colors, text content, field children. -->
+    <Frame name="PreybreakerSectionCardTemplate" inherits="BackdropTemplate" virtual="true">
+        <Size x="100" y="100"/>
+        <Layers>
+            <Layer level="OVERLAY">
+                <FontString parentKey="Title" inherits="GameFontHighlight" justifyH="LEFT">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="16" y="-14"/>
+                    </Anchors>
+                </FontString>
+                <FontString parentKey="Description" inherits="GameFontNormalSmall" justifyH="LEFT" wordwrap="true">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Title" relativePoint="BOTTOMLEFT" y="-4"/>
+                        <Anchor point="RIGHT" x="-16"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+            <Layer level="ARTWORK">
+                <Texture parentKey="AccentLine">
+                    <Size x="0" y="1"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Description" relativePoint="BOTTOMLEFT" y="-1"/>
+                        <Anchor point="TOPRIGHT" relativeKey="$parent.Description" relativePoint="BOTTOMRIGHT" y="-1"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+        </Layers>
+    </Frame>
+
+    <!-- PreybreakerSummaryCardTemplate
+         Summary sidebar card with status pill, label-value rows, and note.
+         Lua owns: backdrop colors, text content, status updates. -->
+    <Frame name="PreybreakerSummaryCardTemplate" inherits="BackdropTemplate" virtual="true">
+        <Size x="100" y="180"/>
+        <Layers>
+            <Layer level="OVERLAY">
+                <FontString parentKey="Title" inherits="GameFontHighlight">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="14" y="-12"/>
+                    </Anchors>
+                </FontString>
+                <FontString parentKey="StatusText" inherits="GameFontNormalSmall" justifyH="LEFT" justifyV="TOP" wordwrap="true">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Title" relativePoint="BOTTOMLEFT" y="-34"/>
+                        <Anchor point="RIGHT" x="-12"/>
+                    </Anchors>
+                </FontString>
+
+                <!-- Row 1: Style -->
+                <FontString parentKey="StyleLabel" inherits="GameFontNormalSmall">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.StatusText" relativePoint="BOTTOMLEFT" y="-10"/>
+                    </Anchors>
+                </FontString>
+                <FontString parentKey="StyleValue" inherits="GameFontHighlightSmall" justifyH="RIGHT">
+                    <Anchors>
+                        <Anchor point="LEFT" relativeKey="$parent.StyleLabel" relativePoint="RIGHT" x="10"/>
+                        <Anchor point="RIGHT" x="-12"/>
+                    </Anchors>
+                </FontString>
+
+                <!-- Row 2: Placement -->
+                <FontString parentKey="PlacementLabel" inherits="GameFontNormalSmall">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.StyleLabel" relativePoint="BOTTOMLEFT" y="-10"/>
+                    </Anchors>
+                </FontString>
+                <FontString parentKey="PlacementValue" inherits="GameFontHighlightSmall" justifyH="RIGHT">
+                    <Anchors>
+                        <Anchor point="LEFT" relativeKey="$parent.PlacementLabel" relativePoint="RIGHT" x="10"/>
+                        <Anchor point="RIGHT" x="-12"/>
+                    </Anchors>
+                </FontString>
+
+                <!-- Row 3: Blizzard UI -->
+                <FontString parentKey="WidgetLabel" inherits="GameFontNormalSmall">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.PlacementLabel" relativePoint="BOTTOMLEFT" y="-10"/>
+                    </Anchors>
+                </FontString>
+                <FontString parentKey="WidgetValue" inherits="GameFontHighlightSmall" justifyH="RIGHT">
+                    <Anchors>
+                        <Anchor point="LEFT" relativeKey="$parent.WidgetLabel" relativePoint="RIGHT" x="10"/>
+                        <Anchor point="RIGHT" x="-12"/>
+                    </Anchors>
+                </FontString>
+
+                <!-- Row 4: Readout -->
+                <FontString parentKey="ReadoutLabel" inherits="GameFontNormalSmall">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.WidgetLabel" relativePoint="BOTTOMLEFT" y="-10"/>
+                    </Anchors>
+                </FontString>
+                <FontString parentKey="ReadoutValue" inherits="GameFontHighlightSmall" justifyH="RIGHT">
+                    <Anchors>
+                        <Anchor point="LEFT" relativeKey="$parent.ReadoutLabel" relativePoint="RIGHT" x="10"/>
+                        <Anchor point="RIGHT" x="-12"/>
+                    </Anchors>
+                </FontString>
+
+                <!-- Row 5: Quest help -->
+                <FontString parentKey="QuestLabel" inherits="GameFontNormalSmall">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.ReadoutLabel" relativePoint="BOTTOMLEFT" y="-10"/>
+                    </Anchors>
+                </FontString>
+                <FontString parentKey="QuestValue" inherits="GameFontHighlightSmall" justifyH="RIGHT">
+                    <Anchors>
+                        <Anchor point="LEFT" relativeKey="$parent.QuestLabel" relativePoint="RIGHT" x="10"/>
+                        <Anchor point="RIGHT" x="-12"/>
+                    </Anchors>
+                </FontString>
+
+                <!-- Note -->
+                <FontString parentKey="Note" inherits="GameFontDisableSmall" justifyH="LEFT">
+                    <Anchors>
+                        <Anchor point="BOTTOMLEFT" x="14" y="12"/>
+                        <Anchor point="RIGHT" x="-12"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Frames>
+            <!-- Status pill -->
+            <Frame parentKey="StatusPill" inherits="BackdropTemplate">
+                <Size x="112" y="24"/>
+                <Anchors>
+                    <Anchor point="TOPRIGHT" x="-12" y="-10"/>
+                </Anchors>
+                <Layers>
+                    <Layer level="OVERLAY">
+                        <FontString parentKey="Text" inherits="GameFontHighlightSmall" justifyH="CENTER">
+                            <Anchors>
+                                <Anchor point="CENTER"/>
+                            </Anchors>
+                        </FontString>
+                    </Layer>
+                </Layers>
+            </Frame>
+        </Frames>
+    </Frame>
+
+    <!-- PreybreakerActionsCardTemplate
+         Quick actions card with reset/refresh buttons and hint.
+         Lua owns: backdrop colors, button OnClick, text content. -->
+    <Frame name="PreybreakerActionsCardTemplate" inherits="BackdropTemplate" virtual="true">
+        <Size x="100" y="110"/>
+        <Layers>
+            <Layer level="OVERLAY">
+                <FontString parentKey="Title" inherits="GameFontHighlight">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="14" y="-12"/>
+                    </Anchors>
+                </FontString>
+                <FontString parentKey="Hint" inherits="GameFontDisableSmall" justifyH="LEFT" wordwrap="true">
+                    <Anchors>
+                        <Anchor point="BOTTOMLEFT" x="14" y="12"/>
+                        <Anchor point="RIGHT" x="-12"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Frames>
+            <Button parentKey="ResetButton" inherits="UIPanelButtonTemplate">
+                <Size x="96" y="22"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeKey="$parent.Title" relativePoint="BOTTOMLEFT" y="-14"/>
+                </Anchors>
+            </Button>
+            <Button parentKey="RefreshButton" inherits="UIPanelButtonTemplate">
+                <Size x="96" y="22"/>
+                <Anchors>
+                    <Anchor point="LEFT" relativeKey="$parent.ResetButton" relativePoint="RIGHT" x="10"/>
+                </Anchors>
+            </Button>
+        </Frames>
+    </Frame>
+
+    <!-- PreybreakerSettingsPanelHeaderTemplate
+         Draggable header bar with icon, title, subtitle, and decorative textures.
+         Lua owns: drag scripts, text content, texture colors. -->
+    <Frame name="PreybreakerSettingsPanelHeaderTemplate" enableMouse="true" registerForDrag="LeftButton" virtual="true">
+        <Size x="100" y="72"/>
+        <Layers>
+            <Layer level="BACKGROUND">
+                <Texture parentKey="Shade" setAllPoints="true"/>
+            </Layer>
+            <Layer level="ARTWORK">
+                <Texture parentKey="Glow">
+                    <Size x="0" y="24"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT"/>
+                        <Anchor point="TOPRIGHT"/>
+                    </Anchors>
+                </Texture>
+                <Texture parentKey="AccentLine">
+                    <Size x="0" y="2"/>
+                    <Anchors>
+                        <Anchor point="BOTTOMLEFT"/>
+                        <Anchor point="BOTTOMRIGHT"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+            <Layer level="OVERLAY">
+                <Texture parentKey="Icon">
+                    <Size x="40" y="40"/>
+                    <Anchors>
+                        <Anchor point="LEFT" x="4"/>
+                    </Anchors>
+                </Texture>
+                <FontString parentKey="Title" inherits="GameFontHighlightLarge">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Icon" relativePoint="TOPRIGHT" x="12" y="-4"/>
+                    </Anchors>
+                </FontString>
+                <FontString parentKey="Subtitle" inherits="GameFontNormalSmall" justifyH="LEFT">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Title" relativePoint="BOTTOMLEFT" y="-4"/>
+                        <Anchor point="RIGHT" x="-32"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+    </Frame>
+
+</Ui>

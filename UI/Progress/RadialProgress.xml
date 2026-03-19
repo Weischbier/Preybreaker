@@ -1,0 +1,32 @@
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+<!-- Copyright (C) 2026 Danny Patten -->
+<!-- Portions adapted from Peterodox's Plumber: https://github.com/Peterodox/Plumber -->
+<!-- Radial progress template adapted from Plumber. -->
+<Ui xmlns="http://www.blizzard.com/wow/ui/"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.blizzard.com/wow/ui/..\FrameXML\UI.xsd">
+    <Cooldown name="PreybreakerRadialProgressBarTemplate"
+              reverse="true"
+              hideCountdownNumbers="true"
+              rotation="180"
+              useParentLevel="true"
+              virtual="true">
+        <Size x="68" y="68"/>
+        <Layers>
+            <Layer level="BORDER">
+                <Texture parentKey="Border" setAllPoints="true"/>
+            </Layer>
+            <Layer level="BORDER" textureSubLevel="1">
+                <Texture parentKey="BorderHighlight"
+                         setAllPoints="true"
+                         hidden="true"
+                         alphaMode="ADD"
+                         alpha="0.5"/>
+            </Layer>
+        </Layers>
+        <SwipeTexture file="Interface\PVPFrame\pvpqueue-sidebar-honorbar-fill"/>
+        <KeyValues>
+            <KeyValue key="noCooldownCount" value="true" type="boolean"/>
+        </KeyValues>
+    </Cooldown>
+</Ui>
