@@ -90,55 +90,8 @@ function SP.CreateSections(frame)
         },
         {
             title = L["Placement"],
-            description = L["Keep the tracker on the prey icon or switch it to a movable floating layout."],
+            description = L["Keep the tracker attached to the prey icon and nudge it into place."],
             fields = {
-                {
-                    type = "toggle",
-                    key = "detached",
-                    title = L["Detach from prey icon"],
-                    description = L["Turn the tracker into a free-floating element you can place anywhere."],
-                    get = function()
-                        return Settings:IsDetached()
-                    end,
-                    set = function(value)
-                        if value and ns.OverlayView then
-                            ns.OverlayView:CaptureDetachedPosition(Settings:GetDisplayMode())
-                        end
-                        Settings:SetDetached(value)
-                    end,
-                },
-                {
-                    type = "toggle",
-                    key = "lockDetachedPosition",
-                    title = L["Lock floating position"],
-                    description = L["Keep the floating tracker fixed once it is where you want it."],
-                    disabledDescription = L["Available after you switch the tracker to the floating layout."],
-                    isAvailable = function()
-                        return Settings:IsDetached()
-                    end,
-                    get = function()
-                        return Settings:IsDetachedPositionLocked()
-                    end,
-                    set = function(value)
-                        Settings:SetDetachedPositionLocked(value)
-                    end,
-                },
-                {
-                    type = "action",
-                    key = "resetDetachedPosition",
-                    title = L["Reset floating position"],
-                    description = L["Bring the floating tracker back to the center of your screen."],
-                    disabledDescription = L["Available after you switch the tracker to the floating layout."],
-                    buttonText = L["Reset position"],
-                    buttonWidth = 112,
-                    isAvailable = function()
-                        return Settings:IsDetached()
-                    end,
-                    onClick = function()
-                        Settings:ResetDetachedPosition()
-                        ns.SettingsPanel:CommitChange("settings:resetDetachedPosition")
-                    end,
-                },
                 {
                     type = "toggle",
                     key = "hideBlizzardWidget",
@@ -155,47 +108,17 @@ function SP.CreateSections(frame)
                     type = "slider",
                     key = "offsetX",
                     title = L["Horizontal position"],
-                    description = function()
-                        if Settings:IsDetached() then
-                            return L["Move the floating tracker left or right on the screen."]
-                        end
-
-                        return L["Nudge the tracker left or right around the prey icon."]
-                    end,
-                    minValue = -40,
-                    maxValue = 40,
+                    description = L["Nudge the tracker left or right around the prey icon."],
+                    minValue = -80,
+                    maxValue = 80,
                     step = 1,
                     formatter = function(value)
                         return string.format("%d", value)
                     end,
-                    getBounds = function()
-                        if Settings:IsDetached() then
-                            return {
-                                min = -2400,
-                                max = 2400,
-                                step = 1,
-                            }
-                        end
-
-                        return {
-                            min = -40,
-                            max = 40,
-                            step = 1,
-                        }
-                    end,
                     get = function()
-                        if Settings:IsDetached() then
-                            return Settings:GetDetachedX()
-                        end
-
                         return Settings:GetOffsetX()
                     end,
                     set = function(value)
-                        if Settings:IsDetached() then
-                            Settings:SetDetachedX(value)
-                            return
-                        end
-
                         Settings:SetOffsetX(value)
                     end,
                 },
@@ -203,47 +126,17 @@ function SP.CreateSections(frame)
                     type = "slider",
                     key = "offsetY",
                     title = L["Vertical position"],
-                    description = function()
-                        if Settings:IsDetached() then
-                            return L["Move the floating tracker up or down on the screen."]
-                        end
-
-                        return L["Nudge the tracker up or down around the prey icon."]
-                    end,
-                    minValue = -40,
-                    maxValue = 40,
+                    description = L["Nudge the tracker up or down around the prey icon."],
+                    minValue = -80,
+                    maxValue = 80,
                     step = 1,
                     formatter = function(value)
                         return string.format("%d", value)
                     end,
-                    getBounds = function()
-                        if Settings:IsDetached() then
-                            return {
-                                min = -2400,
-                                max = 2400,
-                                step = 1,
-                            }
-                        end
-
-                        return {
-                            min = -40,
-                            max = 40,
-                            step = 1,
-                        }
-                    end,
                     get = function()
-                        if Settings:IsDetached() then
-                            return Settings:GetDetachedY()
-                        end
-
                         return Settings:GetOffsetY()
                     end,
                     set = function(value)
-                        if Settings:IsDetached() then
-                            Settings:SetDetachedY(value)
-                            return
-                        end
-
                         Settings:SetOffsetY(value)
                     end,
                 },
@@ -398,6 +291,18 @@ function SP.CreateSections(frame)
                         Settings:SetAutoSuperTrackPreyQuest(value)
                     end,
                 },
+                {
+                    type = "toggle",
+                    key = "autoTurnInQuest",
+                    title = L["Auto turn-in prey quest"],
+                    description = L["Automatically complete the prey quest when it pops up, unless a reward choice is required."],
+                    get = function()
+                        return Settings:ShouldAutoTurnInPreyQuest()
+                    end,
+                    set = function(value)
+                        Settings:SetAutoTurnInPreyQuest(value)
+                    end,
+                },
             },
         },
         {
@@ -414,49 +319,6 @@ function SP.CreateSections(frame)
                     end,
                     set = function(value)
                         Settings:SetPlaySoundOnPhaseChange(value)
-                    end,
-                },
-            },
-        },
-        {
-            title = L["Drag & grid"],
-            description = L["Fine-tune how the floating tracker behaves when you reposition it."],
-            fields = {
-                {
-                    type = "toggle",
-                    key = "snapToGrid",
-                    title = L["Snap to grid"],
-                    description = L["Align the floating tracker to an invisible pixel grid when you drop it."],
-                    disabledDescription = L["Available after you switch the tracker to the floating layout."],
-                    isAvailable = function()
-                        return Settings:IsDetached()
-                    end,
-                    get = function()
-                        return Settings:ShouldSnapToGrid()
-                    end,
-                    set = function(value)
-                        Settings:SetSnapToGrid(value)
-                    end,
-                },
-                {
-                    type = "slider",
-                    key = "gridSize",
-                    title = L["Grid size"],
-                    description = L["Spacing of the snap grid in pixels."],
-                    minValue = 4,
-                    maxValue = 64,
-                    step = 4,
-                    formatter = function(value)
-                        return string.format("%dpx", value)
-                    end,
-                    isAvailable = function()
-                        return Settings:IsDetached() and Settings:ShouldSnapToGrid()
-                    end,
-                    get = function()
-                        return Settings:GetGridSize()
-                    end,
-                    set = function(value)
-                        Settings:SetGridSize(value)
                     end,
                 },
             },

@@ -10,6 +10,10 @@ local function BuildInactiveSnapshot()
     return {
         active = false,
         widgetID = nil,
+        questID = nil,
+        activeQuestID = nil,
+        worldQuestID = nil,
+        mapID = nil,
         progressState = nil,
         progress = 0,
         percent = 0,
@@ -109,9 +113,6 @@ function Preybreaker:Refresh(reason)
     local enabled = not ns.Settings or ns.Settings:IsEnabled()
     local snapshot = enabled and ns.DataSource.BuildSnapshot() or BuildInactiveSnapshot()
     self.activeWidgetID = enabled and snapshot.widgetID or nil
-    if ns.AmbushProbe then
-        ns.AmbushProbe:Sync(self, snapshot)
-    end
 
     local previousSnapshot = self.lastSnapshot
     local previousState = previousSnapshot and previousSnapshot.active and previousSnapshot.progressState or nil
@@ -217,8 +218,17 @@ Preybreaker:SetScript("OnEvent", function(self, event, arg1, ...)
         return
     end
 
-    if ns.AmbushProbe and ns.AmbushProbe:IsCandidateEvent(event) then
-        ns.AmbushProbe:HandleEvent(event, arg1, ...)
+    if event == "QUEST_AUTOCOMPLETE" then
+        if ns.QuestTracking then
+            ns.QuestTracking:HandleQuestAutoComplete(arg1)
+        end
+        return
+    end
+
+    if event == "QUEST_COMPLETE" then
+        if ns.QuestTracking then
+            ns.QuestTracking:HandleQuestComplete()
+        end
         return
     end
 
@@ -248,10 +258,14 @@ Preybreaker:RegisterEvent("QUEST_ACCEPTED")
 Preybreaker:RegisterEvent("QUEST_REMOVED")
 Preybreaker:RegisterEvent("QUEST_LOG_UPDATE")
 Preybreaker:RegisterEvent("QUEST_LOG_CRITERIA_UPDATE")
+Preybreaker:RegisterEvent("QUEST_POI_UPDATE")
 Preybreaker:RegisterEvent("QUEST_WATCH_LIST_CHANGED")
 Preybreaker:RegisterEvent("SUPER_TRACKING_CHANGED")
+Preybreaker:RegisterEvent("TASK_PROGRESS_UPDATE")
 Preybreaker:RegisterEvent("UPDATE_ALL_UI_WIDGETS")
 Preybreaker:RegisterEvent("UPDATE_UI_WIDGET")
+Preybreaker:RegisterEvent("QUEST_AUTOCOMPLETE")
+Preybreaker:RegisterEvent("QUEST_COMPLETE")
 
 -- Private namespace reference for the test suite. Only exposed when the
 -- companion test addon is installed. Not part of the public API.

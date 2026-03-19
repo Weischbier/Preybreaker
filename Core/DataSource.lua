@@ -8,6 +8,21 @@ local Util = ns.Util
 
 ns.DataSource = {}
 
+local function BuildInactiveSnapshot(context, widgetID)
+    context = context or {}
+    return {
+        active = false,
+        widgetID = widgetID,
+        questID = context.trackedQuestID,
+        activeQuestID = context.activeQuestID,
+        worldQuestID = context.worldQuestID,
+        mapID = context.mapID,
+        progressState = nil,
+        progress = 0,
+        percent = 0,
+    }
+end
+
 local function IsShown(widgetInfo)
     if type(widgetInfo) ~= "table" then
         return false
@@ -19,10 +34,6 @@ local function IsShown(widgetInfo)
     end
 
     return shownState == Constants.WidgetShown
-end
-
-local function GetActiveQuestID()
-    return Util.GetActivePreyQuestID()
 end
 
 local function GetPreyWidgetInfo()
@@ -59,10 +70,6 @@ local function GetPreyWidgetInfo()
     return nil, nil
 end
 
-local function IsQuestComplete(questID)
-    return Util.IsQuestComplete(questID)
-end
-
 local function ResolveProgressState(widgetInfo)
     local progressState = widgetInfo and widgetInfo.progressState or nil
     if Constants.ProgressByState[progressState] == nil then
@@ -73,31 +80,15 @@ local function ResolveProgressState(widgetInfo)
 end
 
 function ns.DataSource.BuildSnapshot()
-    local questID = GetActiveQuestID()
+    local context = Util.BuildPreyQuestContext()
     local widgetInfo, widgetID = GetPreyWidgetInfo()
-    if not questID then
-        return { active = false, widgetID = nil, progressState = nil, progress = 0, percent = 0 }
-    end
-
-    if IsQuestComplete(questID) then
-        return {
-            active = false,
-            widgetID = widgetID,
-            progressState = nil,
-            progress = 0,
-            percent = 0,
-        }
+    if not context.trackedQuestID then
+        return BuildInactiveSnapshot(context, widgetID)
     end
 
     local progressState = ResolveProgressState(widgetInfo)
     if progressState == nil then
-        return {
-            active = false,
-            widgetID = widgetID,
-            progressState = nil,
-            progress = 0,
-            percent = 0,
-        }
+        return BuildInactiveSnapshot(context, widgetID)
     end
 
     local progress = Constants.ProgressByState[progressState] or 0
@@ -106,6 +97,10 @@ function ns.DataSource.BuildSnapshot()
     return {
         active = true,
         widgetID = widgetID,
+        questID = context.trackedQuestID,
+        activeQuestID = context.activeQuestID,
+        worldQuestID = context.worldQuestID,
+        mapID = context.mapID,
         progressState = progressState,
         progress = progress,
         percent = Util.RoundPercent(progress),

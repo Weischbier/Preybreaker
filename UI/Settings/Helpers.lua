@@ -88,22 +88,14 @@ function SP.AddSpecialFrame(frameName)
     table.insert(UISpecialFrames, frameName)
 end
 
-function SP.CreateAccentLine(parent, anchor, alpha)
+function SP.ApplyAccentLineColor(line, alpha)
     local panel = Constants.SettingsPanel
-    local accent = parent:CreateTexture(nil, "ARTWORK")
-    accent:SetHeight(1)
-    accent:SetColorTexture(panel.AccentColor[1], panel.AccentColor[2], panel.AccentColor[3], alpha or 0.28)
-    accent:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -1)
-    accent:SetPoint("TOPRIGHT", anchor, "BOTTOMRIGHT", 0, -1)
-    return accent
+    line:SetColorTexture(panel.AccentColor[1], panel.AccentColor[2], panel.AccentColor[3], alpha or 0.22)
 end
 
-function SP.AddFieldHighlight(frame, alpha)
+function SP.ApplyHighlightColor(highlight, alpha)
     local panel = Constants.SettingsPanel
-    local highlight = frame:CreateTexture(nil, "HIGHLIGHT")
-    highlight:SetAllPoints(true)
     highlight:SetColorTexture(panel.AccentColor[1], panel.AccentColor[2], panel.AccentColor[3], alpha or 0.06)
-    return highlight
 end
 
 function SP.ResolveValue(value)
@@ -193,18 +185,6 @@ function SP.ApplyPreviewWidgetTexture(texture, snapshot)
     end
 end
 
-function SP.GetPreviewDetachedOffset(value, limit)
-    local scaled = (tonumber(value) or 0) / 12
-    if scaled > limit then
-        return limit
-    end
-    if scaled < -limit then
-        return -limit
-    end
-
-    return scaled
-end
-
 function SP.UpdateBadgeAnchor(badge, progress, valueText, showValueText)
     badge:ClearAllPoints()
     if showValueText then
@@ -230,14 +210,6 @@ end
 function SP.GetPreviewNote(live)
     if not Settings:IsEnabled() then
         return L["Preview stays available while the tracker is turned off."]
-    end
-
-    if Settings:IsDetached() then
-        if Settings:IsDetachedPositionLocked() then
-            return L["Floating layout locked. Unlock it to drag the live tracker."]
-        end
-
-        return L["Floating layout ready. Drag the live tracker when a hunt is active."]
     end
 
     local displayMode = Settings:GetDisplayMode()
@@ -273,10 +245,10 @@ function SP.GetPreviewNote(live)
     return live and L["Ring view attached to the Blizzard prey icon."] or L["Ring sample attached to the Blizzard prey icon."]
 end
 
-function SP.CreateActionButton(parent, text, width, onClick)
-    local button = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
-    button:SetSize(width, 22)
-    button:SetText(text)
-    button:SetScript("OnClick", onClick)
-    return button
+function SP.HideSliderTemplateLabels(slider)
+    for _, region in pairs({ slider:GetRegions() }) do
+        if region.SetText then
+            region:SetText("")
+        end
+    end
 end

@@ -10,24 +10,29 @@ local L = ns.L
 local SP = ns._SP
 
 local SetTextColor = SP.SetTextColor
-local ApplyBackdrop = SP.ApplyBackdrop
 local ApplyCardBackdrop = SP.ApplyCardBackdrop
 local ApplyInsetBackdrop = SP.ApplyInsetBackdrop
+local ApplyAccentLineColor = SP.ApplyAccentLineColor
 local ApplyPreviewWidgetTexture = SP.ApplyPreviewWidgetTexture
-local CreateActionButton = SP.CreateActionButton
-local BACKDROP_TEMPLATE = SP.BACKDROP_TEMPLATE
 local SAMPLE_STATE = SP.SAMPLE_STATE
 local ORDERED_STATES = SP.ORDERED_STATES
 
 function SP.CreateHeader(frame)
     local panel = Constants.SettingsPanel
 
-    local header = CreateFrame("Frame", nil, frame)
+    local header = CreateFrame("Frame", nil, frame, "PreybreakerSettingsPanelHeaderTemplate")
     header:SetPoint("TOPLEFT", frame, "TOPLEFT", panel.Padding, -panel.Padding)
     header:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -panel.Padding, -panel.Padding)
-    header:SetHeight(panel.HeaderHeight)
-    header:EnableMouse(true)
-    header:RegisterForDrag("LeftButton")
+
+    header.Shade:SetColorTexture(0.17, 0.11, 0.06, 0.90)
+    header.Glow:SetColorTexture(panel.AccentColor[1], panel.AccentColor[2], panel.AccentColor[3], 0.09)
+    header.AccentLine:SetColorTexture(panel.AccentColor[1], panel.AccentColor[2], panel.AccentColor[3], 0.82)
+    header.Icon:SetTexture(Constants.Media.AddonIcon)
+    header.Title:SetText(ADDON_NAME)
+    SetTextColor(header.Title, panel.TitleColor)
+    header.Subtitle:SetText(L["Shape the prey tracker around your HUD with a live preview and clear sections."])
+    SetTextColor(header.Subtitle, panel.BodyColor)
+
     header:SetScript("OnDragStart", function()
         frame:StartMoving()
     end)
@@ -35,125 +40,53 @@ function SP.CreateHeader(frame)
         frame:StopMovingOrSizing()
     end)
 
-    local shade = header:CreateTexture(nil, "BACKGROUND")
-    shade:SetAllPoints(true)
-    shade:SetColorTexture(0.17, 0.11, 0.06, 0.90)
-
-    local glow = header:CreateTexture(nil, "ARTWORK")
-    glow:SetPoint("TOPLEFT")
-    glow:SetPoint("TOPRIGHT")
-    glow:SetHeight(24)
-    glow:SetColorTexture(panel.AccentColor[1], panel.AccentColor[2], panel.AccentColor[3], 0.09)
-
-    local accent = header:CreateTexture(nil, "ARTWORK")
-    accent:SetPoint("BOTTOMLEFT")
-    accent:SetPoint("BOTTOMRIGHT")
-    accent:SetHeight(2)
-    accent:SetColorTexture(panel.AccentColor[1], panel.AccentColor[2], panel.AccentColor[3], 0.82)
-
-    local icon = header:CreateTexture(nil, "OVERLAY")
-    icon:SetSize(40, 40)
-    icon:SetPoint("LEFT", header, "LEFT", 4, 0)
-    icon:SetTexture(Constants.Media.AddonIcon)
-
-    local title = header:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-    title:SetPoint("TOPLEFT", icon, "TOPRIGHT", 12, -4)
-    title:SetText(ADDON_NAME)
-    SetTextColor(title, panel.TitleColor)
-
-    local subtitle = header:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
-    subtitle:SetPoint("RIGHT", header, "RIGHT", -32, 0)
-    subtitle:SetJustifyH("LEFT")
-    subtitle:SetText(L["Shape the prey tracker around your HUD with a live preview and clear sections."])
-    SetTextColor(subtitle, panel.BodyColor)
-
     local closeButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
     closeButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -4, -4)
 
     frame.Header = header
 end
 
-local function CreateLabelValueRow(parent, anchor, labelText)
-    local label = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    label:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -10)
-    label:SetText(labelText)
-    SetTextColor(label, Constants.SettingsPanel.MutedColor)
-
-    local value = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    value:SetPoint("LEFT", label, "RIGHT", 10, 0)
-    value:SetPoint("RIGHT", parent, "RIGHT", -12, 0)
-    value:SetJustifyH("RIGHT")
-    SetTextColor(value, Constants.SettingsPanel.TitleColor)
-
-    return {
-        Label = label,
-        Value = value,
-    }
-end
-
-local function CreateStatusPill(parent)
-    local pill = CreateFrame("Frame", nil, parent, BACKDROP_TEMPLATE)
-    pill:SetSize(112, 24)
-    ApplyInsetBackdrop(pill)
-
-    pill.Text = pill:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    pill.Text:SetPoint("CENTER")
-    pill.Text:SetJustifyH("CENTER")
-
-    return pill
-end
-
 function SP.CreateSummaryCard(parent)
     local panel = Constants.SettingsPanel
-    local card = CreateFrame("Frame", nil, parent, BACKDROP_TEMPLATE)
+
+    local card = CreateFrame("Frame", nil, parent, "PreybreakerSummaryCardTemplate")
     card:SetHeight(panel.SummaryCardHeight)
     ApplyCardBackdrop(card)
 
-    local title = card:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    title:SetPoint("TOPLEFT", card, "TOPLEFT", 14, -12)
-    title:SetText(L["Current setup"])
-    SetTextColor(title, panel.TitleColor)
+    SetTextColor(card.Title, panel.TitleColor)
+    card.Title:SetText(L["Current setup"])
+    SetTextColor(card.StatusText, panel.BodyColor)
 
-    local pill = CreateStatusPill(card)
-    pill:SetPoint("TOPRIGHT", card, "TOPRIGHT", -12, -10)
+    ApplyInsetBackdrop(card.StatusPill)
 
-    local statusText = card:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    statusText:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -10)
-    statusText:SetPoint("RIGHT", card, "RIGHT", -12, 0)
-    statusText:SetJustifyH("LEFT")
-    statusText:SetJustifyV("TOP")
-    statusText:SetWordWrap(true)
-    SetTextColor(statusText, panel.BodyColor)
+    card.StyleLabel:SetText(L["Style"])
+    SetTextColor(card.StyleLabel, panel.MutedColor)
+    SetTextColor(card.StyleValue, panel.TitleColor)
 
-    local displayRow = CreateLabelValueRow(card, statusText, L["Style"])
-    local placementRow = CreateLabelValueRow(card, displayRow.Label, L["Placement"])
-    local widgetRow = CreateLabelValueRow(card, placementRow.Label, L["Blizzard UI"])
-    local readoutRow = CreateLabelValueRow(card, widgetRow.Label, L["Readout"])
-    local questRow = CreateLabelValueRow(card, readoutRow.Label, L["Quest help"])
+    card.PlacementLabel:SetText(L["Placement"])
+    SetTextColor(card.PlacementLabel, panel.MutedColor)
+    SetTextColor(card.PlacementValue, panel.TitleColor)
 
-    local note = card:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    note:SetPoint("BOTTOMLEFT", card, "BOTTOMLEFT", 14, 12)
-    note:SetPoint("RIGHT", card, "RIGHT", -12, 0)
-    note:SetJustifyH("LEFT")
-    note:SetText(L["Live state shows up here as soon as a prey hunt starts."])
-    SetTextColor(note, panel.MutedColor)
+    card.WidgetLabel:SetText(L["Blizzard UI"])
+    SetTextColor(card.WidgetLabel, panel.MutedColor)
+    SetTextColor(card.WidgetValue, panel.TitleColor)
 
-    card.StatusPill = pill
-    card.StatusText = statusText
-    card.DisplayRow = displayRow
-    card.PlacementRow = placementRow
-    card.WidgetRow = widgetRow
-    card.ReadoutRow = readoutRow
-    card.QuestRow = questRow
-    card.Note = note
+    card.ReadoutLabel:SetText(L["Readout"])
+    SetTextColor(card.ReadoutLabel, panel.MutedColor)
+    SetTextColor(card.ReadoutValue, panel.TitleColor)
+
+    card.QuestLabel:SetText(L["Quest help"])
+    SetTextColor(card.QuestLabel, panel.MutedColor)
+    SetTextColor(card.QuestValue, panel.TitleColor)
+
+    card.Note:SetText(L["Live state shows up here as soon as a prey hunt starts."])
+    SetTextColor(card.Note, panel.MutedColor)
 
     return card
 end
 
 function SP.CreateStageChip(parent, state, previousChip)
-    local chip = CreateFrame("Frame", nil, parent, BACKDROP_TEMPLATE)
-    chip:SetSize(46, 18)
+    local chip = CreateFrame("Frame", nil, parent, "PreybreakerStageChipTemplate")
     ApplyInsetBackdrop(chip)
 
     if previousChip then
@@ -163,8 +96,6 @@ function SP.CreateStageChip(parent, state, previousChip)
     end
 
     chip.state = state
-    chip.Text = chip:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    chip.Text:SetPoint("CENTER")
     chip.Text:SetText(Constants.StageLabelByState[state] or "?")
 
     return chip
@@ -175,7 +106,7 @@ function SP.UpdateStageChip(chip, isSelected)
     local color = Constants.ColorByState[chip.state] or panel.AccentColor
 
     if isSelected then
-        ApplyBackdrop(chip, { color[1], color[2], color[3], 0.22 }, { color[1], color[2], color[3], 0.95 })
+        SP.ApplyBackdrop(chip, { color[1], color[2], color[3], 0.22 }, { color[1], color[2], color[3], 0.95 })
         SetTextColor(chip.Text, panel.TitleColor)
         return
     end
@@ -186,35 +117,23 @@ end
 
 function SP.CreatePreviewCard(parent)
     local panel = Constants.SettingsPanel
-    local card = CreateFrame("Frame", nil, parent, BACKDROP_TEMPLATE)
+
+    local card = CreateFrame("Frame", nil, parent, "PreybreakerPreviewCardTemplate")
     card:SetHeight(panel.PreviewCardHeight)
     ApplyCardBackdrop(card)
 
-    local title = card:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    title:SetPoint("TOPLEFT", card, "TOPLEFT", 14, -12)
-    title:SetText(L["Preview"])
-    SetTextColor(title, panel.TitleColor)
+    SetTextColor(card.Title, panel.TitleColor)
+    card.Title:SetText(L["Preview"])
 
-    local host = CreateFrame("Frame", nil, card, BACKDROP_TEMPLATE)
-    host:SetSize(96, 112)
-    host:SetPoint("TOP", card, "TOP", 0, -46)
-    ApplyInsetBackdrop(host)
+    ApplyInsetBackdrop(card.Host)
+    ApplyPreviewWidgetTexture(card.Host.Icon, { active = false, progressState = SAMPLE_STATE })
 
-    local icon = host:CreateTexture(nil, "ARTWORK")
-    icon:SetPoint("CENTER", host, "CENTER", 0, -2)
-    ApplyPreviewWidgetTexture(icon, { active = false, progressState = SAMPLE_STATE })
+    card.HGuide:SetPoint("CENTER", card.Host, "CENTER")
+    card.HGuide:SetColorTexture(panel.AccentColor[1], panel.AccentColor[2], panel.AccentColor[3], 0.10)
+    card.VGuide:SetPoint("CENTER", card.Host, "CENTER")
+    card.VGuide:SetColorTexture(panel.AccentColor[1], panel.AccentColor[2], panel.AccentColor[3], 0.10)
 
-    local hGuide = card:CreateTexture(nil, "BACKGROUND")
-    hGuide:SetSize(144, 1)
-    hGuide:SetPoint("CENTER", host, "CENTER")
-    hGuide:SetColorTexture(panel.AccentColor[1], panel.AccentColor[2], panel.AccentColor[3], 0.10)
-
-    local vGuide = card:CreateTexture(nil, "BACKGROUND")
-    vGuide:SetSize(1, 144)
-    vGuide:SetPoint("CENTER", host, "CENTER")
-    vGuide:SetColorTexture(panel.AccentColor[1], panel.AccentColor[2], panel.AccentColor[3], 0.10)
-
-    local overlay = CreateFrame("Frame", nil, card)
+    local overlay = card.Overlay
     overlay:SetSize(math.max(Constants.Layout.RingSize, Constants.Layout.BarWidth), Constants.Layout.RingSize)
     overlay:SetFrameLevel(card:GetFrameLevel() + 20)
 
@@ -253,12 +172,7 @@ function SP.CreatePreviewCard(parent)
     badgeText:SetShadowColor(0, 0, 0, 1)
     badgeText:SetShadowOffset(1, -1)
 
-    local note = card:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    note:SetPoint("BOTTOMLEFT", card, "BOTTOMLEFT", 14, 12)
-    note:SetPoint("RIGHT", card, "RIGHT", -12, 0)
-    note:SetJustifyH("CENTER")
-    note:SetWordWrap(true)
-    SetTextColor(note, panel.MutedColor)
+    SetTextColor(card.Note, panel.MutedColor)
 
     local stageChips = {}
     local previousChip = nil
@@ -273,16 +187,13 @@ function SP.CreatePreviewCard(parent)
     textDisplay:SetJustifyH("CENTER")
     textDisplay:Hide()
 
-    card.Host = host
-    card.HostIcon = icon
-    card.Overlay = overlay
+    card.HostIcon = card.Host.Icon
     card.Progress = progress
     card.OrbProgress = orbProgress
     card.BarProgress = barProgress
     card.Badge = badge
     card.BadgeText = badgeText
     card.TextDisplay = textDisplay
-    card.Note = note
     card.StageChips = stageChips
 
     return card
@@ -290,23 +201,23 @@ end
 
 function SP.CreateActionsCard(parent)
     local panel = Constants.SettingsPanel
-    local card = CreateFrame("Frame", nil, parent, BACKDROP_TEMPLATE)
+
+    local card = CreateFrame("Frame", nil, parent, "PreybreakerActionsCardTemplate")
     card:SetHeight(panel.ActionCardHeight)
     ApplyCardBackdrop(card)
 
-    local title = card:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    title:SetPoint("TOPLEFT", card, "TOPLEFT", 14, -12)
-    title:SetText(L["Quick actions"])
-    SetTextColor(title, panel.TitleColor)
+    SetTextColor(card.Title, panel.TitleColor)
+    card.Title:SetText(L["Quick actions"])
 
-    local resetButton = CreateActionButton(card, L["Reset all"], 96, function()
+    card.ResetButton:SetText(L["Reset all"])
+    card.ResetButton:SetScript("OnClick", function()
         Settings:ResetToDefaults()
         ns.SettingsPanel:CommitChange("settings:reset")
         Util.Print(L["Settings reset to defaults."])
     end)
-    resetButton:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -14)
 
-    local refreshButton = CreateActionButton(card, L["Refresh now"], 96, function()
+    card.RefreshButton:SetText(L["Refresh now"])
+    card.RefreshButton:SetScript("OnClick", function()
         if ns.Controller then
             ns.Controller:Refresh("settings:refresh")
             Util.Print(L["Refreshed prey widget state."])
@@ -315,19 +226,9 @@ function SP.CreateActionsCard(parent)
 
         ns.SettingsPanel:RefreshPreview()
     end)
-    refreshButton:SetPoint("LEFT", resetButton, "RIGHT", 10, 0)
 
-    local hint = card:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    hint:SetPoint("BOTTOMLEFT", card, "BOTTOMLEFT", 14, 12)
-    hint:SetPoint("RIGHT", card, "RIGHT", -12, 0)
-    hint:SetJustifyH("LEFT")
-    hint:SetWordWrap(true)
-    hint:SetText(L["Open this panel with /pb or by shift-left-clicking the compartment icon."])
-    SetTextColor(hint, panel.MutedColor)
-
-    card.ResetButton = resetButton
-    card.RefreshButton = refreshButton
-    card.Hint = hint
+    card.Hint:SetText(L["Open this panel with /pb or by shift-left-clicking the compartment icon."])
+    SetTextColor(card.Hint, panel.MutedColor)
 
     return card
 end

@@ -11,12 +11,10 @@ local SetTextColor = SP.SetTextColor
 local ApplyBackdrop = SP.ApplyBackdrop
 local ApplyCardBackdrop = SP.ApplyCardBackdrop
 local ApplyInsetBackdrop = SP.ApplyInsetBackdrop
-local AddFieldHighlight = SP.AddFieldHighlight
-local CreateAccentLine = SP.CreateAccentLine
-local CreateActionButton = SP.CreateActionButton
+local ApplyAccentLineColor = SP.ApplyAccentLineColor
+local ApplyHighlightColor = SP.ApplyHighlightColor
+local HideSliderTemplateLabels = SP.HideSliderTemplateLabels
 local ResolveValue = SP.ResolveValue
-local BACKDROP_TEMPLATE = SP.BACKDROP_TEMPLATE
-local PANEL_NAME = SP.PANEL_NAME
 
 local function SetEnabledState(widget, enabled)
     if not widget then
@@ -44,26 +42,18 @@ end
 
 function SP.CreateSectionCard(parent, titleText, descriptionText)
     local panel = Constants.SettingsPanel
-    local card = CreateFrame("Frame", nil, parent, BACKDROP_TEMPLATE)
+
+    local card = CreateFrame("Frame", nil, parent, "PreybreakerSectionCardTemplate")
     ApplyCardBackdrop(card)
 
-    local title = card:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    title:SetPoint("TOPLEFT", card, "TOPLEFT", panel.ContentInset, -14)
-    title:SetText(titleText)
-    SetTextColor(title, panel.TitleColor)
+    card.Title:SetText(titleText)
+    SetTextColor(card.Title, panel.TitleColor)
 
-    local description = card:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    description:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
-    description:SetPoint("RIGHT", card, "RIGHT", -panel.ContentInset, 0)
-    description:SetJustifyH("LEFT")
-    description:SetWordWrap(true)
-    description:SetText(descriptionText)
-    SetTextColor(description, panel.BodyColor)
+    card.Description:SetText(descriptionText)
+    SetTextColor(card.Description, panel.BodyColor)
 
-    CreateAccentLine(card, description, 0.22)
+    ApplyAccentLineColor(card.AccentLine)
 
-    card.Title = title
-    card.Description = description
     return card
 end
 
@@ -84,36 +74,17 @@ end
 
 local function CreateToggleRow(parent, spec)
     local panel = Constants.SettingsPanel
-    local row = CreateFrame("Button", nil, parent, BACKDROP_TEMPLATE)
+
+    local row = CreateFrame("Button", nil, parent, "PreybreakerToggleRowTemplate")
     row:SetHeight(panel.RowHeight)
-    row:RegisterForClicks("LeftButtonUp")
     ApplyInsetBackdrop(row)
-    AddFieldHighlight(row)
 
-    local accent = row:CreateTexture(nil, "ARTWORK")
-    accent:SetPoint("TOPLEFT", row, "TOPLEFT", 3, -3)
-    accent:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 3, 3)
-    accent:SetWidth(2)
-    accent:SetColorTexture(panel.AccentColor[1], panel.AccentColor[2], panel.AccentColor[3], 0.40)
+    row.AccentBar:SetColorTexture(panel.AccentColor[1], panel.AccentColor[2], panel.AccentColor[3], 0.40)
+    ApplyHighlightColor(row.Highlight)
 
-    local checkbox = CreateFrame("CheckButton", nil, row, "UICheckButtonTemplate")
-    checkbox:SetPoint("LEFT", row, "LEFT", 8, 0)
+    row.Title:SetText(spec.title)
 
-    local title = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    title:SetPoint("TOPLEFT", row, "TOPLEFT", 40, -9)
-    title:SetPoint("RIGHT", row, "RIGHT", -62, 0)
-    title:SetJustifyH("LEFT")
-    title:SetText(spec.title)
-
-    local description = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    description:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -2)
-    description:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -62, 10)
-    description:SetJustifyH("LEFT")
-    description:SetWordWrap(true)
-
-    local stateText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    stateText:SetPoint("RIGHT", row, "RIGHT", -12, 0)
-    stateText:SetJustifyH("RIGHT")
+    local checkbox = row.Checkbox
 
     checkbox:SetScript("OnClick", function(self)
         if not self:IsEnabled() then
@@ -130,11 +101,6 @@ local function CreateToggleRow(parent, spec)
         end
     end)
 
-    row.Checkbox = checkbox
-    row.Title = title
-    row.Description = description
-    row.StateText = stateText
-
     function row:Refresh()
         local enabled = not spec.isAvailable or spec.isAvailable()
         local checked = spec.get() == true
@@ -148,14 +114,14 @@ local function CreateToggleRow(parent, spec)
         end
 
         checkbox:SetChecked(enabled and checked or false)
-        stateText:SetText(enabled and (checked and L["On"] or L["Off"]) or L["Unavailable"])
-        SetTextColor(stateText, enabled and (checked and panel.PositiveColor or panel.MutedColor) or panel.MutedColor)
+        row.StateText:SetText(enabled and (checked and L["On"] or L["Off"]) or L["Unavailable"])
+        SetTextColor(row.StateText, enabled and (checked and panel.PositiveColor or panel.MutedColor) or panel.MutedColor)
         SetFieldAvailability(
             row,
             enabled,
             ResolveValue(spec.description),
             ResolveValue(spec.disabledDescription),
-            stateText:GetText()
+            row.StateText:GetText()
         )
     end
 
@@ -164,13 +130,11 @@ end
 
 local function CreateModeButton(parent, option, onClick)
     local panel = Constants.SettingsPanel
-    local button = CreateFrame("Button", nil, parent, BACKDROP_TEMPLATE)
-    button:SetSize(panel.ChoiceButtonWidth, panel.ChoiceButtonHeight)
-    ApplyInsetBackdrop(button)
-    AddFieldHighlight(button, 0.08)
 
-    button.Text = button:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    button.Text:SetPoint("CENTER")
+    local button = CreateFrame("Button", nil, parent, "PreybreakerChoiceButtonTemplate")
+    ApplyInsetBackdrop(button)
+    ApplyHighlightColor(button.Highlight, 0.08)
+
     button.Text:SetText(option.label)
     button.value = option.value
     button:SetScript("OnClick", function()
@@ -198,21 +162,14 @@ end
 
 local function CreateChoiceRow(parent, spec)
     local panel = Constants.SettingsPanel
-    local row = CreateFrame("Frame", nil, parent, BACKDROP_TEMPLATE)
+
+    local row = CreateFrame("Frame", nil, parent, "PreybreakerChoiceRowTemplate")
     row:SetHeight(panel.ChoiceRowHeight)
     ApplyInsetBackdrop(row)
+
+    row.Title:SetText(spec.title)
+
     local options = ResolveValue(spec.options) or {}
-
-    local title = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    title:SetPoint("TOPLEFT", row, "TOPLEFT", 12, -10)
-    title:SetText(spec.title)
-
-    local description = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    description:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -2)
-    description:SetPoint("RIGHT", row, "RIGHT", -12, 0)
-    description:SetJustifyH("LEFT")
-    description:SetWordWrap(true)
-
     local buttons = {}
     local previousButton = nil
     for _, option in ipairs(options) do
@@ -229,8 +186,6 @@ local function CreateChoiceRow(parent, spec)
         previousButton = button
     end
 
-    row.Title = title
-    row.Description = description
     row.Buttons = buttons
 
     function row:Refresh()
@@ -252,42 +207,16 @@ end
 
 local function CreateSliderRow(parent, spec)
     local panel = Constants.SettingsPanel
-    local sliderName = PANEL_NAME .. spec.key .. "Slider"
-    local row = CreateFrame("Frame", nil, parent, BACKDROP_TEMPLATE)
+
+    local row = CreateFrame("Frame", nil, parent, "PreybreakerSliderRowTemplate")
     row:SetHeight(panel.SliderRowHeight)
     ApplyInsetBackdrop(row)
 
-    local title = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    title:SetPoint("TOPLEFT", row, "TOPLEFT", 12, -10)
-    title:SetText(spec.title)
+    row.Title:SetText(spec.title)
+    SetTextColor(row.ValueText, panel.AccentColor)
 
-    local valueText = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    valueText:SetPoint("TOPRIGHT", row, "TOPRIGHT", -12, -10)
-    valueText:SetJustifyH("RIGHT")
-    SetTextColor(valueText, panel.AccentColor)
-
-    local description = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    description:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -3)
-    description:SetPoint("RIGHT", row, "RIGHT", -12, 0)
-    description:SetJustifyH("LEFT")
-    description:SetWordWrap(true)
-
-    local slider = CreateFrame("Slider", sliderName, row, "OptionsSliderTemplate")
-    slider:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 8, 4)
-    slider:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", -14, 4)
-
-    local sliderText = _G[sliderName .. "Text"]
-    local sliderLow = _G[sliderName .. "Low"]
-    local sliderHigh = _G[sliderName .. "High"]
-    if sliderText then
-        sliderText:SetText("")
-    end
-    if sliderLow then
-        sliderLow:SetText("")
-    end
-    if sliderHigh then
-        sliderHigh:SetText("")
-    end
+    local slider = row.Slider
+    HideSliderTemplateLabels(slider)
 
     slider:SetScript("OnValueChanged", function(self, currentValue)
         if self.suspendUpdates then
@@ -297,11 +226,6 @@ local function CreateSliderRow(parent, spec)
         spec.set(currentValue)
         ns.SettingsPanel:CommitChange(spec.reason or ("settings:" .. spec.key))
     end)
-
-    row.Title = title
-    row.Description = description
-    row.Slider = slider
-    row.ValueText = valueText
 
     function row:Refresh()
         local enabled = not spec.isAvailable or spec.isAvailable()
@@ -322,8 +246,8 @@ local function CreateSliderRow(parent, spec)
 
         SetEnabledState(slider, enabled)
 
-        valueText:SetText(spec.formatter(currentValue))
-        SetTextColor(valueText, enabled and panel.AccentColor or panel.MutedColor)
+        row.ValueText:SetText(spec.formatter(currentValue))
+        SetTextColor(row.ValueText, enabled and panel.AccentColor or panel.MutedColor)
         SetFieldAvailability(row, enabled, ResolveValue(spec.description), ResolveValue(spec.disabledDescription))
     end
 
@@ -332,33 +256,23 @@ end
 
 local function CreateDropdownRow(parent, spec)
     local panel = Constants.SettingsPanel
-    local row = CreateFrame("Frame", nil, parent, BACKDROP_TEMPLATE)
+
+    local row = CreateFrame("Frame", nil, parent, "PreybreakerDropdownRowTemplate")
     row:SetHeight(panel.DropdownRowHeight)
     ApplyInsetBackdrop(row)
 
-    local title = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    title:SetPoint("TOPLEFT", row, "TOPLEFT", 12, -10)
-    title:SetText(spec.title)
-
-    local description = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    description:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -3)
-    description:SetPoint("RIGHT", row, "RIGHT", -12, 0)
-    description:SetJustifyH("LEFT")
-    description:SetWordWrap(true)
+    row.Title:SetText(spec.title)
 
     local dropdown = CreateFrame("DropdownButton", nil, row, "WowStyle1DropdownTemplate")
     dropdown.menuPoint = "BOTTOMLEFT"
     dropdown.menuRelativePoint = "TOPLEFT"
     dropdown:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 12, 10)
     dropdown:SetWidth(280)
+    row.Dropdown = dropdown
 
     row:SetScript("OnSizeChanged", function(self, width)
         dropdown:SetWidth(math.max(140, width - 24))
     end)
-
-    row.Title = title
-    row.Description = description
-    row.Dropdown = dropdown
 
     function row:Refresh()
         local enabled = not spec.isAvailable or spec.isAvailable()
@@ -391,29 +305,21 @@ end
 
 local function CreateActionRow(parent, spec)
     local panel = Constants.SettingsPanel
-    local row = CreateFrame("Frame", nil, parent, BACKDROP_TEMPLATE)
+
+    local row = CreateFrame("Frame", nil, parent, "PreybreakerActionRowTemplate")
     row:SetHeight(panel.ActionRowHeight)
     ApplyInsetBackdrop(row)
 
-    local title = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    title:SetPoint("TOPLEFT", row, "TOPLEFT", 12, -10)
-    title:SetText(spec.title)
+    row.Title:SetText(spec.title)
 
-    local description = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    description:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -2)
-    description:SetPoint("LEFT", row, "LEFT", 12, 0)
-    description:SetPoint("RIGHT", row, "RIGHT", -124, 0)
-    description:SetJustifyH("LEFT")
-    description:SetWordWrap(true)
-
-    local button = CreateActionButton(row, spec.buttonText, spec.buttonWidth or 108, function()
+    local button = row.Button
+    button:SetText(spec.buttonText)
+    if spec.buttonWidth then
+        button:SetWidth(spec.buttonWidth)
+    end
+    button:SetScript("OnClick", function()
         spec.onClick()
     end)
-    button:SetPoint("RIGHT", row, "RIGHT", -12, 0)
-
-    row.Title = title
-    row.Description = description
-    row.Button = button
 
     function row:Refresh()
         local enabled = not spec.isAvailable or spec.isAvailable()

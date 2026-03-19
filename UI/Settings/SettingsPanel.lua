@@ -17,7 +17,6 @@ local GetReadoutSummary = SP.GetReadoutSummary
 local GetQuestHelperSummary = SP.GetQuestHelperSummary
 local GetPreviewNote = SP.GetPreviewNote
 local ApplyPreviewWidgetTexture = SP.ApplyPreviewWidgetTexture
-local GetPreviewDetachedOffset = SP.GetPreviewDetachedOffset
 local UpdateBadgeAnchor = SP.UpdateBadgeAnchor
 local UpdatePreviewProgress = SP.UpdatePreviewProgress
 local UpdatePreviewStageChips = SP.UpdatePreviewStageChips
@@ -82,11 +81,11 @@ function ns.SettingsPanel:RefreshSummary(snapshot, live)
     summary.StatusPill.Text:SetText(statusText)
     SetTextColor(summary.StatusPill.Text, panel.TitleColor)
 
-    summary.DisplayRow.Value:SetText(GetDisplayModeSummary(Settings:GetDisplayMode()))
-    summary.PlacementRow.Value:SetText(Settings:IsDetached() and L["Floating"] or L["Attached"])
-    summary.WidgetRow.Value:SetText(Settings:ShouldHideBlizzardWidget() and L["Overlay only"] or L["Show both"])
-    summary.ReadoutRow.Value:SetText(GetReadoutSummary())
-    summary.QuestRow.Value:SetText(GetQuestHelperSummary())
+    summary.StyleValue:SetText(GetDisplayModeSummary(Settings:GetDisplayMode()))
+    summary.PlacementValue:SetText(L["Attached"])
+    summary.WidgetValue:SetText(Settings:ShouldHideBlizzardWidget() and L["Overlay only"] or L["Show both"])
+    summary.ReadoutValue:SetText(GetReadoutSummary())
+    summary.QuestValue:SetText(GetQuestHelperSummary())
 end
 
 function ns.SettingsPanel:RefreshControls()
@@ -112,7 +111,6 @@ function ns.SettingsPanel:RefreshPreview(snapshot)
     local showValueText = Settings:ShouldShowValueText()
     local showStageBadge = Settings:ShouldShowStageBadge()
     local displayMode = Settings:GetDisplayMode()
-    local detached = Settings:IsDetached()
     local hideWidget = Settings:ShouldHideBlizzardWidget()
     local stageLabel = Constants.StageLabelByState[previewSnapshot.progressState]
     local activeProgress = self.preview.Progress
@@ -130,21 +128,14 @@ function ns.SettingsPanel:RefreshPreview(snapshot)
 
     self.preview.Overlay:ClearAllPoints()
     self.preview.Overlay:SetScale(Settings:GetScale())
-    if detached then
-        self.preview.Overlay:SetPoint(
-            "CENTER",
-            self.preview.Host,
-            "CENTER",
-            GetPreviewDetachedOffset(Settings:GetDetachedX(), 54),
-            GetPreviewDetachedOffset(Settings:GetDetachedY(), 68)
-        )
-    elseif displayMode == Constants.DisplayMode.Bar then
+    if displayMode == Constants.DisplayMode.Bar then
         self.preview.Overlay:SetPoint(
             "TOP",
             self.preview.Host,
             hideWidget and "CENTER" or "BOTTOM",
-            Settings:GetOffsetX(),
-            (hideWidget and math.floor(Constants.Layout.BarHeight * 0.5) or Constants.Layout.BarVisibleOffsetY)
+            Constants.Anchor.OffsetX + Settings:GetOffsetX(),
+            Constants.Anchor.OffsetY
+                + (hideWidget and math.floor(Constants.Layout.BarHeight * 0.5) or Constants.Layout.BarVisibleOffsetY)
                 + Settings:GetOffsetY()
         )
     else

@@ -9,128 +9,35 @@ local DISPLAY_MODE_RADIAL = "radial"
 local DISPLAY_MODE_ORBS = "orbs"
 local DISPLAY_MODE_BAR = "bar"
 local DISPLAY_MODE_TEXT = "text"
-local PLACEMENT_MODE_ATTACHED = "attached"
-local PLACEMENT_MODE_DETACHED = "detached"
-local DISPLAY_MODES = {
-    DISPLAY_MODE_RADIAL,
-    DISPLAY_MODE_ORBS,
-    DISPLAY_MODE_BAR,
-    DISPLAY_MODE_TEXT,
-}
-local DISPLAY_SETTING_KEYS = {
-    hideBlizzardWidget = {
-        [DISPLAY_MODE_RADIAL] = "radialHideBlizzardWidget",
-        [DISPLAY_MODE_ORBS] = "orbHideBlizzardWidget",
-        [DISPLAY_MODE_BAR] = "barHideBlizzardWidget",
-        [DISPLAY_MODE_TEXT] = "textHideBlizzardWidget",
-    },
-    showValueText = {
-        [DISPLAY_MODE_RADIAL] = "radialShowValueText",
-        [DISPLAY_MODE_ORBS] = "orbShowValueText",
-        [DISPLAY_MODE_BAR] = "barShowValueText",
-        [DISPLAY_MODE_TEXT] = "textShowValueText",
-    },
-    showStageBadge = {
-        [DISPLAY_MODE_RADIAL] = "radialShowStageBadge",
-        [DISPLAY_MODE_ORBS] = "orbShowStageBadge",
-        [DISPLAY_MODE_BAR] = "barShowStageBadge",
-        [DISPLAY_MODE_TEXT] = "textShowStageBadge",
-    },
-    scale = {
-        [DISPLAY_MODE_RADIAL] = "radialScale",
-        [DISPLAY_MODE_ORBS] = "orbScale",
-        [DISPLAY_MODE_BAR] = "barScale",
-        [DISPLAY_MODE_TEXT] = "textScale",
-    },
-    placementMode = {
-        [DISPLAY_MODE_RADIAL] = "radialPlacementMode",
-        [DISPLAY_MODE_ORBS] = "orbPlacementMode",
-        [DISPLAY_MODE_BAR] = "barPlacementMode",
-        [DISPLAY_MODE_TEXT] = "textPlacementMode",
-    },
-    lockDetachedPosition = {
-        [DISPLAY_MODE_RADIAL] = "radialLockDetachedPosition",
-        [DISPLAY_MODE_ORBS] = "orbLockDetachedPosition",
-        [DISPLAY_MODE_BAR] = "barLockDetachedPosition",
-        [DISPLAY_MODE_TEXT] = "textLockDetachedPosition",
-    },
-}
-local LEGACY_DISPLAY_SETTING_KEYS = {
-    "hideBlizzardWidget",
-    "showValueText",
-    "showStageBadge",
-    "scale",
-}
-local SCHEMA_VERSION = 2
+local SCHEMA_VERSION = 3
 local DEFAULT_SCALE = 1
 local DEFAULT_TEXT_FONT_VALUE = (ns.TextStyle and ns.TextStyle:GetDefaultFontValue()) or "builtin:standard"
 local DEFAULTS = {
     schemaVersion = SCHEMA_VERSION,
     enabled = true,
     displayMode = DISPLAY_MODE_RADIAL,
-    radialHideBlizzardWidget = false,
-    orbHideBlizzardWidget = false,
-    barHideBlizzardWidget = false,
-    radialShowValueText = true,
-    orbShowValueText = true,
-    barShowValueText = true,
-    radialShowStageBadge = true,
-    orbShowStageBadge = true,
-    barShowStageBadge = true,
-    radialScale = DEFAULT_SCALE,
-    orbScale = DEFAULT_SCALE,
-    barScale = DEFAULT_SCALE,
-    radialPlacementMode = PLACEMENT_MODE_ATTACHED,
-    orbPlacementMode = PLACEMENT_MODE_ATTACHED,
-    barPlacementMode = PLACEMENT_MODE_ATTACHED,
-    radialLockDetachedPosition = true,
-    orbLockDetachedPosition = true,
-    barLockDetachedPosition = true,
+    hideBlizzardWidget = false,
+    showValueText = true,
+    showStageBadge = true,
+    scale = DEFAULT_SCALE,
     radialOffsetX = 0,
     radialOffsetY = 0,
     orbOffsetX = 0,
     orbOffsetY = 0,
     barOffsetX = 0,
     barOffsetY = 0,
-    radialDetachedX = 0,
-    radialDetachedY = 0,
-    orbDetachedX = 0,
-    orbDetachedY = 0,
-    barDetachedX = 0,
-    barDetachedY = 0,
-    textHideBlizzardWidget = false,
-    textShowValueText = true,
-    textShowStageBadge = true,
-    textScale = DEFAULT_SCALE,
-    textPlacementMode = PLACEMENT_MODE_ATTACHED,
-    textLockDetachedPosition = true,
     textOffsetX = 0,
     textOffsetY = 0,
-    textDetachedX = 0,
-    textDetachedY = 0,
     autoWatchPreyQuest = false,
     autoSuperTrackPreyQuest = false,
+    autoTurnInPreyQuest = false,
     playSoundOnPhaseChange = false,
-    snapToGrid = false,
-    gridSize = 8,
     useCharacterProfile = false,
     textFontFace = DEFAULT_TEXT_FONT_VALUE,
     textOutlineMode = "default",
     textShadowMode = "default",
     valueTextScale = 1,
     stageTextScale = 1,
-    coldColorR = nil,
-    coldColorG = nil,
-    coldColorB = nil,
-    warmColorR = nil,
-    warmColorG = nil,
-    warmColorB = nil,
-    hotColorR = nil,
-    hotColorG = nil,
-    hotColorB = nil,
-    finalColorR = nil,
-    finalColorG = nil,
-    finalColorB = nil,
 }
 
 local SCALE_MIN = 0.50
@@ -139,10 +46,8 @@ local SCALE_STEP = 0.05
 local TEXT_SCALE_MIN = 0.75
 local TEXT_SCALE_MAX = 1.75
 local TEXT_SCALE_STEP = 0.05
-local OFFSET_MIN = -40
-local OFFSET_MAX = 40
-local DETACHED_COORD_MIN = -2400
-local DETACHED_COORD_MAX = 2400
+local OFFSET_MIN = -200
+local OFFSET_MAX = 200
 
 ns.Settings = {}
 
@@ -171,37 +76,13 @@ local function SanitizeDisplayMode(value)
     if value == DISPLAY_MODE_ORBS then
         return DISPLAY_MODE_ORBS
     end
-
     if value == DISPLAY_MODE_BAR then
         return DISPLAY_MODE_BAR
     end
-
     if value == DISPLAY_MODE_TEXT then
         return DISPLAY_MODE_TEXT
     end
-
     return DISPLAY_MODE_RADIAL
-end
-
-local GRID_SIZE_MIN = 4
-local GRID_SIZE_MAX = 64
-
-local function SanitizeColorComponent(value)
-    local n = tonumber(value)
-    if not n then
-        return nil
-    end
-    if n < 0 then return 0 end
-    if n > 1 then return 1 end
-    return n
-end
-
-local function SanitizePlacementMode(value)
-    if value == PLACEMENT_MODE_DETACHED then
-        return PLACEMENT_MODE_DETACHED
-    end
-
-    return PLACEMENT_MODE_ATTACHED
 end
 
 local function SanitizeScale(value)
@@ -215,21 +96,15 @@ local function SanitizeOffset(value)
     return ns.Util.RoundNearest(ClampNumber(value, OFFSET_MIN, OFFSET_MAX, 0))
 end
 
-local function SanitizeDetachedCoordinate(value)
-    return ns.Util.RoundNearest(ClampNumber(value, DETACHED_COORD_MIN, DETACHED_COORD_MAX, 0))
-end
-
 local function SanitizeChoice(value, allowedValues, defaultValue)
     if type(value) ~= "string" then
         return defaultValue
     end
-
     for _, allowedValue in ipairs(allowedValues) do
         if value == allowedValue then
             return value
         end
     end
-
     return defaultValue
 end
 
@@ -251,93 +126,30 @@ local function GetOffsetKey(axisSuffix, mode)
     if resolvedMode == DISPLAY_MODE_TEXT then
         return "textOffset" .. axisSuffix
     end
-
     return "radialOffset" .. axisSuffix
 end
 
-local function GetDetachedKey(axisSuffix, mode)
-    local resolvedMode = SanitizeDisplayMode(mode)
-    if resolvedMode == DISPLAY_MODE_BAR then
-        return "barDetached" .. axisSuffix
-    end
-    if resolvedMode == DISPLAY_MODE_ORBS then
-        return "orbDetached" .. axisSuffix
-    end
-    if resolvedMode == DISPLAY_MODE_TEXT then
-        return "textDetached" .. axisSuffix
-    end
-
-    return "radialDetached" .. axisSuffix
-end
-
-local function GetDisplaySettingKey(settingName, mode)
-    local keyMap = DISPLAY_SETTING_KEYS[settingName]
-    if not keyMap then
-        return nil
-    end
-
-    return keyMap[SanitizeDisplayMode(mode)]
-end
-
-local DISPLAY_SETTING_SANITIZERS = {
-    hideBlizzardWidget = function(value)
-        return SanitizeBoolean(value, false)
-    end,
-    showValueText = function(value)
-        return SanitizeBoolean(value, true)
-    end,
-    showStageBadge = function(value)
-        return SanitizeBoolean(value, true)
-    end,
-    scale = SanitizeScale,
-    placementMode = SanitizePlacementMode,
-    lockDetachedPosition = function(value)
-        return SanitizeBoolean(value, true)
-    end,
-}
-
 local SANITIZERS = {
-    schemaVersion = function(value)
-        return SCHEMA_VERSION
-    end,
-    enabled = function(value)
-        return SanitizeBoolean(value, DEFAULTS.enabled)
-    end,
+    schemaVersion = function() return SCHEMA_VERSION end,
+    enabled = function(value) return SanitizeBoolean(value, DEFAULTS.enabled) end,
     displayMode = SanitizeDisplayMode,
+    hideBlizzardWidget = function(value) return SanitizeBoolean(value, false) end,
+    showValueText = function(value) return SanitizeBoolean(value, true) end,
+    showStageBadge = function(value) return SanitizeBoolean(value, true) end,
+    scale = SanitizeScale,
     radialOffsetX = SanitizeOffset,
     radialOffsetY = SanitizeOffset,
     orbOffsetX = SanitizeOffset,
     orbOffsetY = SanitizeOffset,
     barOffsetX = SanitizeOffset,
     barOffsetY = SanitizeOffset,
-    radialDetachedX = SanitizeDetachedCoordinate,
-    radialDetachedY = SanitizeDetachedCoordinate,
-    orbDetachedX = SanitizeDetachedCoordinate,
-    orbDetachedY = SanitizeDetachedCoordinate,
-    barDetachedX = SanitizeDetachedCoordinate,
-    barDetachedY = SanitizeDetachedCoordinate,
     textOffsetX = SanitizeOffset,
     textOffsetY = SanitizeOffset,
-    textDetachedX = SanitizeDetachedCoordinate,
-    textDetachedY = SanitizeDetachedCoordinate,
-    autoWatchPreyQuest = function(value)
-        return SanitizeBoolean(value, false)
-    end,
-    autoSuperTrackPreyQuest = function(value)
-        return SanitizeBoolean(value, false)
-    end,
-    playSoundOnPhaseChange = function(value)
-        return SanitizeBoolean(value, false)
-    end,
-    snapToGrid = function(value)
-        return SanitizeBoolean(value, false)
-    end,
-    gridSize = function(value)
-        return ClampNumber(value, GRID_SIZE_MIN, GRID_SIZE_MAX, 8)
-    end,
-    useCharacterProfile = function(value)
-        return SanitizeBoolean(value, false)
-    end,
+    autoWatchPreyQuest = function(value) return SanitizeBoolean(value, false) end,
+    autoSuperTrackPreyQuest = function(value) return SanitizeBoolean(value, false) end,
+    autoTurnInPreyQuest = function(value) return SanitizeBoolean(value, false) end,
+    playSoundOnPhaseChange = function(value) return SanitizeBoolean(value, false) end,
+    useCharacterProfile = function(value) return SanitizeBoolean(value, false) end,
     textFontFace = function(value)
         if ns.TextStyle and type(ns.TextStyle.SanitizeFontValue) == "function" then
             return ns.TextStyle:SanitizeFontValue(value)
@@ -352,26 +164,22 @@ local SANITIZERS = {
     end,
     valueTextScale = SanitizeTextScale,
     stageTextScale = SanitizeTextScale,
-    coldColorR = SanitizeColorComponent,
-    coldColorG = SanitizeColorComponent,
-    coldColorB = SanitizeColorComponent,
-    warmColorR = SanitizeColorComponent,
-    warmColorG = SanitizeColorComponent,
-    warmColorB = SanitizeColorComponent,
-    hotColorR = SanitizeColorComponent,
-    hotColorG = SanitizeColorComponent,
-    hotColorB = SanitizeColorComponent,
-    finalColorR = SanitizeColorComponent,
-    finalColorG = SanitizeColorComponent,
-    finalColorB = SanitizeColorComponent,
 }
 
-for settingName, keyMap in pairs(DISPLAY_SETTING_KEYS) do
-    local sanitizer = DISPLAY_SETTING_SANITIZERS[settingName]
-    for _, mode in ipairs(DISPLAY_MODES) do
-        SANITIZERS[keyMap[mode]] = sanitizer
-    end
-end
+-- v2 per-display-mode keys that were flattened in schema version 3.
+local V2_MODE_PREFIXES = { "radial", "orb", "bar", "text" }
+local V2_FLATTENED_SUFFIXES = {
+    "HideBlizzardWidget",
+    "ShowValueText",
+    "ShowStageBadge",
+    "Scale",
+}
+local V2_FLAT_KEYS = {
+    HideBlizzardWidget = "hideBlizzardWidget",
+    ShowValueText = "showValueText",
+    ShowStageBadge = "showStageBadge",
+    Scale = "scale",
+}
 
 local function MigrateLegacyOffsets(db)
     local hasLegacyX = db.offsetX ~= nil
@@ -400,33 +208,74 @@ local function MigrateLegacyOffsets(db)
     db.offsetY = nil
 end
 
+local function MigrateV2PerModeSettings(db)
+    local sourceMode = SanitizeDisplayMode(db.displayMode)
+    local sourcePrefix
+    if sourceMode == "orbs" then
+        sourcePrefix = "orb"
+    elseif sourceMode == "bar" then
+        sourcePrefix = "bar"
+    elseif sourceMode == "text" then
+        sourcePrefix = "text"
+    else
+        sourcePrefix = "radial"
+    end
+
+    for _, suffix in ipairs(V2_FLATTENED_SUFFIXES) do
+        local flatKey = V2_FLAT_KEYS[suffix]
+        local sourceKey = sourcePrefix .. suffix
+
+        if db[sourceKey] ~= nil and db[flatKey] == nil then
+            db[flatKey] = db[sourceKey]
+        end
+
+        for _, prefix in ipairs(V2_MODE_PREFIXES) do
+            db[prefix .. suffix] = nil
+        end
+    end
+end
+
+local function HasCustomProfileValues(db)
+    if type(db) ~= "table" then
+        return false
+    end
+
+    for key, defaultValue in pairs(DEFAULTS) do
+        if key ~= "schemaVersion" and key ~= "useCharacterProfile" and db[key] ~= defaultValue then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function CopyProfileValues(sourceDB, destinationDB)
+    if type(sourceDB) ~= "table" or type(destinationDB) ~= "table" then
+        return
+    end
+
+    for key in pairs(DEFAULTS) do
+        if key ~= "useCharacterProfile" then
+            destinationDB[key] = sourceDB[key]
+        end
+    end
+end
+
 local function ApplyDefaults(db)
     local existingVersion = tonumber(db.schemaVersion) or 1
 
-    -- v1 -> v2 migrations: legacy offset and per-display-mode key splits.
     if existingVersion < 2 then
         MigrateLegacyOffsets(db)
-        for settingName, keyMap in pairs(DISPLAY_SETTING_KEYS) do
-            local legacyValue = db[settingName]
-            if legacyValue ~= nil then
-                local sanitizer = DISPLAY_SETTING_SANITIZERS[settingName]
-                local sanitized = sanitizer and sanitizer(legacyValue) or legacyValue
-                for _, mode in ipairs(DISPLAY_MODES) do
-                    local key = keyMap[mode]
-                    if db[key] == nil then
-                        db[key] = sanitized
-                    end
-                end
-                db[settingName] = nil
-            end
-        end
-
         if db.orbOffsetX == nil and db.radialOffsetX ~= nil then
             db.orbOffsetX = SanitizeOffset(db.radialOffsetX)
         end
         if db.orbOffsetY == nil and db.radialOffsetY ~= nil then
             db.orbOffsetY = SanitizeOffset(db.radialOffsetY)
         end
+    end
+
+    if existingVersion < 3 then
+        MigrateV2PerModeSettings(db)
     end
 
     for key, defaultValue in pairs(DEFAULTS) do
@@ -502,12 +351,6 @@ function ns.Settings:ResetToDefaults()
         db[key] = defaultValue
     end
 
-    db.offsetX = nil
-    db.offsetY = nil
-    for _, key in ipairs(LEGACY_DISPLAY_SETTING_KEYS) do
-        db[key] = nil
-    end
-
     local accountDB = self:GetAccountDB()
     if type(accountDB) == "table" then
         accountDB.useCharacterProfile = preserveCharProfile
@@ -534,80 +377,36 @@ function ns.Settings:SetDisplayMode(mode)
     return self:SetValue("displayMode", mode)
 end
 
-function ns.Settings:GetDisplaySettingValue(settingName, mode)
-    local key = GetDisplaySettingKey(settingName, mode or self:GetDisplayMode())
-    if not key then
-        return nil
-    end
-
-    return self:GetValue(key)
+function ns.Settings:ShouldHideBlizzardWidget()
+    return self:GetValue("hideBlizzardWidget") == true
 end
 
-function ns.Settings:SetDisplaySettingValue(settingName, value, mode)
-    local key = GetDisplaySettingKey(settingName, mode or self:GetDisplayMode())
-    if not key then
-        return nil
-    end
-
-    return self:SetValue(key, value)
+function ns.Settings:SetHideBlizzardWidget(enabled)
+    return self:SetValue("hideBlizzardWidget", enabled)
 end
 
-function ns.Settings:ShouldHideBlizzardWidget(mode)
-    return self:GetDisplaySettingValue("hideBlizzardWidget", mode) == true
+function ns.Settings:ShouldShowValueText()
+    return self:GetValue("showValueText") ~= false
 end
 
-function ns.Settings:SetHideBlizzardWidget(enabled, mode)
-    return self:SetDisplaySettingValue("hideBlizzardWidget", enabled, mode)
+function ns.Settings:SetShowValueText(enabled)
+    return self:SetValue("showValueText", enabled)
 end
 
-function ns.Settings:ShouldShowValueText(mode)
-    return self:GetDisplaySettingValue("showValueText", mode) ~= false
+function ns.Settings:ShouldShowStageBadge()
+    return self:GetValue("showStageBadge") ~= false
 end
 
-function ns.Settings:SetShowValueText(enabled, mode)
-    return self:SetDisplaySettingValue("showValueText", enabled, mode)
+function ns.Settings:SetShowStageBadge(enabled)
+    return self:SetValue("showStageBadge", enabled)
 end
 
-function ns.Settings:ShouldShowStageBadge(mode)
-    return self:GetDisplaySettingValue("showStageBadge", mode) ~= false
+function ns.Settings:GetScale()
+    return self:GetValue("scale") or DEFAULT_SCALE
 end
 
-function ns.Settings:SetShowStageBadge(enabled, mode)
-    return self:SetDisplaySettingValue("showStageBadge", enabled, mode)
-end
-
-function ns.Settings:GetScale(mode)
-    local key = GetDisplaySettingKey("scale", mode or self:GetDisplayMode())
-    return self:GetValue(key) or DEFAULTS[key]
-end
-
-function ns.Settings:SetScale(value, mode)
-    return self:SetDisplaySettingValue("scale", value, mode)
-end
-
-function ns.Settings:GetPlacementMode(mode)
-    local key = GetDisplaySettingKey("placementMode", mode or self:GetDisplayMode())
-    return self:GetValue(key) or DEFAULTS[key]
-end
-
-function ns.Settings:SetPlacementMode(value, mode)
-    return self:SetDisplaySettingValue("placementMode", value, mode)
-end
-
-function ns.Settings:IsDetached(mode)
-    return self:GetPlacementMode(mode) == PLACEMENT_MODE_DETACHED
-end
-
-function ns.Settings:SetDetached(enabled, mode)
-    return self:SetPlacementMode(enabled and PLACEMENT_MODE_DETACHED or PLACEMENT_MODE_ATTACHED, mode)
-end
-
-function ns.Settings:IsDetachedPositionLocked(mode)
-    return self:GetDisplaySettingValue("lockDetachedPosition", mode) ~= false
-end
-
-function ns.Settings:SetDetachedPositionLocked(locked, mode)
-    return self:SetDisplaySettingValue("lockDetachedPosition", locked, mode)
+function ns.Settings:SetScale(value)
+    return self:SetValue("scale", value)
 end
 
 function ns.Settings:GetOffsetX(mode)
@@ -628,29 +427,6 @@ function ns.Settings:SetOffsetY(value, mode)
     return self:SetValue(GetOffsetKey("Y", mode or self:GetDisplayMode()), value)
 end
 
-function ns.Settings:GetDetachedX(mode)
-    local key = GetDetachedKey("X", mode or self:GetDisplayMode())
-    return self:GetValue(key) or DEFAULTS[key]
-end
-
-function ns.Settings:SetDetachedX(value, mode)
-    return self:SetValue(GetDetachedKey("X", mode or self:GetDisplayMode()), value)
-end
-
-function ns.Settings:GetDetachedY(mode)
-    local key = GetDetachedKey("Y", mode or self:GetDisplayMode())
-    return self:GetValue(key) or DEFAULTS[key]
-end
-
-function ns.Settings:SetDetachedY(value, mode)
-    return self:SetValue(GetDetachedKey("Y", mode or self:GetDisplayMode()), value)
-end
-
-function ns.Settings:ResetDetachedPosition(mode)
-    self:SetDetachedX(0, mode)
-    self:SetDetachedY(0, mode)
-end
-
 function ns.Settings:ShouldAutoWatchPreyQuest()
     return self:GetValue("autoWatchPreyQuest") == true
 end
@@ -667,28 +443,20 @@ function ns.Settings:SetAutoSuperTrackPreyQuest(enabled)
     return self:SetValue("autoSuperTrackPreyQuest", enabled)
 end
 
+function ns.Settings:ShouldAutoTurnInPreyQuest()
+    return self:GetValue("autoTurnInPreyQuest") == true
+end
+
+function ns.Settings:SetAutoTurnInPreyQuest(enabled)
+    return self:SetValue("autoTurnInPreyQuest", enabled)
+end
+
 function ns.Settings:ShouldPlaySoundOnPhaseChange()
     return self:GetValue("playSoundOnPhaseChange") == true
 end
 
 function ns.Settings:SetPlaySoundOnPhaseChange(enabled)
     return self:SetValue("playSoundOnPhaseChange", enabled)
-end
-
-function ns.Settings:ShouldSnapToGrid()
-    return self:GetValue("snapToGrid") == true
-end
-
-function ns.Settings:SetSnapToGrid(enabled)
-    return self:SetValue("snapToGrid", enabled)
-end
-
-function ns.Settings:GetGridSize()
-    return self:GetValue("gridSize") or 8
-end
-
-function ns.Settings:SetGridSize(value)
-    return self:SetValue("gridSize", value)
 end
 
 function ns.Settings:GetTextFontFace()
@@ -745,74 +513,27 @@ function ns.Settings:SetUseCharacterProfile(enabled)
         return
     end
 
-    accountDB.useCharacterProfile = SanitizeBoolean(enabled, false)
+    enabled = SanitizeBoolean(enabled, false)
+    accountDB.useCharacterProfile = enabled
 
     if enabled then
-        self.db = self.charDB or _G[CHAR_DB_NAME]
+        local charDB = self.charDB or _G[CHAR_DB_NAME]
+        if type(charDB) == "table" then
+            if charDB._profileSeededFromAccount ~= true then
+                if not HasCustomProfileValues(charDB) then
+                    CopyProfileValues(accountDB, charDB)
+                end
+                charDB._profileSeededFromAccount = true
+            end
+
+            self.charDB = charDB
+            self.db = charDB
+        end
     else
         self.db = accountDB
     end
 end
 
-local COLOR_STATE_KEYS = {
-    [0] = "cold",
-    [1] = "warm",
-    [2] = "hot",
-    [3] = "final",
-}
-
--- Re-key by enum name if available.
-do
-    local preyState = Enum and Enum.PreyHuntProgressState
-    if preyState then
-        COLOR_STATE_KEYS[preyState.Cold] = "cold"
-        COLOR_STATE_KEYS[preyState.Warm] = "warm"
-        COLOR_STATE_KEYS[preyState.Hot] = "hot"
-        COLOR_STATE_KEYS[preyState.Final] = "final"
-    end
-end
-
-function ns.Settings:GetPhaseColor(state)
-    local prefix = COLOR_STATE_KEYS[state]
-    if not prefix then
-        return nil
-    end
-
-    local db = self:GetDB()
-    local r = db[prefix .. "ColorR"]
-    local g = db[prefix .. "ColorG"]
-    local b = db[prefix .. "ColorB"]
-
-    if r and g and b then
-        return { r, g, b }
-    end
-
-    return nil
-end
-
-function ns.Settings:SetPhaseColor(state, r, g, b)
-    local prefix = COLOR_STATE_KEYS[state]
-    if not prefix then
-        return
-    end
-
-    self:SetValue(prefix .. "ColorR", r)
-    self:SetValue(prefix .. "ColorG", g)
-    self:SetValue(prefix .. "ColorB", b)
-end
-
-function ns.Settings:ResetPhaseColor(state)
-    local prefix = COLOR_STATE_KEYS[state]
-    if not prefix then
-        return
-    end
-
-    local db = self:GetDB()
-    db[prefix .. "ColorR"] = nil
-    db[prefix .. "ColorG"] = nil
-    db[prefix .. "ColorB"] = nil
-end
-
 function ns.Settings:GetEffectiveColor(state)
-    return self:GetPhaseColor(state) or ns.Constants.ColorByState[state] or { 1, 1, 1 }
+    return ns.Constants.ColorByState[state] or { 1, 1, 1 }
 end

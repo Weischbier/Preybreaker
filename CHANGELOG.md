@@ -6,33 +6,43 @@ This project publishes tagged releases on GitHub. Changes are grouped under `Unr
 
 ## [Unreleased]
 
+## [v1.0.0.2be7451] - 2026-03-19
+
 ### Added
 
 - Added locale-pack files for `deDE`, `esES`, `esMX`, `frFR`, `itIT`, `koKR`, `ptBR`, `ruRU`, `zhCN`, and `zhTW`, and wired them into the Retail TOC so the expanded settings, preview, and compartment copy can localize per client.
-- Added a debug-only prey ambush probe that listens to documented chat, boss-emote, and UI message events while a hunt is active so live Retail ambush warnings can be traced to their real source channel.
+- Added explicit saved-variable schema versioning and a guarded migration path for older offset and per-display setting layouts.
+- Added tracker text-style settings for font face, outline, shadow, and separate number/badge sizing, with automatic LibSharedMedia font discovery when that library is installed and consistent application across the live tracker and preview.
+- Added account-vs-character profile seeding so first-time character profiles inherit the current account layout instead of dropping straight to defaults.
 
 ### Changed
 
-- Split locale bootstrap from per-language translations, moved more settings-panel and compartment text through `L[...]`, and localized preview notes, status pills, tooltip lines, and sidebar copy that were still hardcoded in English.
-- Added explicit saved-variable schema versioning and a guarded `v1 -> v2` migration path for legacy offsets and per-display setting keys.
-- Centralized shared prey quest helpers and ordered state tables so data-source reads, quest tracking, orb rendering, and preview state selection resolve the same Retail prey states.
-- Tightened the private test namespace exposure so `_PreybreakerTestNS` is only exported when the companion test addon is present.
-- Expanded the debug ambush probe to trace generic chat channels alongside system, monster, boss-emote, and UI message events while a prey hunt is active, so live ambush warnings can be mapped to their real source channel with less guesswork.
-- Added tracker text-style settings for font face, outline, shadow, and separate number/badge sizing, with automatic LibSharedMedia font discovery when that library is installed and consistent application across the live tracker and preview.
+- Promoted release versioning to the `v1.0.0.<github-revision>` format for GitHub-tagged builds.
+- Rewrote the README to focus on the addon's purpose and feature set in more natural user-facing language while keeping license and thanks information intact.
+- Split locale bootstrap from per-language translations and moved more settings-panel, preview, and compartment text through `L[...]` so runtime copy no longer relies on English strings.
+- Removed free-floating placement and grid controls so the tracker stays widget-attached with simple X/Y offsets only.
+- Centralized prey quest resolution so the data source, map click handling, auto-watch, supertracking, and auto-turn-in all use the same shared prey quest context.
+- Changed prey quest tracking to prefer the real prey world quest in the prey zone instead of the questgiver stage quest whenever that world quest is present.
+- Replaced the fixed-language ambush text path with locale-independent quest, task, and widget refresh signals.
 
 ### Fixed
 
-- Fixed settings sliders so availability predicates now disable rows like `Grid size` when their section rules say the control should be unavailable.
+- Fixed the final prey stage so the tracker stays active and the quest helper logic follows the zone world quest even after the earlier stage quest completes.
+- Fixed the overlay map click in final stage so it opens and pings the correct prey world quest instead of the wrong questgiver quest.
+- Fixed the normal quest watch call to match the current Retail `C_QuestLog.AddQuestWatch(questID)` signature.
 - Fixed overlay-only widget suppression to stay idempotent across widget refreshes instead of restoring Blizzard prey visuals before hiding them again.
 - Fixed overlay-only mode so the final prey stage keeps Blizzard's click-through world-map behavior even when the stock prey icon is hidden.
 - Fixed the settings preview atlas mapping so `Hot` now uses the same final-stage prey icon art as current Retail.
-- Fixed `/pb debug` so toggling runtime tracing immediately refreshes the controller and arms or disarms the ambush probe without waiting for another prey update.
-- Fixed the Blizzard-style bar background so its inner art uses the same inset treatment as the fill, which removes the dark overhang around the bar body.
+- Fixed the bar fill artifact by replacing the moving fill atlas with a clean tintable fill texture while keeping the Blizzard-style frame art.
+- Fixed default anchor positioning so zero offset now means centered on the resolved parent instead of carrying hidden built-in X/Y shifts.
+- Fixed the placement sliders so horizontal and vertical offsets now expose the intended `-80` to `80` range.
+- Fixed the missing `DescribeDrawLayer` resolver export that could crash overlay anchoring during debug logging.
 - Fixed ring and bar reset behavior so both progress modes snap back to zero immediately when the prey hunt disappears instead of easing out from stale state.
 - Fixed phase-change sounds to fire only on real in-session stage transitions, which suppresses login and reload noise while keeping Warm/Hot/Final cues intact.
 
 ### Removed
 
+- Removed the fixed-language ambush probe module from the shipping addon.
 - Removed repository-only screenshot assets, the release setup note, and the duplicate development TOC so the repo stays focused on addon sources and support files.
 
 ## [v0.1.10] - 2026-03-17

@@ -8,9 +8,7 @@ local _, ns = ...
 
 local Constants = ns.Constants
 local Util = ns.Util
-local L = ns.L
 local OverlayResolver = ns.OverlayResolver
-local DetachedPos = ns.DetachedPosition
 local AnchorResolver = ns.AnchorResolver
 
 local IsSameOrDescendant = OverlayResolver.IsSameOrDescendant
@@ -48,20 +46,6 @@ local function GetDisplayMode()
     return settings and settings:GetDisplayMode() or Constants.DisplayMode.Radial
 end
 
-local function GetPlacementMode()
-    local settings = GetSettings()
-    return settings and settings:GetPlacementMode() or Constants.PlacementMode.Attached
-end
-
-local function IsDetachedPlacement()
-    return GetPlacementMode() == Constants.PlacementMode.Detached
-end
-
-local function IsDetachedPositionLocked()
-    local settings = GetSettings()
-    return settings and settings:IsDetachedPositionLocked() or true
-end
-
 local function ShouldHideBlizzardWidget()
     local settings = GetSettings()
     return settings and settings:ShouldHideBlizzardWidget() or false
@@ -77,30 +61,8 @@ local function GetAnchorOffsetY()
     return settings and settings:GetOffsetY() or 0
 end
 
-local function GetDetachedX()
-    local settings = GetSettings()
-    return settings and settings:GetDetachedX() or 0
-end
-
-local function GetDetachedY()
-    local settings = GetSettings()
-    return settings and settings:GetDetachedY() or 0
-end
-
-local function GetDetachedFrameOffset(frame)
-    return DetachedPos.GetFrameOffset(frame, UIParent, Util.RoundNearest)
-end
-
 local function ResolveOverlayStrata(host)
     return OverlayResolver.ResolveOverlayStrata(host, Constants.Layout.FrameStrata)
-end
-
-local function GetActivePreyQuestID()
-    if type(C_QuestLog) ~= "table" or type(C_QuestLog.GetActivePreyQuest) ~= "function" then
-        return nil
-    end
-
-    return Util.SafeCall(C_QuestLog.GetActivePreyQuest)
 end
 
 local function OpenPreyQuestMap()
@@ -108,9 +70,17 @@ local function OpenPreyQuestMap()
         return
     end
 
-    local questID = GetActivePreyQuestID()
+    local snapshot = ns.OverlayView.currentSnapshot or (ns.Controller and ns.Controller.lastSnapshot) or nil
+    local questID = snapshot and (snapshot.questID or snapshot.worldQuestID or snapshot.activeQuestID) or nil
+    local mapID = snapshot and snapshot.mapID or nil
+    if not questID then
+        local context = Util.BuildPreyQuestContext()
+        questID = context.trackedQuestID or context.worldQuestID or context.activeQuestID
+        mapID = context.mapID
+    end
+
     if questID then
-        local mapID = type(GetQuestUiMapID) == "function" and Util.SafeCall(GetQuestUiMapID, questID, true) or nil
+        mapID = Util.GetQuestMapID(questID) or mapID
         if mapID then
             OpenWorldMap(mapID)
             if EventRegistry and type(EventRegistry.TriggerEvent) == "function" then
@@ -221,43 +191,12 @@ function ns.OverlayView:Create()
     overlay:SetFrameStrata(Constants.Layout.FrameStrata)
     overlay:SetIgnoreParentAlpha(true)
     overlay:EnableMouse(false)
-    overlay:SetMovable(true)
+    overlay:SetMovable(false)
     overlay:SetClampedToScreen(true)
-    overlay:RegisterForDrag("LeftButton")
-    overlay:SetScript("OnDragStart", function(frame)
-        ns.OverlayView:HandleDragStart(frame)
-    end)
-    overlay:SetScript("OnDragStop", function(frame)
-        ns.OverlayView:HandleDragStop(frame)
-    end)
-    overlay:SetScript("OnEnter", function()
-        ns.OverlayView:HandleMouseEnter()
-    end)
-    overlay:SetScript("OnLeave", function()
-        ns.OverlayView:HandleMouseLeave()
-    end)
-    overlay:SetScript("OnHide", function(frame)
-        frame:StopMovingOrSizing()
-        ns.OverlayView:HideDragHighlight()
-    end)
     overlay:SetScript("OnMouseUp", function(_, button)
         ns.OverlayView:HandleMouseUp(button)
     end)
     overlay:Hide()
-
-    local dragBorder = overlay:CreateTexture(nil, "OVERLAY", nil, 7)
-    dragBorder:SetPoint("TOPLEFT", -4, 4)
-    dragBorder:SetPoint("BOTTOMRIGHT", 4, -4)
-    dragBorder:SetColorTexture(0.86, 0.66, 0.28, 0.45)
-    dragBorder:Hide()
-    self.dragBorder = dragBorder
-
-    local dragLabel = overlay:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    dragLabel:SetPoint("TOP", overlay, "BOTTOM", 0, -4)
-    dragLabel:SetText(L["DRAG TO MOVE"])
-    dragLabel:SetTextColor(0.86, 0.66, 0.28, 0.9)
-    dragLabel:Hide()
-    self.dragLabel = dragLabel
 
     local progress = ns.CreateRadialProgressBar(overlay, true)
     progress:SetSize(Constants.Layout.ProgressSize, Constants.Layout.ProgressSize)
@@ -317,14 +256,6 @@ function ns.OverlayView:GetActiveProgress()
     return self.progress -- Radial is default, text mode doesn't use progress widgets
 end
 
-function ns.OverlayView:IsDragEnabled()
-    return ns.Settings
-        and ns.Settings:IsEnabled()
-        and IsDetachedPlacement()
-        and not IsDetachedPositionLocked()
-        or false
-end
-
 function ns.OverlayView:ShouldHandleFinalClick()
     local finalState = (Enum and Enum.PreyHuntProgressState and Enum.PreyHuntProgressState.Final) or 3
     local snapshot = self.currentSnapshot or (ns.Controller and ns.Controller.lastSnapshot) or nil
@@ -340,130 +271,14 @@ function ns.OverlayView:UpdateInteractivity()
         return
     end
 
-    local dragEnabled = self:IsDragEnabled()
-    local mouseEnabled = dragEnabled or self:ShouldHandleFinalClick()
-    self.frame:SetMovable(true)
+    local mouseEnabled = self:ShouldHandleFinalClick()
+    self.frame:SetMovable(false)
     self.frame:SetClampedToScreen(true)
     self.frame:EnableMouse(mouseEnabled)
-
-    if not dragEnabled then
-        self:HideDragHighlight()
-    end
-end
-
-function ns.OverlayView:ShowDragHighlight()
-    if self.dragBorder then
-        self.dragBorder:Show()
-    end
-    if self.dragLabel then
-        self.dragLabel:Show()
-    end
-end
-
-function ns.OverlayView:HideDragHighlight()
-    if self.dragBorder then
-        self.dragBorder:Hide()
-    end
-    if self.dragLabel then
-        self.dragLabel:Hide()
-    end
-end
-
-function ns.OverlayView:HandleMouseEnter()
-    if self:IsDragEnabled() then
-        self:ShowDragHighlight()
-    end
-end
-
-function ns.OverlayView:HandleMouseLeave()
-    if not self._isDragging then
-        self:HideDragHighlight()
-    end
-end
-
-function ns.OverlayView:SaveDetachedPosition(mode)
-    if not (self.frame and ns.Settings) then
-        return
-    end
-
-    local detachedX, detachedY = GetDetachedFrameOffset(self.frame)
-    if detachedX == nil or detachedY == nil then
-        return
-    end
-
-    local resolvedMode = mode or ns.Settings:GetDisplayMode()
-    ns.Settings:SetDetachedX(detachedX, resolvedMode)
-    ns.Settings:SetDetachedY(detachedY, resolvedMode)
-
-    if ns.SettingsPanel and ns.SettingsPanel.frame and ns.SettingsPanel.frame:IsShown() then
-        ns.SettingsPanel:RefreshControls()
-        ns.SettingsPanel:RefreshPreview(ns.Controller and ns.Controller.lastSnapshot or nil)
-    end
-end
-
-function ns.OverlayView:CaptureDetachedPosition(mode)
-    self:SaveDetachedPosition(mode)
-end
-
-function ns.OverlayView:HandleDragStart(frame)
-    if not self:IsDragEnabled() then
-        return
-    end
-
-    self._isDragging = true
-    self._draggedThisClick = true
-    self:ShowDragHighlight()
-    if self.dragLabel then
-        self.dragLabel:SetText(L["DRAGGING"])
-    end
-    frame:StartMoving()
-end
-
-function ns.OverlayView:SnapToGrid(frame)
-    if not (ns.Settings and ns.Settings:ShouldSnapToGrid()) then
-        return
-    end
-
-    local gridSize = ns.Settings:GetGridSize()
-    if gridSize < 1 then
-        return
-    end
-
-    local x, y = GetDetachedFrameOffset(frame)
-    if not x or not y then
-        return
-    end
-
-    local snappedX = math.floor((x / gridSize) + 0.5) * gridSize
-    local snappedY = math.floor((y / gridSize) + 0.5) * gridSize
-
-    frame:ClearAllPoints()
-    frame:SetPoint("CENTER", UIParent, "CENTER", snappedX, snappedY)
-end
-
-function ns.OverlayView:HandleDragStop(frame)
-    frame:StopMovingOrSizing()
-    self._isDragging = false
-    self:HideDragHighlight()
-    if self.dragLabel then
-        self.dragLabel:SetText(L["DRAG TO MOVE"])
-    end
-
-    if not (ns.Settings and ns.Settings:IsDetached()) then
-        return
-    end
-
-    self:SnapToGrid(frame)
-    self:SaveDetachedPosition()
 end
 
 function ns.OverlayView:HandleMouseUp(button)
     if button ~= "LeftButton" then
-        return
-    end
-
-    if self._draggedThisClick then
-        self._draggedThisClick = nil
         return
     end
 
@@ -483,8 +298,6 @@ function ns.OverlayView:Anchor()
     local target = resolution.target
     local kind = resolution.kind
     local displayMode = GetDisplayMode()
-    local placementMode = GetPlacementMode()
-    local detached = placementMode == Constants.PlacementMode.Detached
     local hideWidget = ShouldHideBlizzardWidget()
 
     if not IsAnchorTargetUsable(target) then
@@ -517,19 +330,15 @@ function ns.OverlayView:Anchor()
     local hostLevel = (host and type(host.GetFrameLevel) == "function" and host:GetFrameLevel()) or 0
     self.frame:SetFrameLevel(hostLevel + Constants.Layout.FrameLevelOffset)
 
-    if detached then
+    if target == UIParent or kind == "fallback" then
         self.frame:SetFrameStrata(Constants.Layout.FrameStrata)
-        self.frame:SetFrameLevel((type(UIParent.GetFrameLevel) == "function" and UIParent:GetFrameLevel() or 0) + Constants.Layout.FrameLevelOffset)
-        self.frame:SetPoint("CENTER", UIParent, "CENTER", GetDetachedX(), GetDetachedY())
-        target = UIParent
-        kind = "detached"
-        resolution.target = UIParent
-        resolution.targetSource = "settings.detached"
-        resolution.kind = kind
-        resolution.fallbackPath = "none"
-    elseif target == UIParent or kind == "fallback" then
-        self.frame:SetFrameStrata(Constants.Layout.FrameStrata)
-        self.frame:SetPoint("TOP", UIParent, "TOP", GetAnchorOffsetX(), Constants.Anchor.FallbackY + GetAnchorOffsetY())
+        self.frame:SetPoint(
+            "TOP",
+            UIParent,
+            "TOP",
+            Constants.Anchor.OffsetX + GetAnchorOffsetX(),
+            Constants.Anchor.FallbackY + Constants.Anchor.OffsetY + GetAnchorOffsetY()
+        )
     else
         local anchorPoint = Constants.Anchor.Point
         local relativePoint = Constants.Anchor.RelativePoint
@@ -541,8 +350,7 @@ function ns.OverlayView:Anchor()
             anchorPoint = "TOP"
             relativePoint = hideWidget and "CENTER" or "BOTTOM"
             anchorTarget = (hideWidget and resolution.widgetFrame) or target
-            offsetX = 0
-            offsetY = hideWidget and math.floor(Constants.Layout.BarHeight * 0.5) or Constants.Layout.BarVisibleOffsetY
+            offsetY = offsetY + (hideWidget and math.floor(Constants.Layout.BarHeight * 0.5) or Constants.Layout.BarVisibleOffsetY)
         elseif kind == "container" then
             offsetX = offsetX + Constants.Anchor.ContainerFallbackOffsetX
             offsetY = offsetY + Constants.Anchor.ContainerFallbackOffsetY
@@ -569,10 +377,6 @@ function ns.OverlayView:Anchor()
         ns.Debug:KV("overlayStrata", self.frame:GetFrameStrata()),
         ns.Debug:KV("overlayLevel", self.frame:GetFrameLevel()),
         ns.Debug:KV("displayMode", displayMode),
-        ns.Debug:KV("placementMode", placementMode),
-        ns.Debug:KV("detachedLocked", detached and IsDetachedPositionLocked() or nil),
-        ns.Debug:KV("detachedX", detached and GetDetachedX() or nil),
-        ns.Debug:KV("detachedY", detached and GetDetachedY() or nil),
         ns.Debug:KV("hideWidget", hideWidget),
         ns.Debug:KV("widgetID", resolution.activeWidgetID)
     )
@@ -649,9 +453,6 @@ function ns.OverlayView:Render(snapshot)
     ApplyOverlayTextStyles(self)
 
     if displayMode == Constants.DisplayMode.Text then
-        if self.textDisplay then
-            self.textDisplay:Show()
-        end
         self:RenderTextOnly(snapshot)
         local resolution = self:Anchor()
         self:SyncWidgetVisibility(snapshot, resolution)

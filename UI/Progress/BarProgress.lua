@@ -7,7 +7,6 @@ local Constants = ns.Constants
 local Layout = Constants.Layout
 local AtlasNames = Constants.Media.WidgetStatusBarAtlas
 
-local GetAtlasInfo = ns.AtlasUtil.GetAtlasInfo
 local ApplyAtlas = ns.AtlasUtil.ApplyAtlas
 
 local LERP_SPEED = 8
@@ -42,8 +41,7 @@ end
 function BarProgressBarMixin:ApplyPercentage(percentage)
     percentage = ns.Util.Clamp01(percentage)
 
-    local atlasInfo = self.FillAtlasInfo
-    if not atlasInfo or self.fillWidth <= 0 or percentage <= 0 then
+    if self.fillWidth <= 0 or percentage <= 0 then
         self.Fill:Hide()
         self.Fill:SetWidth(0.001)
         self.Spark:Hide()
@@ -51,11 +49,9 @@ function BarProgressBarMixin:ApplyPercentage(percentage)
     end
 
     local texWidth = math.max(1, math.floor((self.fillWidth * percentage) + 0.5))
-    local texRight = atlasInfo.leftTexCoord + ((atlasInfo.rightTexCoord - atlasInfo.leftTexCoord) * percentage)
 
     self.Fill:Show()
     self.Fill:SetWidth(texWidth)
-    self.Fill:SetTexCoord(atlasInfo.leftTexCoord, texRight, atlasInfo.topTexCoord, atlasInfo.bottomTexCoord)
 
     if percentage >= 1 then
         self.Spark:Hide()
@@ -177,21 +173,9 @@ function ns.CreateBarProgress(parent, createValueText)
     frame.BorderCenter:SetPoint("BOTTOMRIGHT", frame.BorderRight, "BOTTOMLEFT", 0, 0)
 
     frame.Fill = frame:CreateTexture(nil, "ARTWORK", nil, 0)
-    frame.FillAtlasInfo = GetAtlasInfo(AtlasNames.Fill)
-    if frame.FillAtlasInfo then
-        frame.Fill:SetTexture(frame.FillAtlasInfo.file)
-        frame.Fill:SetTexCoord(
-            frame.FillAtlasInfo.leftTexCoord,
-            frame.FillAtlasInfo.rightTexCoord,
-            frame.FillAtlasInfo.topTexCoord,
-            frame.FillAtlasInfo.bottomTexCoord
-        )
-        frame.Fill:SetHeight(frame.FillAtlasInfo.height)
-    else
-        frame.Fill:SetColorTexture(1, 1, 1, 1)
-        frame.Fill:SetHeight(math.max(1, frame:GetHeight() - (Layout.BarFillInsetY * 2)))
-    end
-    frame.Fill:SetPoint("LEFT", frame, "LEFT", Layout.BarFillInsetX, 0)
+    frame.Fill:SetColorTexture(1, 1, 1, 1)
+    frame.Fill:SetPoint("TOPLEFT", frame, "TOPLEFT", Layout.BarFillInsetX, -Layout.BarFillInsetY)
+    frame.Fill:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", Layout.BarFillInsetX, Layout.BarFillInsetY)
 
     frame.Spark = CreateSlice(frame, AtlasNames.Spark, "OVERLAY", 2)
     frame.Spark:Hide()

@@ -20,24 +20,8 @@ local function LogTracking(action, questID, detail)
     )
 end
 
-local function GetSettings()
-    return ns.Settings
-end
-
-local function GetActivePreyQuestID()
-    return Util.GetActivePreyQuestID()
-end
-
-local function IsQuestComplete(questID)
-    return Util.IsQuestComplete(questID)
-end
-
 local function IsWorldQuest(questID)
-    if not questID or type(C_QuestLog) ~= "table" or type(C_QuestLog.IsWorldQuest) ~= "function" then
-        return false
-    end
-
-    return Util.SafeCall(C_QuestLog.IsWorldQuest, questID) == true
+    return Util.IsWorldQuest(questID)
 end
 
 local function GetQuestWatchType(questID)
@@ -48,13 +32,16 @@ local function GetQuestWatchType(questID)
     return Util.SafeCall(C_QuestLog.GetQuestWatchType, questID)
 end
 
+local function GetManualWatchType()
+    return Enum and Enum.QuestWatchType and Enum.QuestWatchType.Manual or 1
+end
+
 local function AddWorldQuestWatch(questID)
     if not questID or type(C_QuestLog) ~= "table" or type(C_QuestLog.AddWorldQuestWatch) ~= "function" then
         return false
     end
 
-    local manualWatchType = Enum and Enum.QuestWatchType and Enum.QuestWatchType.Manual or 1
-    return Util.SafeCall(C_QuestLog.AddWorldQuestWatch, questID, manualWatchType) == true
+    return Util.SafeCall(C_QuestLog.AddWorldQuestWatch, questID, GetManualWatchType()) == true
 end
 
 local function RemoveWorldQuestWatch(questID)
@@ -63,6 +50,38 @@ local function RemoveWorldQuestWatch(questID)
     end
 
     return Util.SafeCall(C_QuestLog.RemoveWorldQuestWatch, questID) == true
+end
+
+local function AddNormalQuestWatch(questID)
+    if not questID or type(C_QuestLog) ~= "table" or type(C_QuestLog.AddQuestWatch) ~= "function" then
+        return false
+    end
+
+    return Util.SafeCall(C_QuestLog.AddQuestWatch, questID) == true
+end
+
+local function RemoveNormalQuestWatch(questID)
+    if not questID or type(C_QuestLog) ~= "table" or type(C_QuestLog.RemoveQuestWatch) ~= "function" then
+        return false
+    end
+
+    return Util.SafeCall(C_QuestLog.RemoveQuestWatch, questID) == true
+end
+
+local function AddQuestWatch(questID)
+    if IsWorldQuest(questID) then
+        return AddWorldQuestWatch(questID)
+    end
+
+    return AddNormalQuestWatch(questID)
+end
+
+local function RemoveQuestWatch(questID)
+    if IsWorldQuest(questID) then
+        return RemoveWorldQuestWatch(questID)
+    end
+
+    return RemoveNormalQuestWatch(questID)
 end
 
 local function GetSuperTrackedQuestID()
@@ -89,6 +108,7 @@ function ns.QuestTracking:GetState()
             ownedWatchQuestID = nil,
             ownedSuperTrackedQuestID = nil,
             previousSuperTrackedQuestID = nil,
+            pendingAutoTurnIn = nil,
         }
     end
 
@@ -102,7 +122,7 @@ function ns.QuestTracking:CleanupOwnedWatch(questID, reason)
     end
 
     if GetQuestWatchType(questID) ~= nil then
-        RemoveWorldQuestWatch(questID)
+        RemoveQuestWatch(questID)
     end
 
     state.ownedWatchQuestID = nil
@@ -141,6 +161,7 @@ function ns.QuestTracking:CleanupAll(reason)
     end
 
     state.activeQuestID = nil
+    state.pendingAutoTurnIn = nil
 end
 
 function ns.QuestTracking:ApplyAutoWatch(questID)
@@ -149,9 +170,9 @@ function ns.QuestTracking:ApplyAutoWatch(questID)
         return
     end
 
-    if AddWorldQuestWatch(questID) then
+    if AddQuestWatch(questID) then
         state.ownedWatchQuestID = questID
-        LogTracking("applyWatch", questID, "manual")
+        LogTracking("applyWatch", questID, IsWorldQuest(questID) and "world" or "normal")
     end
 end
 
@@ -174,8 +195,17 @@ function ns.QuestTracking:ApplyAutoSuperTrack(questID)
 end
 
 function ns.QuestTracking:ResolveTrackableQuestID(snapshot)
-    local questID = GetActivePreyQuestID()
-    if not questID or IsQuestComplete(questID) or not IsWorldQuest(questID) then
+    local questID = snapshot and snapshot.questID or nil
+    if not questID then
+        local context = Util.BuildPreyQuestContext()
+        questID = context.trackedQuestID
+    end
+
+    if not questID or Util.IsQuestComplete(questID) then
+        return nil
+    end
+
+    if not Util.IsQuestActive(questID) and not Util.IsTaskQuestActive(questID) and not IsWorldQuest(questID) then
         return nil
     end
 
@@ -183,7 +213,7 @@ function ns.QuestTracking:ResolveTrackableQuestID(snapshot)
 end
 
 function ns.QuestTracking:Sync(snapshot, reason)
-    local settings = GetSettings()
+    local settings = ns.Settings
     if not settings or not settings:IsEnabled() then
         self:CleanupAll(reason or "trackerDisabled")
         return
@@ -220,4 +250,56 @@ function ns.QuestTracking:Sync(snapshot, reason)
     else
         self:CleanupOwnedSuperTrack(questID, "superTrackDisabled")
     end
+end
+
+-- Auto-turn-in: complete the prey quest when its auto-complete popup fires.
+-- Follows the DialogueUI pattern: QUEST_AUTOCOMPLETE -> ShowQuestComplete -> QUEST_COMPLETE -> GetQuestReward.
+-- Only prey-hunt quests are touched; every other quest is ignored.
+
+function ns.QuestTracking:HandleQuestAutoComplete(questID)
+    local settings = ns.Settings
+    if not settings or not settings:ShouldAutoTurnInPreyQuest() then
+        return
+    end
+
+    if not Util.IsRelevantPreyQuest(questID) then
+        return
+    end
+
+    local state = self:GetState()
+    state.pendingAutoTurnIn = questID
+    LogTracking("autoTurnIn:show", questID, "pendingReward")
+
+    if type(ShowQuestComplete) == "function" then
+        ShowQuestComplete(questID)
+    end
+end
+
+function ns.QuestTracking:HandleQuestComplete()
+    local state = self:GetState()
+    if not state.pendingAutoTurnIn then
+        return
+    end
+
+    local currentQuestID = type(GetQuestID) == "function" and GetQuestID() or nil
+    if not currentQuestID or currentQuestID ~= state.pendingAutoTurnIn then
+        state.pendingAutoTurnIn = nil
+        return
+    end
+
+    local numChoices = type(GetNumQuestChoices) == "function" and GetNumQuestChoices() or 0
+    if numChoices > 1 then
+        LogTracking("autoTurnIn:skip", currentQuestID, "rewardChoice")
+        state.pendingAutoTurnIn = nil
+        return
+    end
+
+    local rewardIndex = numChoices == 1 and 1 or 0
+    LogTracking("autoTurnIn:complete", currentQuestID, rewardIndex)
+
+    if type(GetQuestReward) == "function" then
+        GetQuestReward(rewardIndex)
+    end
+
+    state.pendingAutoTurnIn = nil
 end

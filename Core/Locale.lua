@@ -21,26 +21,21 @@ local baseStrings = {
     ["Text style"] = "Text style",
     ["Quest help"] = "Quest help",
     ["Audio & feedback"] = "Audio & feedback",
-    ["Drag & grid"] = "Drag & grid",
     ["Profile"] = "Profile",
 
     -- Section descriptions
     ["Pick the tracker style and the overall size that feels right on your screen."] = "Pick the tracker style and the overall size that feels right on your screen.",
-    ["Keep the tracker on the prey icon or switch it to a movable floating layout."] = "Keep the tracker on the prey icon or switch it to a movable floating layout.",
+    ["Keep the tracker attached to the prey icon and nudge it into place."] = "Keep the tracker attached to the prey icon and nudge it into place.",
     ["Choose which cues appear around the tracker while you hunt."] = "Choose which cues appear around the tracker while you hunt.",
     ["Adjust tracker text styling without adding a hard dependency. LibSharedMedia fonts appear automatically when the library is installed."] = "Adjust tracker text styling without adding a hard dependency. LibSharedMedia fonts appear automatically when the library is installed.",
     ["Keep the active prey quest easy to spot while the hunt is running."] = "Keep the active prey quest easy to spot while the hunt is running.",
     ["Control sound cues that fire when your hunt phase changes."] = "Control sound cues that fire when your hunt phase changes.",
-    ["Fine-tune how the floating tracker behaves when you reposition it."] = "Fine-tune how the floating tracker behaves when you reposition it.",
     ["Choose whether this character uses its own settings or the account-wide defaults."] = "Choose whether this character uses its own settings or the account-wide defaults.",
 
     -- Field titles
     ["Enable tracker"] = "Enable tracker",
     ["Display style"] = "Display style",
     ["Display size"] = "Display size",
-    ["Detach from prey icon"] = "Detach from prey icon",
-    ["Lock floating position"] = "Lock floating position",
-    ["Reset floating position"] = "Reset floating position",
     ["Hide Blizzard prey icon"] = "Hide Blizzard prey icon",
     ["Horizontal position"] = "Horizontal position",
     ["Vertical position"] = "Vertical position",
@@ -53,19 +48,14 @@ local baseStrings = {
     ["Badge size"] = "Badge size",
     ["Add prey quest to tracker"] = "Add prey quest to tracker",
     ["Focus the prey quest"] = "Focus the prey quest",
+    ["Auto turn-in prey quest"] = "Auto turn-in prey quest",
     ["Play sound on phase change"] = "Play sound on phase change",
-    ["Snap to grid"] = "Snap to grid",
-    ["Grid size"] = "Grid size",
     ["Use character profile"] = "Use character profile",
 
     -- Field descriptions
     ["Turn Preybreaker on or off without losing your layout."] = "Turn Preybreaker on or off without losing your layout.",
     ["Choose the shape that best fits your UI."] = "Choose the shape that best fits your UI.",
     ["Make the current style bigger or smaller."] = "Make the current style bigger or smaller.",
-    ["Turn the tracker into a free-floating element you can place anywhere."] = "Turn the tracker into a free-floating element you can place anywhere.",
-    ["Keep the floating tracker fixed once it is where you want it."] = "Keep the floating tracker fixed once it is where you want it.",
-    ["Available after you switch the tracker to the floating layout."] = "Available after you switch the tracker to the floating layout.",
-    ["Bring the floating tracker back to the center of your screen."] = "Bring the floating tracker back to the center of your screen.",
     ["Show only Preybreaker while the prey hunt is active."] = "Show only Preybreaker while the prey hunt is active.",
     ["Show a simple number inside the tracker."] = "Show a simple number inside the tracker.",
     ["Display COLD, WARM, HOT, or FINAL below the tracker."] = "Display COLD, WARM, HOT, or FINAL below the tracker.",
@@ -77,15 +67,11 @@ local baseStrings = {
     ["Scale the stage badge text separately from the main progress number."] = "Scale the stage badge text separately from the main progress number.",
     ["Automatically place the active prey quest in your watch list."] = "Automatically place the active prey quest in your watch list.",
     ["Keep the active prey quest selected for your objective arrow."] = "Keep the active prey quest selected for your objective arrow.",
+    ["Automatically complete the prey quest when it pops up, unless a reward choice is required."] = "Automatically complete the prey quest when it pops up, unless a reward choice is required.",
     ["Hear an audio cue when the prey hunt moves to a new stage."] = "Hear an audio cue when the prey hunt moves to a new stage.",
-    ["Align the floating tracker to an invisible pixel grid when you drop it."] = "Align the floating tracker to an invisible pixel grid when you drop it.",
-    ["Spacing of the snap grid in pixels."] = "Spacing of the snap grid in pixels.",
     ["Store a separate set of settings for this character."] = "Store a separate set of settings for this character.",
-    ["Reset position"] = "Reset position",
     ["Nudge the tracker left or right around the prey icon."] = "Nudge the tracker left or right around the prey icon.",
-    ["Move the floating tracker left or right on the screen."] = "Move the floating tracker left or right on the screen.",
     ["Nudge the tracker up or down around the prey icon."] = "Nudge the tracker up or down around the prey icon.",
-    ["Move the floating tracker up or down on the screen."] = "Move the floating tracker up or down on the screen.",
 
     -- Display mode labels
     ["Ring"] = "Ring",
@@ -114,7 +100,6 @@ local baseStrings = {
     ["Quick actions"] = "Quick actions",
     ["Style"] = "Style",
     ["Blizzard UI"] = "Blizzard UI",
-    ["Floating"] = "Floating",
     ["Attached"] = "Attached",
     ["Overlay only"] = "Overlay only",
     ["Show both"] = "Show both",
@@ -129,8 +114,6 @@ local baseStrings = {
     ["Text only"] = "Text only",
     ["Reset all"] = "Reset all",
     ["Refresh now"] = "Refresh now",
-    ["DRAG TO MOVE"] = "DRAG TO MOVE",
-    ["DRAGGING"] = "DRAGGING",
 
     -- Chat / slash messages
     ["Settings reset to defaults."] = "Settings reset to defaults.",
@@ -164,8 +147,6 @@ local baseStrings = {
 
     -- Preview notes
     ["Preview stays available while the tracker is turned off."] = "Preview stays available while the tracker is turned off.",
-    ["Floating layout locked. Unlock it to drag the live tracker."] = "Floating layout locked. Unlock it to drag the live tracker.",
-    ["Floating layout ready. Drag the live tracker when a hunt is active."] = "Floating layout ready. Drag the live tracker when a hunt is active.",
     ["Text view without the Blizzard prey icon."] = "Text view without the Blizzard prey icon.",
     ["Text view attached to the Blizzard prey icon."] = "Text view attached to the Blizzard prey icon.",
     ["Bar view without the Blizzard prey icon."] = "Bar view without the Blizzard prey icon.",

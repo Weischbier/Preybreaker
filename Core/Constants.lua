@@ -14,18 +14,13 @@ ns.Constants = {
         Text = "text",
     },
 
-    PlacementMode = {
-        Attached = "attached",
-        Detached = "detached",
-    },
-
     Anchor = {
         Point = "CENTER",
         RelativePoint = "CENTER",
         OffsetX = 0,
         OffsetY = 0,
         ContainerFallbackOffsetX = 0,
-        ContainerFallbackOffsetY = 18,
+        ContainerFallbackOffsetY = 0,
         FallbackY = -150,
     },
 
@@ -181,8 +176,6 @@ ns.Constants = {
         },
         Sounds = {
             PhaseChange = "Interface\\AddOns\\Preybreaker\\Media\\Sounds\\AmongUs\\interaction.ogg",
-            HuntStart = "Interface\\AddOns\\Preybreaker\\Media\\Sounds\\AmongUs\\hunt_start.ogg",
-            HuntEnd = "Interface\\AddOns\\Preybreaker\\Media\\Sounds\\AmongUs\\hunt_end.ogg",
             FinalPhase = "Interface\\AddOns\\Preybreaker\\Media\\Sounds\\AmongUs\\kill.ogg",
         },
         StageBadgeTexCoord = {
