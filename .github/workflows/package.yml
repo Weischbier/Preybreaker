@@ -65,13 +65,6 @@ jobs:
           short_sha="${GITHUB_SHA::7}"
           tag="alpha-${short_sha}"
           title="Alpha ${short_sha}"
-          notes=$(cat <<EOF
-          Automated alpha prerelease for commit ${short_sha}.
-
-          Commit: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}
-          Workflow: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
-          EOF
-          )
 
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "GitHub prerelease already exists for $tag"
@@ -81,7 +74,7 @@ jobs:
           gh release create "$tag" "$ARCHIVE_PATH" \
             --target "$GITHUB_SHA" \
             --title "$title" \
-            --notes "$notes" \
+            --notes "Automated alpha prerelease for commit ${short_sha}." \
             --prerelease \
             --latest=false
 

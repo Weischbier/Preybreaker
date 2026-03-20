@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed settings summary card using dynamic height so text rows never overlap regardless of string length or localization.
+
 ## [v1.0.0.@project-abbreviated-hash@] - 2026-03-19
 
 ### Added

@@ -86,6 +86,8 @@ function ns.SettingsPanel:RefreshSummary(snapshot, live)
     summary.WidgetValue:SetText(Settings:ShouldHideBlizzardWidget() and L["Overlay only"] or L["Show both"])
     summary.ReadoutValue:SetText(GetReadoutSummary())
     summary.QuestValue:SetText(GetQuestHelperSummary())
+
+    summary:ResizeToFit()
 end
 
 function ns.SettingsPanel:RefreshControls()

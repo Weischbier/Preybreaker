@@ -82,6 +82,20 @@ function SP.CreateSummaryCard(parent)
     card.Note:SetText(L["Live state shows up here as soon as a prey hunt starts."])
     SetTextColor(card.Note, panel.MutedColor)
 
+    function card:ResizeToFit()
+        local h = 12
+        h = h + (self.Title:GetStringHeight() or 14)
+        h = h + 34
+        h = h + (self.StatusText:GetStringHeight() or 10)
+        local rows = { self.StyleLabel, self.PlacementLabel, self.WidgetLabel, self.ReadoutLabel, self.QuestLabel }
+        for _, label in ipairs(rows) do
+            h = h + 10 + (label:GetStringHeight() or 10)
+        end
+        h = h + 10 + (self.Note:GetStringHeight() or 10)
+        h = h + 12
+        self:SetHeight(math.ceil(h))
+    end
+
     return card
 end
 

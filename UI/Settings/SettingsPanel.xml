@@ -137,9 +137,9 @@
                 </FontString>
 
                 <!-- Note -->
-                <FontString parentKey="Note" inherits="GameFontDisableSmall" justifyH="LEFT">
+                <FontString parentKey="Note" inherits="GameFontDisableSmall" justifyH="LEFT" wordwrap="true">
                     <Anchors>
-                        <Anchor point="BOTTOMLEFT" x="14" y="12"/>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.QuestLabel" relativePoint="BOTTOMLEFT" y="-10"/>
                         <Anchor point="RIGHT" x="-12"/>
                     </Anchors>
                 </FontString>
