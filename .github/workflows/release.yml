@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - "v*"
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -64,7 +63,7 @@ jobs:
           tag="${GITHUB_REF_NAME}"
           prerelease=""
           latest="--latest"
-          if [[ "$tag" == *-beta* ]] || [[ "$tag" == *-rc* ]]; then
+          if [[ "$tag" == *-alpha* ]] || [[ "$tag" == *-beta* ]] || [[ "$tag" == *-rc* ]]; then
             prerelease="--prerelease"
             latest="--latest=false"
           fi
@@ -78,7 +77,7 @@ jobs:
       - name: Upload packaged zip
         uses: actions/upload-artifact@v4
         with:
-          name: Preybreaker-release-${{ github.ref_name }}
+          name: Preybreaker-${{ github.ref_name }}
           path: ${{ steps.package.outputs.archive_path }}
           if-no-files-found: error
           include-hidden-files: true
