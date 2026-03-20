@@ -151,4 +151,31 @@ ns._activeTranslation = {
     ["Ring sample without the Blizzard prey icon."] = "Esempio anello senza l'icona preda di Blizzard.",
     ["Ring view attached to the Blizzard prey icon."] = "Vista anello agganciata all'icona preda di Blizzard.",
     ["Ring sample attached to the Blizzard prey icon."] = "Esempio anello agganciato all'icona preda di Blizzard.",
+
+    -- Random hunt settings
+    ["Random hunt"] = "Caccia casuale",
+    ["Automate randomized hunt purchasing from Astalor Bloodsworn."] = "Automatizza l'acquisto di cacce casuali da Astalor Giurasangue.",
+    ["Auto-purchase random hunt"] = "Acquisto auto caccia casuale",
+    ["Automatically request a randomized hunt from Astalor Bloodsworn when you open his gossip window."] = "Richiedi automaticamente una caccia casuale da Astalor Giurasangue quando apri la sua finestra di dialogo.",
+    ["Hunt difficulty"] = "Difficoltà di caccia",
+    ["Choose which difficulty to purchase when auto-buying a randomized hunt."] = "Scegli la difficoltà da acquistare durante l'acquisto automatico di una caccia casuale.",
+    ["Normal"] = "Normale",
+    ["Hard"] = "Difficile",
+    ["Nightmare"] = "Incubo",
+    ["Remnant reserve"] = "Riserva di vestigia",
+    ["Only purchase a hunt when you have at least this many Remnants of Anguish plus the 50 purchase cost."] = "Acquista una caccia solo quando hai almeno questa quantità di Vestigia d'Angoscia più il costo di 50.",
+
+    -- Hunt rewards settings
+    ["Hunt rewards"] = "Ricompense di caccia",
+    ["Automatically choose rewards when completing a prey hunt."] = "Scegli automaticamente le ricompense al completamento di una caccia alla preda.",
+    ["Auto-select hunt reward"] = "Selezione auto ricompensa",
+    ["Automatically pick a reward when a completed hunt offers multiple choices."] = "Scegli automaticamente una ricompensa quando una caccia completata offre più opzioni.",
+    ["Preferred reward"] = "Ricompensa preferita",
+    ["The reward type to pick first when completing a hunt."] = "Il tipo di ricompensa da scegliere per primo al completamento di una caccia.",
+    ["Fallback reward"] = "Ricompensa alternativa",
+    ["The reward to pick if your preferred choice is unavailable or its currency is capped."] = "La ricompensa da scegliere se l'opzione preferita non è disponibile o la sua valuta è al massimo.",
+    ["Gear upgrade currency"] = "Valuta potenziamento equipaggiamento",
+    ["Remnant of Anguish"] = "Vestigia d'Angoscia",
+    ["Gold"] = "Oro",
+    ["Voidlight Marl"] = "Marna di luce del Vuoto",
 }

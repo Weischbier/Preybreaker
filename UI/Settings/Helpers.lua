@@ -245,6 +245,53 @@ function SP.GetPreviewNote(live)
     return live and L["Ring view attached to the Blizzard prey icon."] or L["Ring sample attached to the Blizzard prey icon."]
 end
 
+local TAB_BUTTON_MIN_WIDTH = 84
+local TAB_BUTTON_PADDING = 26
+
+function SP.CreateTabButton(parent, labelText)
+    local panel = Constants.SettingsPanel
+
+    local button = CreateFrame("Button", nil, parent, SP.BACKDROP_TEMPLATE)
+    button:SetHeight(24)
+
+    button.Text = button:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    button.Text:SetPoint("TOPLEFT", button, "TOPLEFT", 10, -4)
+    button.Text:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -10, 4)
+    button.Text:SetJustifyH("CENTER")
+    button.Text:SetText(labelText)
+
+    local textWidth = button.Text:GetStringWidth() or 0
+    button:SetWidth(math.max(TAB_BUTTON_MIN_WIDTH, textWidth + TAB_BUTTON_PADDING))
+
+    button.Highlight = button:CreateTexture(nil, "HIGHLIGHT")
+    button.Highlight:SetAllPoints()
+    button.Highlight:SetTexture("Interface\\Buttons\\WHITE8X8")
+    button.Highlight:SetVertexColor(1, 1, 1, 0.06)
+    button.Highlight:SetBlendMode("ADD")
+
+    SP.ApplyInsetBackdrop(button)
+    SP.SetTextColor(button.Text, panel.BodyColor)
+
+    return button
+end
+
+function SP.UpdateTabButton(button, selected)
+    local panel = Constants.SettingsPanel
+
+    if selected then
+        SP.ApplyBackdrop(
+            button,
+            { panel.AccentSoftColor[1], panel.AccentSoftColor[2], panel.AccentSoftColor[3], 0.78 },
+            panel.BorderColor
+        )
+        SP.SetTextColor(button.Text, panel.TitleColor)
+        return
+    end
+
+    SP.ApplyInsetBackdrop(button)
+    SP.SetTextColor(button.Text, panel.BodyColor)
+end
+
 function SP.HideSliderTemplateLabels(slider)
     for _, region in pairs({ slider:GetRegions() }) do
         if region.SetText then

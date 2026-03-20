@@ -12,7 +12,7 @@ local function OpenSettings()
 end
 
 local function PrintHelp()
-    ns.Util.Print("Commands: /pb, /pb settings, /pb toggle, /pb refresh, /pb reset, /pb debug")
+    ns.Util.Print("Commands: /pb, /pb settings, /pb hunts, /pb toggle, /pb refresh, /pb reset, /pb debug")
 end
 
 SLASH_PREYBREAKER1 = "/preybreaker"
@@ -39,6 +39,16 @@ SlashCmdList.PREYBREAKER = function(message)
     if command == "refresh" and ns.Controller then
         ns.Controller:Refresh("slash:refresh")
         ns.Util.Print(L["Refreshed prey widget state."])
+        return
+    end
+
+    if command == "hunts" and ns.HuntPanel then
+        local shown = ns.HuntPanel:ToggleStandalone()
+        if shown then
+            ns.Util.Print(L["Standalone hunt panel shown."])
+        else
+            ns.Util.Print(L["Standalone hunt panel hidden."])
+        end
         return
     end
 

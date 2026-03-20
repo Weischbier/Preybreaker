@@ -2,7 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [v1.1.0] - 2026-03-20
+
+### Added
+
+- Added `Settings` and `Changelog` tabs plus packaged in-game changelog data.
+- Added deterministic regression coverage for reward selection, gossip automation, hunt dedupe/sort/filter logic, and quick-eval hunt availability.
+
+### Changed
+
+- Updated saved-variable schema to `5` with persisted settings tab, hunt-panel mode/filter, and standalone offset keys.
+- Reworked hunt difficulty/random matching to locale pattern packs with learned-ID and ordered fallbacks.
+
+### Fixed
+
+- Fixed prey quest reward auto-selection for delayed reward payloads and capped-currency semantics, including `QUEST_ITEM_UPDATE` retry handling.
+- Fixed random hunt auto-pickup with DialogueUI by hardening automation across `GOSSIP_SHOW`, `GOSSIP_CONFIRM`, `QUEST_DETAIL`, `QUEST_ACCEPTED`, `QUEST_FINISHED`, and `GOSSIP_CLOSED`.
+- Fixed confirmation-required gossip flows by always using confirmed option selection and explicit `GOSSIP_CONFIRM` handling.
+- Fixed changelog-tab scroll text overlap after deep scrolling.
+- Fixed reward preference matching by prioritizing reward/currency IDs over localized names.
+- Fixed hunt purchase scope so non-prey and non-target NPC interactions remain excluded.
+
 
 ## [v1.0.0] - 2026-03-20
 

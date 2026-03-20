@@ -151,4 +151,31 @@ ns._activeTranslation = {
     ["Ring sample without the Blizzard prey icon."] = "블리자드 먹이 아이콘 없는 고리 샘플.",
     ["Ring view attached to the Blizzard prey icon."] = "블리자드 먹이 아이콘에 부착된 고리 보기.",
     ["Ring sample attached to the Blizzard prey icon."] = "블리자드 먹이 아이콘에 부착된 고리 샘플.",
+
+    -- Random hunt settings
+    ["Random hunt"] = "무작위 사냥",
+    ["Automate randomized hunt purchasing from Astalor Bloodsworn."] = "아스탈로르 블러드스원에게서 무작위 사냥 구매를 자동화합니다.",
+    ["Auto-purchase random hunt"] = "무작위 사냥 자동 구매",
+    ["Automatically request a randomized hunt from Astalor Bloodsworn when you open his gossip window."] = "아스탈로르 블러드스원의 대화 창을 열면 자동으로 무작위 사냥을 요청합니다.",
+    ["Hunt difficulty"] = "사냥 난이도",
+    ["Choose which difficulty to purchase when auto-buying a randomized hunt."] = "무작위 사냥 자동 구매 시 구매할 난이도를 선택합니다.",
+    ["Normal"] = "일반",
+    ["Hard"] = "어려움",
+    ["Nightmare"] = "악몽",
+    ["Remnant reserve"] = "잔재 비축량",
+    ["Only purchase a hunt when you have at least this many Remnants of Anguish plus the 50 purchase cost."] = "고뇌의 잔재가 이 수량 이상에 구매 비용 50을 더한 만큼 있을 때만 사냥을 구매합니다.",
+
+    -- Hunt rewards settings
+    ["Hunt rewards"] = "사냥 보상",
+    ["Automatically choose rewards when completing a prey hunt."] = "먹이 사냥 완료 시 자동으로 보상을 선택합니다.",
+    ["Auto-select hunt reward"] = "사냥 보상 자동 선택",
+    ["Automatically pick a reward when a completed hunt offers multiple choices."] = "완료된 사냥에 여러 선택지가 있을 때 자동으로 보상을 선택합니다.",
+    ["Preferred reward"] = "선호 보상",
+    ["The reward type to pick first when completing a hunt."] = "사냥 완료 시 우선 선택할 보상 유형.",
+    ["Fallback reward"] = "대체 보상",
+    ["The reward to pick if your preferred choice is unavailable or its currency is capped."] = "선호 보상을 사용할 수 없거나 화폐가 상한에 도달했을 때 선택할 보상.",
+    ["Gear upgrade currency"] = "장비 강화 화폐",
+    ["Remnant of Anguish"] = "고뇌의 잔재",
+    ["Gold"] = "골드",
+    ["Voidlight Marl"] = "공허빛 이회암",
 }

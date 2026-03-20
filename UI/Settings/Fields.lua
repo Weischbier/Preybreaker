@@ -128,6 +128,9 @@ local function CreateToggleRow(parent, spec)
     return row
 end
 
+local CHOICE_BUTTON_MIN_WIDTH = 72
+local CHOICE_BUTTON_PADDING = 24
+
 local function CreateModeButton(parent, option, onClick)
     local panel = Constants.SettingsPanel
 
@@ -136,6 +139,9 @@ local function CreateModeButton(parent, option, onClick)
     ApplyHighlightColor(button.Highlight, 0.08)
 
     button.Text:SetText(option.label)
+    local textWidth = button.Text:GetStringWidth() or 0
+    button:SetWidth(math.max(CHOICE_BUTTON_MIN_WIDTH, textWidth + CHOICE_BUTTON_PADDING))
+
     button.value = option.value
     button:SetScript("OnClick", function()
         onClick(option.value)
@@ -189,17 +195,26 @@ local function CreateChoiceRow(parent, spec)
     row.Buttons = buttons
 
     function row:Refresh()
+        local enabled = not spec.isAvailable or spec.isAvailable()
         local selectedValue = spec.get()
         for _, button in ipairs(buttons) do
-            if button.SetEnabled then
-                button:SetEnabled(true)
-            elseif button.Enable then
-                button:Enable()
+            if enabled then
+                if button.SetEnabled then
+                    button:SetEnabled(true)
+                elseif button.Enable then
+                    button:Enable()
+                end
+            else
+                if button.SetEnabled then
+                    button:SetEnabled(false)
+                elseif button.Disable then
+                    button:Disable()
+                end
             end
-            UpdateModeButton(button, button.value == selectedValue)
+            UpdateModeButton(button, enabled and button.value == selectedValue)
         end
 
-        SetFieldAvailability(row, true, ResolveValue(spec.description), nil)
+        SetFieldAvailability(row, enabled, ResolveValue(spec.description), ResolveValue(spec.disabledDescription))
     end
 
     return row

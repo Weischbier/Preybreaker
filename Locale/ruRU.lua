@@ -151,4 +151,31 @@ ns._activeTranslation = {
     ["Ring sample without the Blizzard prey icon."] = "Зразок кільця без іконки здобичі Blizzard.",
     ["Ring view attached to the Blizzard prey icon."] = "Вигляд кільця, прикріплений до іконки здобичі Blizzard.",
     ["Ring sample attached to the Blizzard prey icon."] = "Зразок кільця, прикріплений до іконки здобичі Blizzard.",
+
+    -- Random hunt settings
+    ["Random hunt"] = "Випадкове полювання",
+    ["Automate randomized hunt purchasing from Astalor Bloodsworn."] = "Автоматизувати покупку випадкових полювань у Асталора Кривавоклятого.",
+    ["Auto-purchase random hunt"] = "Автопокупка випадкового полювання",
+    ["Automatically request a randomized hunt from Astalor Bloodsworn when you open his gossip window."] = "Автоматично запитувати випадкове полювання у Асталора Кривавоклятого при відкритті вікна діалогу.",
+    ["Hunt difficulty"] = "Складність полювання",
+    ["Choose which difficulty to purchase when auto-buying a randomized hunt."] = "Оберіть складність при автоматичній покупці випадкового полювання.",
+    ["Normal"] = "Звичайна",
+    ["Hard"] = "Складна",
+    ["Nightmare"] = "Кошмарна",
+    ["Remnant reserve"] = "Запас залишків",
+    ["Only purchase a hunt when you have at least this many Remnants of Anguish plus the 50 purchase cost."] = "Купувати полювання лише коли маєте щонайменше стільки Залишків муки плюс 50 вартості покупки.",
+
+    -- Hunt rewards settings
+    ["Hunt rewards"] = "Нагороди полювання",
+    ["Automatically choose rewards when completing a prey hunt."] = "Автоматично обирати нагороди при завершенні полювання на здобич.",
+    ["Auto-select hunt reward"] = "Автовибір нагороди",
+    ["Automatically pick a reward when a completed hunt offers multiple choices."] = "Автоматично обирати нагороду, коли завершене полювання пропонує кілька варіантів.",
+    ["Preferred reward"] = "Бажана нагорода",
+    ["The reward type to pick first when completing a hunt."] = "Тип нагороди для першочергового вибору при завершенні полювання.",
+    ["Fallback reward"] = "Запасна нагорода",
+    ["The reward to pick if your preferred choice is unavailable or its currency is capped."] = "Нагорода для вибору, якщо бажаний варіант недоступний або валюта досягла ліміту.",
+    ["Gear upgrade currency"] = "Валюта покращення спорядження",
+    ["Remnant of Anguish"] = "Залишок муки",
+    ["Gold"] = "Золото",
+    ["Voidlight Marl"] = "Порожнечосвітній мергель",
 }

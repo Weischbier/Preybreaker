@@ -64,7 +64,7 @@ ns.Constants = {
 
     SettingsPanel = {
         Width = 890,
-        Height = 690,
+        Height = 730,
         Padding = 18,
         HeaderHeight = 72,
         SidebarWidth = 234,
@@ -185,6 +185,138 @@ ns.Constants = {
             bottom = 1559 / 2048,
         },
     },
+
+    Hunt = {
+        AstalorNpcID = 253513,
+        RemnantCurrencyID = 3392,
+        Cost = 50,
+        Difficulty = {
+            Normal = "normal",
+            Hard = "hard",
+            Nightmare = "nightmare",
+        },
+        RewardType = {
+            Dawncrest = "dawncrest",
+            Remnant = "remnant",
+            Gold = "gold",
+            Marl = "marl",
+        },
+        DawncrestCurrencyIDs = { 3391, 3341 },
+        VoidlightMarlCurrencyID = 3316,
+        RewardPatterns = {
+            dawncrest = { "dawncrest", "crest" },
+            remnant = { "remnant", "anguish" },
+            gold = { "gold", "coin" },
+            marl = { "marl", "voidlight" },
+        },
+        LocalePatterns = {
+            enUS = {
+                difficulty = {
+                    normal = { "normal" },
+                    hard = { "hard" },
+                    nightmare = { "nightmare" },
+                },
+                random = { "random" },
+            },
+            enGB = {
+                difficulty = {
+                    normal = { "normal" },
+                    hard = { "hard" },
+                    nightmare = { "nightmare" },
+                },
+                random = { "random" },
+            },
+            deDE = {
+                difficulty = {
+                    normal = { "normal" },
+                    hard = { "schwer" },
+                    nightmare = { "albtraum" },
+                },
+                random = { "zufall", "zufallig", "zufällig" },
+            },
+            frFR = {
+                difficulty = {
+                    normal = { "normal" },
+                    hard = { "difficile" },
+                    nightmare = { "cauchemar" },
+                },
+                random = { "aleatoire", "aléatoire" },
+            },
+            esES = {
+                difficulty = {
+                    normal = { "normal" },
+                    hard = { "dificil", "difícil" },
+                    nightmare = { "pesadilla" },
+                },
+                random = { "aleatorio", "aleatoria" },
+            },
+            esMX = {
+                difficulty = {
+                    normal = { "normal" },
+                    hard = { "dificil", "difícil" },
+                    nightmare = { "pesadilla" },
+                },
+                random = { "aleatorio", "aleatoria" },
+            },
+            itIT = {
+                difficulty = {
+                    normal = { "normale", "normal" },
+                    hard = { "difficile" },
+                    nightmare = { "incubo" },
+                },
+                random = { "casuale" },
+            },
+            ptBR = {
+                difficulty = {
+                    normal = { "normal" },
+                    hard = { "dificil", "difícil" },
+                    nightmare = { "pesadelo" },
+                },
+                random = { "aleatorio", "aleatória", "aleatoria" },
+            },
+            ruRU = {
+                difficulty = {
+                    normal = { "обыч", "обычный" },
+                    hard = { "слож", "сложный" },
+                    nightmare = { "кошмар" },
+                },
+                random = { "случайн" },
+            },
+            koKR = {
+                difficulty = {
+                    normal = { "일반" },
+                    hard = { "어려움", "어려운" },
+                    nightmare = { "악몽" },
+                },
+                random = { "무작위" },
+            },
+            zhCN = {
+                difficulty = {
+                    normal = { "普通" },
+                    hard = { "困难" },
+                    nightmare = { "梦魇" },
+                },
+                random = { "随机" },
+            },
+            zhTW = {
+                difficulty = {
+                    normal = { "普通" },
+                    hard = { "困難" },
+                    nightmare = { "夢魘" },
+                },
+                random = { "隨機" },
+            },
+        },
+        DifficultyPatterns = nil,
+        RandomPatterns = nil,
+        -- Renown faction that gates difficulty unlocks.
+        -- Level 1 = Hard, Level 4 = Nightmare (sourced from Plumber MID_Activity.lua).
+        RenownFactionID = 2764,
+        RenownHardThreshold = 1,
+        RenownNightmareThreshold = 4,
+        -- Zone order for display sorting.
+        Zones = { "Eversong Woods", "Zul'Aman", "Harandar", "Voidstorm" },
+    },
 }
 
 do
@@ -203,6 +335,25 @@ do
     end
 
     ns.Constants.OrderedStates = BuildOrderedStates()
+end
+
+do
+    local hunt = ns.Constants and ns.Constants.Hunt
+    local locale = ns._clientLocale or (type(GetLocale) == "function" and GetLocale()) or "enUS"
+    local localePatterns = nil
+    if hunt and hunt.LocalePatterns then
+        localePatterns = hunt.LocalePatterns[locale]
+        if not localePatterns and type(locale) == "string" then
+            localePatterns = hunt.LocalePatterns[strsub(locale, 1, 4)]
+        end
+        if not localePatterns then
+            localePatterns = hunt.LocalePatterns.enUS
+        end
+    end
+    if hunt and localePatterns then
+        hunt.DifficultyPatterns = localePatterns.difficulty or hunt.LocalePatterns.enUS.difficulty
+        hunt.RandomPatterns = localePatterns.random or hunt.LocalePatterns.enUS.random
+    end
 end
 
 -- Re-key lookup tables by enum name so values stay correct if numeric IDs differ from hardcoded defaults.

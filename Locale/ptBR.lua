@@ -151,4 +151,31 @@ ns._activeTranslation = {
     ["Ring sample without the Blizzard prey icon."] = "Exemplo de anel sem o ícone de presa da Blizzard.",
     ["Ring view attached to the Blizzard prey icon."] = "Visualização de anel anexada ao ícone de presa da Blizzard.",
     ["Ring sample attached to the Blizzard prey icon."] = "Exemplo de anel anexado ao ícone de presa da Blizzard.",
+
+    -- Random hunt settings
+    ["Random hunt"] = "Caçada aleatória",
+    ["Automate randomized hunt purchasing from Astalor Bloodsworn."] = "Automatizar a compra de caçadas aleatórias de Astalor Juradesangue.",
+    ["Auto-purchase random hunt"] = "Compra automática de caçada aleatória",
+    ["Automatically request a randomized hunt from Astalor Bloodsworn when you open his gossip window."] = "Solicitar automaticamente uma caçada aleatória de Astalor Juradesangue ao abrir sua janela de diálogo.",
+    ["Hunt difficulty"] = "Dificuldade da caçada",
+    ["Choose which difficulty to purchase when auto-buying a randomized hunt."] = "Escolha a dificuldade ao comprar automaticamente uma caçada aleatória.",
+    ["Normal"] = "Normal",
+    ["Hard"] = "Difícil",
+    ["Nightmare"] = "Pesadelo",
+    ["Remnant reserve"] = "Reserva de vestígios",
+    ["Only purchase a hunt when you have at least this many Remnants of Anguish plus the 50 purchase cost."] = "Comprar uma caçada apenas quando tiver pelo menos esta quantidade de Vestígios de Angústia mais o custo de 50.",
+
+    -- Hunt rewards settings
+    ["Hunt rewards"] = "Recompensas de caçada",
+    ["Automatically choose rewards when completing a prey hunt."] = "Escolher recompensas automaticamente ao completar uma caçada de presa.",
+    ["Auto-select hunt reward"] = "Seleção automática de recompensa",
+    ["Automatically pick a reward when a completed hunt offers multiple choices."] = "Escolher automaticamente uma recompensa quando a caçada completada oferecer várias opções.",
+    ["Preferred reward"] = "Recompensa preferida",
+    ["The reward type to pick first when completing a hunt."] = "O tipo de recompensa a escolher primeiro ao completar uma caçada.",
+    ["Fallback reward"] = "Recompensa alternativa",
+    ["The reward to pick if your preferred choice is unavailable or its currency is capped."] = "A recompensa a escolher se sua opção preferida estiver indisponível ou sua moeda estiver no limite.",
+    ["Gear upgrade currency"] = "Moeda de melhoria de equipamento",
+    ["Remnant of Anguish"] = "Vestígio de Angústia",
+    ["Gold"] = "Ouro",
+    ["Voidlight Marl"] = "Marga de luz do Vazio",
 }

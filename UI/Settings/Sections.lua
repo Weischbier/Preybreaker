@@ -9,33 +9,429 @@ local L = ns.L
 local SP = ns._SP
 
 local ApplyBackdrop = SP.ApplyBackdrop
-local BACKDROP_TEMPLATE = SP.BACKDROP_TEMPLATE
-local PANEL_NAME = SP.PANEL_NAME
-local MODE_OPTIONS = SP.MODE_OPTIONS
+local ApplyCardBackdrop = SP.ApplyCardBackdrop
+local ApplyInsetBackdrop = SP.ApplyInsetBackdrop
+local ApplyAccentLineColor = SP.ApplyAccentLineColor
+local ApplyHighlightColor = SP.ApplyHighlightColor
+local HideSliderTemplateLabels = SP.HideSliderTemplateLabels
+local ResolveValue = SP.ResolveValue
+local SetTextColor = SP.SetTextColor
 
-function SP.CreateSections(frame)
+local RELEASE_SECTION_ORDER = { "Added", "Changed", "Fixed", "Removed" }
+local SOCIAL_LINKS = {
+    {
+        title = "GitHub Repository",
+        url = "https://github.com/Weischbier/Preybreaker",
+    },
+    {
+        title = "GitHub Issues",
+        url = "https://github.com/Weischbier/Preybreaker/issues",
+    },
+    {
+        title = "CurseForge",
+        url = "https://www.curseforge.com/wow/addons/preybreaker",
+    },
+    {
+        title = "Wago Addons",
+        url = "https://addons.wago.io/addons/preybreaker",
+    },
+}
+
+local function SetEnabledState(widget, enabled)
+    if not widget then
+        return
+    end
+
+    if widget.SetEnabled then
+        widget:SetEnabled(enabled)
+    elseif enabled and widget.Enable then
+        widget:Enable()
+    elseif not enabled and widget.Disable then
+        widget:Disable()
+    end
+end
+
+local function GetChoiceLabel(options, value)
+    for _, option in ipairs(options or {}) do
+        if option.value == value then
+            return option.label
+        end
+    end
+
+    return nil
+end
+
+local function GetContentWidth()
     local panel = Constants.SettingsPanel
-    local contentWidth = panel.Width - (panel.Padding * 2) - panel.SidebarWidth - 18
+    return panel.Width - (panel.Padding * 2) - panel.SidebarWidth - 18
+end
 
-    local divider = frame:CreateTexture(nil, "ARTWORK")
-    divider:SetWidth(1)
-    divider:SetColorTexture(panel.AccentColor[1], panel.AccentColor[2], panel.AccentColor[3], 0.18)
-    divider:SetPoint("TOPLEFT", frame.sidebar.Frame, "TOPRIGHT", 9, 0)
-    divider:SetPoint("BOTTOMLEFT", frame.sidebar.Frame, "BOTTOMRIGHT", 9, 0)
+local function CreateContentHost(parent)
+    local panel = Constants.SettingsPanel
 
-    local contentHost = CreateFrame("Frame", nil, frame, BACKDROP_TEMPLATE)
-    contentHost:SetPoint("TOPLEFT", frame.sidebar.Frame, "TOPRIGHT", 18, 0)
-    contentHost:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -panel.Padding, panel.Padding)
+    local contentHost = CreateFrame("Frame", nil, parent, SP.BACKDROP_TEMPLATE)
+    contentHost:SetAllPoints(parent)
     ApplyBackdrop(contentHost, { 0.05, 0.04, 0.03, 0.58 }, panel.BorderSoftColor)
 
-    local scrollFrame = CreateFrame("ScrollFrame", PANEL_NAME .. "ScrollFrame", contentHost, "UIPanelScrollFrameTemplate")
-    scrollFrame:SetPoint("TOPLEFT", contentHost, "TOPLEFT", 4, -6)
-    scrollFrame:SetPoint("BOTTOMRIGHT", contentHost, "BOTTOMRIGHT", -28, 6)
+    return contentHost
+end
+
+local function CreateScrollFrame(parent, nameSuffix)
+    local scrollFrame = CreateFrame("ScrollFrame", nameSuffix and (SP.PANEL_NAME .. nameSuffix) or nil, parent, "UIPanelScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 4, -6)
+    scrollFrame:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -28, 6)
 
     local scrollChild = CreateFrame("Frame", nil, scrollFrame)
-    scrollChild:SetWidth(contentWidth - 32)
+    scrollChild:SetWidth(math.max(1, GetContentWidth() - 40))
     scrollChild:SetHeight(1)
     scrollFrame:SetScrollChild(scrollChild)
+
+    local function UpdateScrollChildWidth()
+        local viewportWidth = scrollFrame:GetWidth() or 0
+        if viewportWidth <= 0 then
+            return
+        end
+
+        local scrollbar = scrollFrame.ScrollBar
+        local scrollbarWidth = 0
+        if scrollbar and scrollbar.IsShown and scrollbar:IsShown() and scrollbar.GetWidth then
+            scrollbarWidth = scrollbar:GetWidth() or 0
+        end
+
+        -- Keep a small right gutter so card borders never collide with the scroll bar.
+        local contentPadding = 8
+        scrollChild:SetWidth(math.max(1, viewportWidth - scrollbarWidth - contentPadding))
+    end
+
+    if scrollFrame.HookScript then
+        scrollFrame:HookScript("OnSizeChanged", UpdateScrollChildWidth)
+        scrollFrame:HookScript("OnShow", UpdateScrollChildWidth)
+    else
+        scrollFrame:SetScript("OnSizeChanged", UpdateScrollChildWidth)
+        scrollFrame:SetScript("OnShow", UpdateScrollChildWidth)
+    end
+    if scrollFrame.ScrollBar and scrollFrame.ScrollBar.HookScript then
+        scrollFrame.ScrollBar:HookScript("OnShow", UpdateScrollChildWidth)
+        scrollFrame.ScrollBar:HookScript("OnHide", UpdateScrollChildWidth)
+    end
+
+    UpdateScrollChildWidth()
+
+    return scrollFrame, scrollChild
+end
+
+local function AddWrappedLine(parent, text, fontObject, color, offsetX, currentY, contentWidth)
+    local line = parent:CreateFontString(nil, "OVERLAY", fontObject or "GameFontNormalSmall")
+    local insetX = offsetX or 0
+    local width = contentWidth or parent:GetWidth() or 0
+    line:SetPoint("TOPLEFT", parent, "TOPLEFT", insetX, currentY)
+    line:SetWidth(math.max(32, width - insetX - 4))
+    line:SetJustifyH("LEFT")
+    line:SetJustifyV("TOP")
+    line:SetWordWrap(true)
+    line:SetText(text)
+    SetTextColor(line, color)
+
+    local lineHeight = line:GetStringHeight() or 10
+    return line, currentY - lineHeight - 4
+end
+
+local function GetChangelogSource()
+    local source = ns.ChangelogData
+    if type(source) == "table" then
+        if type(source.GetVisibleReleases) == "function" then
+            return source:GetVisibleReleases()
+        end
+        if type(source.Releases) == "table" then
+            return source.Releases
+        end
+    end
+
+    return {}
+end
+
+local function GetRoadmapSource()
+    local source = ns.RoadmapData
+    if type(source) ~= "table" then
+        return {}, {}
+    end
+
+    local knownIssues = type(source.KnownIssues) == "table" and source.KnownIssues or {}
+    local plannedFeatures = type(source.PlannedFeatures) == "table" and source.PlannedFeatures or {}
+    return knownIssues, plannedFeatures
+end
+
+local function GetReleaseTitle(release)
+    if type(release) ~= "table" then
+        return "Changelog"
+    end
+
+    return release.title or release.version or release.name or "Changelog"
+end
+
+local function GetReleaseDescription(release)
+    if type(release) ~= "table" then
+        return ""
+    end
+
+    if release.description then
+        return release.description
+    end
+    if release.date then
+        return release.date
+    end
+
+    return ""
+end
+
+local function BuildReleaseCard(parent, release)
+    local panel = Constants.SettingsPanel
+    local parentWidth = parent and parent:GetWidth() or 0
+    if not parentWidth or parentWidth <= 0 then
+        parentWidth = math.max(260, GetContentWidth() - 32)
+    end
+
+    local card = SP.CreateSectionCard(parent, GetReleaseTitle(release), GetReleaseDescription(release))
+    card:SetWidth(parentWidth)
+    local content = CreateFrame("Frame", nil, card)
+    content:SetPoint("TOPLEFT", card.AccentLine, "BOTTOMLEFT", 0, -12)
+    content:SetPoint("TOPRIGHT", card.AccentLine, "BOTTOMRIGHT", 0, -12)
+    content:SetWidth(math.max(32, parentWidth - 32))
+
+    local currentY = 0
+    local contentWidth = content:GetWidth() or math.max(32, parentWidth - 32)
+    local sections = type(release) == "table" and release.sections or nil
+
+    for _, sectionName in ipairs(RELEASE_SECTION_ORDER) do
+        local entries = sections and sections[sectionName] or nil
+        if type(entries) == "table" and #entries > 0 then
+            local header
+            header, currentY = AddWrappedLine(content, sectionName, "GameFontHighlightSmall", panel.AccentColor, 0, currentY, contentWidth)
+            SetTextColor(header, panel.AccentColor)
+
+            for _, entry in ipairs(entries) do
+                local bulletText = "- " .. tostring(entry)
+                local line
+                line, currentY = AddWrappedLine(content, bulletText, "GameFontNormalSmall", panel.BodyColor, 10, currentY, contentWidth)
+                SetTextColor(line, panel.BodyColor)
+            end
+
+            currentY = currentY - 4
+        end
+    end
+
+    local contentHeight = math.max(0, math.abs(currentY))
+    content:SetHeight(contentHeight)
+
+    local titleHeight = card.Title:GetStringHeight() or 14
+    local descriptionHeight = card.Description:GetStringHeight() or 10
+    local headerHeight = 14 + titleHeight + 4 + descriptionHeight + 12
+    card:SetHeight(math.max(headerHeight + contentHeight + 18, 96))
+
+    return card
+end
+
+local function ClearCards(page)
+    if not page or not page.Cards then
+        return
+    end
+
+    for _, card in ipairs(page.Cards) do
+        card:Hide()
+        card:SetParent(nil)
+    end
+
+    wipe(page.Cards)
+end
+
+local function BuildChangelogCards(page)
+    local panel = Constants.SettingsPanel
+    local releases = GetChangelogSource()
+    local previousCard = nil
+    local totalHeight = 0
+
+    ClearCards(page)
+
+    if #releases == 0 then
+        local empty = SP.CreateSectionCard(page.ScrollChild, "Changelog", "No packaged changelog data is available.")
+        empty:SetHeight(120)
+        empty:SetPoint("TOPLEFT", page.ScrollChild, "TOPLEFT", 0, 0)
+        empty:SetPoint("TOPRIGHT", page.ScrollChild, "TOPRIGHT", 0, 0)
+        page.Cards[#page.Cards + 1] = empty
+        page.ScrollChild:SetHeight(160)
+        return
+    end
+
+    for index, release in ipairs(releases) do
+        local card = BuildReleaseCard(page.ScrollChild, release)
+        if previousCard then
+            card:SetPoint("TOPLEFT", previousCard, "BOTTOMLEFT", 0, -panel.SectionSpacing)
+            card:SetPoint("TOPRIGHT", previousCard, "BOTTOMRIGHT", 0, -panel.SectionSpacing)
+            totalHeight = totalHeight + panel.SectionSpacing
+        else
+            card:SetPoint("TOPLEFT", page.ScrollChild, "TOPLEFT", 0, 0)
+            card:SetPoint("TOPRIGHT", page.ScrollChild, "TOPRIGHT", 0, 0)
+        end
+
+        totalHeight = totalHeight + card:GetHeight()
+        previousCard = card
+        page.Cards[index] = card
+    end
+
+    page.ScrollChild:SetHeight(math.max(totalHeight + panel.ContentInset, Constants.SettingsPanel.Height - Constants.SettingsPanel.HeaderHeight - (Constants.SettingsPanel.Padding * 2)))
+end
+
+local function CreateSocialLinkCard(parent, link)
+    local panel = Constants.SettingsPanel
+    local card = SP.CreateSectionCard(
+        parent,
+        link.title,
+        L["Select URL text and copy it."]
+    )
+
+    local urlBox = CreateFrame("EditBox", nil, card, "InputBoxTemplate")
+    urlBox:SetAutoFocus(false)
+    urlBox:SetFontObject("GameFontHighlightSmall")
+    urlBox:SetHeight(24)
+    urlBox:SetText(link.url)
+    if type(urlBox.SetTextInsets) == "function" then
+        urlBox:SetTextInsets(8, 8, 2, 2)
+    end
+    urlBox:SetScript("OnEscapePressed", function(self)
+        self:ClearFocus()
+    end)
+    urlBox:SetScript("OnEditFocusGained", function(self)
+        self:HighlightText()
+    end)
+    urlBox:SetScript("OnMouseUp", function(self)
+        self:SetFocus()
+        self:HighlightText()
+    end)
+
+    local selectButton = CreateFrame("Button", nil, card, "UIPanelButtonTemplate")
+    selectButton:SetSize(76, 22)
+    selectButton:SetText(L["Select"])
+    selectButton:SetScript("OnClick", function()
+        urlBox:SetFocus()
+        urlBox:HighlightText()
+    end)
+
+    urlBox:SetPoint("TOPLEFT", card.Description, "BOTTOMLEFT", 0, -10)
+    urlBox:SetPoint("RIGHT", selectButton, "LEFT", -8, 0)
+    selectButton:SetPoint("TOPRIGHT", card, "TOPRIGHT", -12, -(Constants.SettingsPanel.SectionHeaderHeight + 16))
+
+    local titleHeight = card.Title:GetStringHeight() or 14
+    local descriptionHeight = card.Description:GetStringHeight() or 10
+    local headerHeight = 14 + titleHeight + 4 + descriptionHeight + 12
+    card:SetHeight(math.max(headerHeight + 42, 108))
+
+    return card
+end
+
+local function BuildSocialCards(page)
+    local panel = Constants.SettingsPanel
+    local previousCard = nil
+    local totalHeight = 0
+
+    ClearCards(page)
+
+    for index, link in ipairs(SOCIAL_LINKS) do
+        local card = CreateSocialLinkCard(page.ScrollChild, link)
+        if previousCard then
+            card:SetPoint("TOPLEFT", previousCard, "BOTTOMLEFT", 0, -panel.SectionSpacing)
+            card:SetPoint("TOPRIGHT", previousCard, "BOTTOMRIGHT", 0, -panel.SectionSpacing)
+            totalHeight = totalHeight + panel.SectionSpacing
+        else
+            card:SetPoint("TOPLEFT", page.ScrollChild, "TOPLEFT", 0, 0)
+            card:SetPoint("TOPRIGHT", page.ScrollChild, "TOPRIGHT", 0, 0)
+        end
+
+        totalHeight = totalHeight + card:GetHeight()
+        previousCard = card
+        page.Cards[index] = card
+    end
+
+    page.ScrollChild:SetHeight(math.max(totalHeight + panel.ContentInset, Constants.SettingsPanel.Height - Constants.SettingsPanel.HeaderHeight - (Constants.SettingsPanel.Padding * 2)))
+end
+
+local function BuildBulletListCard(parent, titleText, descriptionText, entries, emptyMessage)
+    local panel = Constants.SettingsPanel
+    local parentWidth = parent and parent:GetWidth() or 0
+    if not parentWidth or parentWidth <= 0 then
+        parentWidth = math.max(260, GetContentWidth() - 32)
+    end
+
+    local card = SP.CreateSectionCard(parent, titleText, descriptionText)
+    card:SetWidth(parentWidth)
+
+    local content = CreateFrame("Frame", nil, card)
+    content:SetPoint("TOPLEFT", card.AccentLine, "BOTTOMLEFT", 0, -12)
+    content:SetPoint("TOPRIGHT", card.AccentLine, "BOTTOMRIGHT", 0, -12)
+    content:SetWidth(math.max(32, parentWidth - 32))
+
+    local currentY = 0
+    local contentWidth = content:GetWidth() or math.max(32, parentWidth - 32)
+    if type(entries) == "table" and #entries > 0 then
+        for _, entry in ipairs(entries) do
+            local line
+            line, currentY = AddWrappedLine(content, "- " .. tostring(entry), "GameFontNormalSmall", panel.BodyColor, 10, currentY, contentWidth)
+            SetTextColor(line, panel.BodyColor)
+        end
+    else
+        local line
+        line, currentY = AddWrappedLine(content, "- " .. emptyMessage, "GameFontDisableSmall", panel.MutedColor, 10, currentY, contentWidth)
+        SetTextColor(line, panel.MutedColor)
+    end
+
+    local contentHeight = math.max(0, math.abs(currentY))
+    content:SetHeight(contentHeight)
+
+    local titleHeight = card.Title:GetStringHeight() or 14
+    local descriptionHeight = card.Description:GetStringHeight() or 10
+    local headerHeight = 14 + titleHeight + 4 + descriptionHeight + 12
+    card:SetHeight(math.max(headerHeight + contentHeight + 18, 96))
+
+    return card
+end
+
+local function BuildRoadmapCards(page)
+    local panel = Constants.SettingsPanel
+    local knownIssues, plannedFeatures = GetRoadmapSource()
+    local totalHeight = 0
+
+    ClearCards(page)
+
+    local issuesCard = BuildBulletListCard(
+        page.ScrollChild,
+        L["Known issues"],
+        L["Items tracked for upcoming releases."],
+        knownIssues,
+        L["No known issues currently listed."]
+    )
+    issuesCard:SetPoint("TOPLEFT", page.ScrollChild, "TOPLEFT", 0, 0)
+    issuesCard:SetPoint("TOPRIGHT", page.ScrollChild, "TOPRIGHT", 0, 0)
+    totalHeight = totalHeight + issuesCard:GetHeight()
+    page.Cards[#page.Cards + 1] = issuesCard
+
+    local plansCard = BuildBulletListCard(
+        page.ScrollChild,
+        L["Planned features"],
+        L["Items tracked for upcoming releases."],
+        plannedFeatures,
+        L["No planned features currently listed."]
+    )
+    plansCard:SetPoint("TOPLEFT", issuesCard, "BOTTOMLEFT", 0, -panel.SectionSpacing)
+    plansCard:SetPoint("TOPRIGHT", issuesCard, "BOTTOMRIGHT", 0, -panel.SectionSpacing)
+    totalHeight = totalHeight + panel.SectionSpacing + plansCard:GetHeight()
+    page.Cards[#page.Cards + 1] = plansCard
+
+    page.ScrollChild:SetHeight(math.max(totalHeight + panel.ContentInset, Constants.SettingsPanel.Height - Constants.SettingsPanel.HeaderHeight - (Constants.SettingsPanel.Padding * 2)))
+end
+
+function SP.CreateSections(parent)
+    local panel = Constants.SettingsPanel
+    local contentHost = CreateContentHost(parent)
+    local scrollFrame, scrollChild = CreateScrollFrame(contentHost, "SettingsScrollFrame")
 
     local controls = {}
     local sectionSpecs = {
@@ -60,7 +456,7 @@ function SP.CreateSections(frame)
                     key = "displayMode",
                     title = L["Display style"],
                     description = L["Choose the shape that best fits your UI."],
-                    options = MODE_OPTIONS,
+                    options = SP.MODE_OPTIONS,
                     get = function()
                         return Settings:GetDisplayMode()
                     end,
@@ -306,6 +702,129 @@ function SP.CreateSections(frame)
             },
         },
         {
+            title = L["Random hunt"],
+            description = L["Automate randomized hunt purchasing from Astalor Bloodsworn."],
+            fields = {
+                {
+                    type = "toggle",
+                    key = "autoPurchaseRandomHunt",
+                    title = L["Auto-purchase random hunt"],
+                    description = L["Automatically request a randomized hunt from Astalor Bloodsworn when you open his gossip window."],
+                    get = function()
+                        return Settings:ShouldAutoPurchaseRandomHunt()
+                    end,
+                    set = function(value)
+                        Settings:SetAutoPurchaseRandomHunt(value)
+                    end,
+                },
+                {
+                    type = "choice",
+                    key = "randomHuntDifficulty",
+                    title = L["Hunt difficulty"],
+                    description = L["Choose which difficulty to purchase when auto-buying a randomized hunt."],
+                    options = {
+                        { value = "normal", label = L["Normal"] },
+                        { value = "hard", label = L["Hard"] },
+                        { value = "nightmare", label = L["Nightmare"] },
+                    },
+                    isAvailable = function()
+                        return Settings:ShouldAutoPurchaseRandomHunt()
+                    end,
+                    get = function()
+                        return Settings:GetRandomHuntDifficulty()
+                    end,
+                    set = function(value)
+                        Settings:SetRandomHuntDifficulty(value)
+                    end,
+                },
+                {
+                    type = "slider",
+                    key = "remnantThreshold",
+                    title = L["Remnant reserve"],
+                    description = L["Only purchase a hunt when you have at least this many Remnants of Anguish plus the 50 purchase cost."],
+                    minValue = 0,
+                    maxValue = 2500,
+                    step = 50,
+                    formatter = function(value)
+                        return string.format("%d", value)
+                    end,
+                    isAvailable = function()
+                        return Settings:ShouldAutoPurchaseRandomHunt()
+                    end,
+                    get = function()
+                        return Settings:GetRemnantThreshold()
+                    end,
+                    set = function(value)
+                        Settings:SetRemnantThreshold(value)
+                    end,
+                },
+            },
+        },
+        {
+            title = L["Hunt rewards"],
+            description = L["Automatically choose rewards when completing a prey hunt."],
+            fields = {
+                {
+                    type = "toggle",
+                    key = "autoSelectHuntReward",
+                    title = L["Auto-select hunt reward"],
+                    description = L["Automatically pick a reward when a completed hunt offers multiple choices."],
+                    get = function()
+                        return Settings:ShouldAutoSelectHuntReward()
+                    end,
+                    set = function(value)
+                        Settings:SetAutoSelectHuntReward(value)
+                    end,
+                },
+                {
+                    type = "dropdown",
+                    key = "preferredHuntReward",
+                    title = L["Preferred reward"],
+                    description = L["The reward type to pick first when completing a hunt."],
+                    options = function()
+                        return {
+                            { value = "dawncrest", label = L["Gear upgrade currency"] },
+                            { value = "remnant", label = L["Remnant of Anguish"] },
+                            { value = "gold", label = L["Gold"] },
+                            { value = "marl", label = L["Voidlight Marl"] },
+                        }
+                    end,
+                    isAvailable = function()
+                        return Settings:ShouldAutoSelectHuntReward()
+                    end,
+                    get = function()
+                        return Settings:GetPreferredHuntReward()
+                    end,
+                    set = function(value)
+                        Settings:SetPreferredHuntReward(value)
+                    end,
+                },
+                {
+                    type = "dropdown",
+                    key = "fallbackHuntReward",
+                    title = L["Fallback reward"],
+                    description = L["The reward to pick if your preferred choice is unavailable or its currency is capped."],
+                    options = function()
+                        return {
+                            { value = "dawncrest", label = L["Gear upgrade currency"] },
+                            { value = "remnant", label = L["Remnant of Anguish"] },
+                            { value = "gold", label = L["Gold"] },
+                            { value = "marl", label = L["Voidlight Marl"] },
+                        }
+                    end,
+                    isAvailable = function()
+                        return Settings:ShouldAutoSelectHuntReward()
+                    end,
+                    get = function()
+                        return Settings:GetFallbackHuntReward()
+                    end,
+                    set = function(value)
+                        Settings:SetFallbackHuntReward(value)
+                    end,
+                },
+            },
+        },
+        {
             title = L["Audio & feedback"],
             description = L["Control sound cues that fire when your hunt phase changes."],
             fields = {
@@ -366,7 +885,90 @@ function SP.CreateSections(frame)
         ScrollFrame = scrollFrame,
         ScrollChild = scrollChild,
         Controls = controls,
+        Refresh = function()
+            for _, control in ipairs(controls) do
+                control:Refresh()
+            end
+        end,
     }
+end
+
+function SP.CreateChangelogPage(parent)
+    local panel = Constants.SettingsPanel
+    local contentHost = CreateContentHost(parent)
+    local scrollFrame, scrollChild = CreateScrollFrame(contentHost, "ChangelogScrollFrame")
+
+    local page = {
+        Host = contentHost,
+        ScrollFrame = scrollFrame,
+        ScrollChild = scrollChild,
+        Cards = {},
+    }
+
+    function page:Refresh()
+        BuildChangelogCards(self)
+    end
+
+    BuildChangelogCards(page)
+    return page
+end
+
+function SP.CreateSocialPage(parent)
+    local contentHost = CreateContentHost(parent)
+    local scrollFrame, scrollChild = CreateScrollFrame(contentHost, "SocialScrollFrame")
+
+    local page = {
+        Host = contentHost,
+        ScrollFrame = scrollFrame,
+        ScrollChild = scrollChild,
+        Cards = {},
+    }
+
+    function page:Refresh()
+        BuildSocialCards(self)
+    end
+
+    BuildSocialCards(page)
+    return page
+end
+
+function SP.CreateRoadmapPage(parent)
+    local contentHost = CreateContentHost(parent)
+    local scrollFrame, scrollChild = CreateScrollFrame(contentHost, "RoadmapScrollFrame")
+
+    local page = {
+        Host = contentHost,
+        ScrollFrame = scrollFrame,
+        ScrollChild = scrollChild,
+        Cards = {},
+    }
+
+    function page:Refresh()
+        BuildRoadmapCards(self)
+    end
+
+    BuildRoadmapCards(page)
+    return page
+end
+
+function SP.CreateSection(parent, sectionSpec, controls)
+    local panel = Constants.SettingsPanel
+    local card = SP.CreateSectionCard(parent, sectionSpec.title, sectionSpec.description)
+    local currentY = -(panel.SectionHeaderHeight + 14)
+
+    for _, fieldSpec in ipairs(sectionSpec.fields) do
+        local builder = SP.FIELD_BUILDERS[fieldSpec.type]
+        if builder then
+            local row = builder(card, fieldSpec)
+            row:SetPoint("TOPLEFT", card, "TOPLEFT", panel.ContentInset, currentY)
+            row:SetPoint("TOPRIGHT", card, "TOPRIGHT", -panel.ContentInset, currentY)
+            currentY = currentY - row:GetHeight() - 8
+            controls[#controls + 1] = row
+        end
+    end
+
+    card:SetHeight(math.abs(currentY) + panel.ContentInset - 8)
+    return card
 end
 
 function SP.UpdatePreviewStageChips(preview, progressState)

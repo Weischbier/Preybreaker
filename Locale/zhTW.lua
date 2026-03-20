@@ -151,4 +151,31 @@ ns._activeTranslation = {
     ["Ring sample without the Blizzard prey icon."] = "不含暴雪獵物圖示的環形範例。",
     ["Ring view attached to the Blizzard prey icon."] = "附著於暴雪獵物圖示的環形檢視。",
     ["Ring sample attached to the Blizzard prey icon."] = "附著於暴雪獵物圖示的環形範例。",
+
+    -- Random hunt settings
+    ["Random hunt"] = "隨機狩獵",
+    ["Automate randomized hunt purchasing from Astalor Bloodsworn."] = "自動從阿斯塔洛血誓處購買隨機狩獵。",
+    ["Auto-purchase random hunt"] = "自動購買隨機狩獵",
+    ["Automatically request a randomized hunt from Astalor Bloodsworn when you open his gossip window."] = "開啟阿斯塔洛血誓的對話視窗時自動請求隨機狩獵。",
+    ["Hunt difficulty"] = "狩獵難度",
+    ["Choose which difficulty to purchase when auto-buying a randomized hunt."] = "自動購買隨機狩獵時選擇購買的難度。",
+    ["Normal"] = "普通",
+    ["Hard"] = "困難",
+    ["Nightmare"] = "夢魘",
+    ["Remnant reserve"] = "殘餘儲備",
+    ["Only purchase a hunt when you have at least this many Remnants of Anguish plus the 50 purchase cost."] = "僅在擁有至少此數量的痛苦殘餘加上50購買費用時才購買狩獵。",
+
+    -- Hunt rewards settings
+    ["Hunt rewards"] = "狩獵獎勵",
+    ["Automatically choose rewards when completing a prey hunt."] = "完成獵物狩獵時自動選擇獎勵。",
+    ["Auto-select hunt reward"] = "自動選擇狩獵獎勵",
+    ["Automatically pick a reward when a completed hunt offers multiple choices."] = "完成的狩獵提供多個選擇時自動選取獎勵。",
+    ["Preferred reward"] = "首選獎勵",
+    ["The reward type to pick first when completing a hunt."] = "完成狩獵時優先選擇的獎勵類型。",
+    ["Fallback reward"] = "備選獎勵",
+    ["The reward to pick if your preferred choice is unavailable or its currency is capped."] = "首選不可用或貨幣已達上限時選擇的獎勵。",
+    ["Gear upgrade currency"] = "裝備升級貨幣",
+    ["Remnant of Anguish"] = "痛苦殘餘",
+    ["Gold"] = "金幣",
+    ["Voidlight Marl"] = "虛光泥灰",
 }

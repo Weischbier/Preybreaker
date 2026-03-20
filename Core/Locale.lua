@@ -122,6 +122,8 @@ local baseStrings = {
     ["Tracker disabled."] = "Tracker disabled.",
     ["Debug tracing enabled."] = "Debug tracing enabled.",
     ["Debug tracing disabled."] = "Debug tracing disabled.",
+    ["Standalone hunt panel shown."] = "Standalone hunt panel shown.",
+    ["Standalone hunt panel hidden."] = "Standalone hunt panel hidden.",
 
     -- Compartment tooltip
     ["Compact prey-hunt tracker anchored to the Blizzard widget."] = "Compact prey-hunt tracker anchored to the Blizzard widget.",
@@ -157,6 +159,45 @@ local baseStrings = {
     ["Ring sample without the Blizzard prey icon."] = "Ring sample without the Blizzard prey icon.",
     ["Ring view attached to the Blizzard prey icon."] = "Ring view attached to the Blizzard prey icon.",
     ["Ring sample attached to the Blizzard prey icon."] = "Ring sample attached to the Blizzard prey icon.",
+
+    -- Random hunt settings
+    ["Random hunt"] = "Random hunt",
+    ["Automate randomized hunt purchasing from Astalor Bloodsworn."] = "Automate randomized hunt purchasing from Astalor Bloodsworn.",
+    ["Auto-purchase random hunt"] = "Auto-purchase random hunt",
+    ["Automatically request a randomized hunt from Astalor Bloodsworn when you open his gossip window."] = "Automatically request a randomized hunt from Astalor Bloodsworn when you open his gossip window.",
+    ["Hunt difficulty"] = "Hunt difficulty",
+    ["Choose which difficulty to purchase when auto-buying a randomized hunt."] = "Choose which difficulty to purchase when auto-buying a randomized hunt.",
+    ["Normal"] = "Normal",
+    ["Hard"] = "Hard",
+    ["Nightmare"] = "Nightmare",
+    ["Remnant reserve"] = "Remnant reserve",
+    ["Only purchase a hunt when you have at least this many Remnants of Anguish plus the 50 purchase cost."] = "Only purchase a hunt when you have at least this many Remnants of Anguish plus the 50 purchase cost.",
+
+    -- Hunt rewards settings
+    ["Hunt rewards"] = "Hunt rewards",
+    ["Automatically choose rewards when completing a prey hunt."] = "Automatically choose rewards when completing a prey hunt.",
+    ["Auto-select hunt reward"] = "Auto-select hunt reward",
+    ["Automatically pick a reward when a completed hunt offers multiple choices."] = "Automatically pick a reward when a completed hunt offers multiple choices.",
+    ["Preferred reward"] = "Preferred reward",
+    ["The reward type to pick first when completing a hunt."] = "The reward type to pick first when completing a hunt.",
+    ["Fallback reward"] = "Fallback reward",
+    ["The reward to pick if your preferred choice is unavailable or its currency is capped."] = "The reward to pick if your preferred choice is unavailable or its currency is capped.",
+    ["Gear upgrade currency"] = "Gear upgrade currency",
+    ["Remnant of Anguish"] = "Remnant of Anguish",
+    ["Gold"] = "Gold",
+    ["Voidlight Marl"] = "Voidlight Marl",
+
+    ["Settings"] = "Settings",
+    ["Changelog"] = "Changelog",
+    ["Social"] = "Social",
+    ["Roadmap"] = "Roadmap",
+    ["Select"] = "Select",
+    ["Select URL text and copy it."] = "Select URL text and copy it.",
+    ["Known issues"] = "Known issues",
+    ["Planned features"] = "Planned features",
+    ["Items tracked for upcoming releases."] = "Items tracked for upcoming releases.",
+    ["No known issues currently listed."] = "No known issues currently listed.",
+    ["No planned features currently listed."] = "No planned features currently listed.",
 }
 
 setmetatable(L, {

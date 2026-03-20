@@ -151,4 +151,31 @@ ns._activeTranslation = {
     ["Ring sample without the Blizzard prey icon."] = "Ring-Beispiel ohne das Blizzard-Beutesymbol.",
     ["Ring view attached to the Blizzard prey icon."] = "Ringansicht am Blizzard-Beutesymbol angeheftet.",
     ["Ring sample attached to the Blizzard prey icon."] = "Ring-Beispiel am Blizzard-Beutesymbol angeheftet.",
+
+    -- Random hunt settings
+    ["Random hunt"] = "Zufällige Jagd",
+    ["Automate randomized hunt purchasing from Astalor Bloodsworn."] = "Automatisiere den Kauf zufälliger Jagden bei Astalor Blutgeschworen.",
+    ["Auto-purchase random hunt"] = "Zufällige Jagd automatisch kaufen",
+    ["Automatically request a randomized hunt from Astalor Bloodsworn when you open his gossip window."] = "Fordere automatisch eine zufällige Jagd bei Astalor Blutgeschworen an, wenn du sein Gesprächsfenster öffnest.",
+    ["Hunt difficulty"] = "Jagdschwierigkeit",
+    ["Choose which difficulty to purchase when auto-buying a randomized hunt."] = "Wähle den Schwierigkeitsgrad beim automatischen Kauf einer zufälligen Jagd.",
+    ["Normal"] = "Normal",
+    ["Hard"] = "Schwer",
+    ["Nightmare"] = "Albtraum",
+    ["Remnant reserve"] = "Überrestreserve",
+    ["Only purchase a hunt when you have at least this many Remnants of Anguish plus the 50 purchase cost."] = "Kaufe eine Jagd nur, wenn du mindestens so viele Überreste der Qual plus die 50 Kaufkosten besitzt.",
+
+    -- Hunt rewards settings
+    ["Hunt rewards"] = "Jagdbelohnungen",
+    ["Automatically choose rewards when completing a prey hunt."] = "Wähle Belohnungen beim Abschluss einer Beutejagd automatisch.",
+    ["Auto-select hunt reward"] = "Jagdbelohnung automatisch wählen",
+    ["Automatically pick a reward when a completed hunt offers multiple choices."] = "Wähle automatisch eine Belohnung, wenn eine abgeschlossene Jagd mehrere Optionen bietet.",
+    ["Preferred reward"] = "Bevorzugte Belohnung",
+    ["The reward type to pick first when completing a hunt."] = "Der Belohnungstyp, der beim Abschluss einer Jagd zuerst gewählt wird.",
+    ["Fallback reward"] = "Ersatzbelohnung",
+    ["The reward to pick if your preferred choice is unavailable or its currency is capped."] = "Die Belohnung, die gewählt wird, wenn die bevorzugte Option nicht verfügbar oder die Währung am Limit ist.",
+    ["Gear upgrade currency"] = "Ausrüstungs-Aufwertungswährung",
+    ["Remnant of Anguish"] = "Überrest der Qual",
+    ["Gold"] = "Gold",
+    ["Voidlight Marl"] = "Leerenlichtmergel",
 }

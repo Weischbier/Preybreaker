@@ -9,7 +9,7 @@ local DISPLAY_MODE_RADIAL = "radial"
 local DISPLAY_MODE_ORBS = "orbs"
 local DISPLAY_MODE_BAR = "bar"
 local DISPLAY_MODE_TEXT = "text"
-local SCHEMA_VERSION = 3
+local SCHEMA_VERSION = 5
 local DEFAULT_SCALE = 1
 local DEFAULT_TEXT_FONT_VALUE = (ns.TextStyle and ns.TextStyle:GetDefaultFontValue()) or "builtin:standard"
 local DEFAULTS = {
@@ -38,6 +38,17 @@ local DEFAULTS = {
     textShadowMode = "default",
     valueTextScale = 1,
     stageTextScale = 1,
+    autoPurchaseRandomHunt = false,
+    randomHuntDifficulty = "normal",
+    remnantThreshold = 0,
+    autoSelectHuntReward = false,
+    preferredHuntReward = "remnant",
+    fallbackHuntReward = "gold",
+    settingsTab = "settings",
+    huntPanelStandalone = false,
+    huntPanelFilter = "all",
+    huntPanelOffsetX = 0,
+    huntPanelOffsetY = 0,
 }
 
 local SCALE_MIN = 0.50
@@ -48,6 +59,12 @@ local TEXT_SCALE_MAX = 1.75
 local TEXT_SCALE_STEP = 0.05
 local OFFSET_MIN = -200
 local OFFSET_MAX = 200
+local PANEL_OFFSET_MIN = -1200
+local PANEL_OFFSET_MAX = 1200
+
+local THRESHOLD_MIN = 0
+local THRESHOLD_MAX = 2500
+local THRESHOLD_STEP = 50
 
 ns.Settings = {}
 
@@ -96,6 +113,10 @@ local function SanitizeOffset(value)
     return ns.Util.RoundNearest(ClampNumber(value, OFFSET_MIN, OFFSET_MAX, 0))
 end
 
+local function SanitizePanelOffset(value)
+    return ns.Util.RoundNearest(ClampNumber(value, PANEL_OFFSET_MIN, PANEL_OFFSET_MAX, 0))
+end
+
 local function SanitizeChoice(value, allowedValues, defaultValue)
     if type(value) ~= "string" then
         return defaultValue
@@ -113,6 +134,13 @@ local function SanitizeTextScale(value)
     local steps = ns.Util.RoundNearest((clamped - TEXT_SCALE_MIN) / TEXT_SCALE_STEP)
     local snapped = TEXT_SCALE_MIN + (steps * TEXT_SCALE_STEP)
     return ClampNumber(snapped, TEXT_SCALE_MIN, TEXT_SCALE_MAX, 1)
+end
+
+local function SanitizeRemnantThreshold(value)
+    local clamped = ClampNumber(value, THRESHOLD_MIN, THRESHOLD_MAX, 0)
+    local steps = ns.Util.RoundNearest((clamped - THRESHOLD_MIN) / THRESHOLD_STEP)
+    local snapped = THRESHOLD_MIN + (steps * THRESHOLD_STEP)
+    return ClampNumber(snapped, THRESHOLD_MIN, THRESHOLD_MAX, 0)
 end
 
 local function GetOffsetKey(axisSuffix, mode)
@@ -164,6 +192,29 @@ local SANITIZERS = {
     end,
     valueTextScale = SanitizeTextScale,
     stageTextScale = SanitizeTextScale,
+    autoPurchaseRandomHunt = function(value) return SanitizeBoolean(value, false) end,
+    randomHuntDifficulty = function(value)
+        return SanitizeChoice(value, { "normal", "hard", "nightmare" }, "normal")
+    end,
+    remnantThreshold = SanitizeRemnantThreshold,
+    autoSelectHuntReward = function(value) return SanitizeBoolean(value, false) end,
+    preferredHuntReward = function(value)
+        return SanitizeChoice(value, { "dawncrest", "remnant", "gold", "marl" }, "remnant")
+    end,
+    fallbackHuntReward = function(value)
+        return SanitizeChoice(value, { "dawncrest", "remnant", "gold", "marl" }, "gold")
+    end,
+    settingsTab = function(value)
+        return SanitizeChoice(value, { "settings", "changelog" }, "settings")
+    end,
+    huntPanelStandalone = function(value)
+        return SanitizeBoolean(value, false)
+    end,
+    huntPanelFilter = function(value)
+        return SanitizeChoice(value, { "all", "nightmare", "hard", "normal" }, "all")
+    end,
+    huntPanelOffsetX = SanitizePanelOffset,
+    huntPanelOffsetY = SanitizePanelOffset,
 }
 
 -- v2 per-display-mode keys that were flattened in schema version 3.
@@ -534,6 +585,94 @@ function ns.Settings:SetUseCharacterProfile(enabled)
     end
 end
 
+function ns.Settings:ShouldAutoPurchaseRandomHunt()
+    return self:GetValue("autoPurchaseRandomHunt") == true
+end
+
+function ns.Settings:SetAutoPurchaseRandomHunt(enabled)
+    return self:SetValue("autoPurchaseRandomHunt", enabled)
+end
+
+function ns.Settings:GetRandomHuntDifficulty()
+    return self:GetValue("randomHuntDifficulty") or "normal"
+end
+
+function ns.Settings:SetRandomHuntDifficulty(value)
+    return self:SetValue("randomHuntDifficulty", value)
+end
+
+function ns.Settings:GetRemnantThreshold()
+    return self:GetValue("remnantThreshold") or 0
+end
+
+function ns.Settings:SetRemnantThreshold(value)
+    return self:SetValue("remnantThreshold", value)
+end
+
+function ns.Settings:ShouldAutoSelectHuntReward()
+    return self:GetValue("autoSelectHuntReward") == true
+end
+
+function ns.Settings:SetAutoSelectHuntReward(enabled)
+    return self:SetValue("autoSelectHuntReward", enabled)
+end
+
+function ns.Settings:GetPreferredHuntReward()
+    return self:GetValue("preferredHuntReward") or "remnant"
+end
+
+function ns.Settings:SetPreferredHuntReward(value)
+    return self:SetValue("preferredHuntReward", value)
+end
+
+function ns.Settings:GetFallbackHuntReward()
+    return self:GetValue("fallbackHuntReward") or "gold"
+end
+
+function ns.Settings:SetFallbackHuntReward(value)
+    return self:SetValue("fallbackHuntReward", value)
+end
+
 function ns.Settings:GetEffectiveColor(state)
     return ns.Constants.ColorByState[state] or { 1, 1, 1 }
+end
+
+function ns.Settings:GetSettingsTab()
+    return self:GetValue("settingsTab") or "settings"
+end
+
+function ns.Settings:SetSettingsTab(value)
+    return self:SetValue("settingsTab", value)
+end
+
+function ns.Settings:IsHuntPanelStandalone()
+    return self:GetValue("huntPanelStandalone") == true
+end
+
+function ns.Settings:SetHuntPanelStandalone(value)
+    return self:SetValue("huntPanelStandalone", value)
+end
+
+function ns.Settings:GetHuntPanelFilter()
+    return self:GetValue("huntPanelFilter") or "all"
+end
+
+function ns.Settings:SetHuntPanelFilter(value)
+    return self:SetValue("huntPanelFilter", value)
+end
+
+function ns.Settings:GetHuntPanelOffsetX()
+    return self:GetValue("huntPanelOffsetX") or 0
+end
+
+function ns.Settings:SetHuntPanelOffsetX(value)
+    return self:SetValue("huntPanelOffsetX", value)
+end
+
+function ns.Settings:GetHuntPanelOffsetY()
+    return self:GetValue("huntPanelOffsetY") or 0
+end
+
+function ns.Settings:SetHuntPanelOffsetY(value)
+    return self:SetValue("huntPanelOffsetY", value)
 end

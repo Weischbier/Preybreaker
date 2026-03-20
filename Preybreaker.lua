@@ -109,7 +109,7 @@ local function PlayPhaseChangeSound(previousState, newState)
     end
 end
 
-function Preybreaker:Refresh(reason)
+function Preybreaker:Refresh(reason, ...)
     local enabled = not ns.Settings or ns.Settings:IsEnabled()
     local snapshot = enabled and ns.DataSource.BuildSnapshot() or BuildInactiveSnapshot()
     self.activeWidgetID = enabled and snapshot.widgetID or nil
@@ -143,6 +143,9 @@ function Preybreaker:Refresh(reason)
         ns.SettingsPanel:RefreshControls()
         ns.SettingsPanel:RefreshPreview(snapshot)
     end
+    if ns.HuntPanel and ns.HuntPanel.frame and ns.HuntPanel.frame:IsShown() then
+        ns.HuntPanel:Refresh()
+    end
 end
 
 -- Startup readiness is driven by observed addon/world/widget events rather than a blind timer.
@@ -172,8 +175,13 @@ end
 function Preybreaker:Bootstrap(event, detail)
     self:UpdateBootstrapState(event, detail)
 
-    if event == "ADDON_LOADED" and detail == ADDON_NAME and ns.Settings then
-        ns.Settings:Initialize()
+    if event == "ADDON_LOADED" and detail == ADDON_NAME then
+        if ns.Settings then
+            ns.Settings:Initialize()
+        end
+        if ns.HuntPanel and type(ns.HuntPanel.Ensure) == "function" then
+            ns.HuntPanel:Ensure()
+        end
     end
 
     if event == "ADDON_LOADED" and (detail == "Blizzard_UIWidgets" or detail == ADDON_NAME) then
@@ -232,6 +240,58 @@ Preybreaker:SetScript("OnEvent", function(self, event, arg1, ...)
         return
     end
 
+    if event == "QUEST_ITEM_UPDATE" then
+        if ns.QuestTracking then
+            ns.QuestTracking:HandleQuestItemUpdate()
+        end
+        return
+    end
+
+    if event == "GOSSIP_SHOW" then
+        if ns.HuntPurchase then
+            ns.HuntPurchase:HandleGossipShow()
+        end
+        return
+    end
+
+    if event == "QUEST_DETAIL" then
+        if ns.HuntPurchase then
+            ns.HuntPurchase:HandleQuestDetail()
+        end
+        return
+    end
+
+    if event == "GOSSIP_CLOSED" then
+        if ns.HuntPurchase then
+            ns.HuntPurchase:HandleGossipClosed(arg1)
+        end
+        return
+    end
+
+    if event == "GOSSIP_CONFIRM" then
+        if ns.HuntPurchase then
+            local optionID, text, cost = arg1, ...
+            ns.HuntPurchase:HandleGossipConfirm(optionID, text, cost)
+        end
+        return
+    end
+
+    if event == "QUEST_ACCEPTED" then
+        if ns.HuntPurchase then
+            local questID = select(1, ...)
+            if type(questID) ~= "number" then
+                questID = arg1
+            end
+            ns.HuntPurchase:HandleQuestAccepted(questID)
+        end
+    end
+
+    if event == "QUEST_FINISHED" then
+        if ns.HuntPurchase then
+            ns.HuntPurchase:HandleQuestFinished()
+        end
+    end
+
     if event == "UPDATE_UI_WIDGET" and not ShouldRefreshFromWidgetUpdate(arg1) then
         ns.Debug:Log(
             "event",
@@ -249,7 +309,7 @@ Preybreaker:SetScript("OnEvent", function(self, event, arg1, ...)
         ns.Debug:KV("widgetID", GetWidgetUpdateID(arg1))
     )
 
-    self:Refresh(event)
+    self:Refresh(event, arg1, ...)
 end)
 
 Preybreaker:RegisterEvent("ADDON_LOADED")
@@ -266,6 +326,13 @@ Preybreaker:RegisterEvent("UPDATE_ALL_UI_WIDGETS")
 Preybreaker:RegisterEvent("UPDATE_UI_WIDGET")
 Preybreaker:RegisterEvent("QUEST_AUTOCOMPLETE")
 Preybreaker:RegisterEvent("QUEST_COMPLETE")
+Preybreaker:RegisterEvent("QUEST_ITEM_UPDATE")
+Preybreaker:RegisterEvent("GOSSIP_SHOW")
+Preybreaker:RegisterEvent("QUEST_DETAIL")
+Preybreaker:RegisterEvent("GOSSIP_CLOSED")
+Preybreaker:RegisterEvent("GOSSIP_CONFIRM")
+Preybreaker:RegisterEvent("QUEST_FINISHED")
+Preybreaker:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
 
 -- Private namespace reference for the test suite. Only exposed when the
 -- companion test addon is installed. Not part of the public API.

@@ -18,13 +18,14 @@ function ns.Util.SafeCall(func, ...)
         return nil
     end
 
-    local ok, result = pcall(func, ...)
+    local results = { pcall(func, ...) }
+    local ok = table.remove(results, 1)
     if ok then
-        return result
+        return unpack(results)
     end
 
     if ns.Debug and type(ns.Debug.Log) == "function" and type(ns.Debug.KV) == "function" then
-        ns.Debug:Log("error", ns.Debug:KV("source", "SafeCall"), ns.Debug:KV("err", tostring(result)))
+        ns.Debug:Log("error", ns.Debug:KV("source", "SafeCall"), ns.Debug:KV("err", tostring(results[1])))
     end
 
     return nil

@@ -244,6 +244,19 @@ function SP.CreateActionsCard(parent)
     card.Hint:SetText(L["Open this panel with /pb or by shift-left-clicking the compartment icon."])
     SetTextColor(card.Hint, panel.MutedColor)
 
+    function card:ResizeToFit()
+        local h = 12
+        h = h + (self.Title:GetStringHeight() or 14)
+        h = h + 14
+        h = h + (self.ResetButton:GetHeight() or 22)
+        h = h + 12
+        h = h + (self.Hint:GetStringHeight() or 10)
+        h = h + 14
+        self:SetHeight(math.ceil(h))
+    end
+
+    card:ResizeToFit()
+
     return card
 end
 

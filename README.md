@@ -17,6 +17,7 @@ Preybreaker keeps the current Prey Hunt stage visible in a way that fits real ga
 - Shows optional progress text and stage labels for faster readability.
 - Can play a sound when the hunt moves into a new stage.
 - Can automatically watch, supertrack, and auto-turn-in the prey quest.
+- Can auto-purchase randomized hunts and auto-select hunt rewards based on your configured preferences.
 - Supports account-wide settings with optional per-character profiles.
 - Uses live widget and quest data so the tracker follows the real hunt state instead of a static guess.
 

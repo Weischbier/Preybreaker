@@ -151,4 +151,31 @@ ns._activeTranslation = {
     ["Ring sample without the Blizzard prey icon."] = "Exemple anneau sans l'icône de proie Blizzard.",
     ["Ring view attached to the Blizzard prey icon."] = "Vue anneau attachée à l'icône de proie Blizzard.",
     ["Ring sample attached to the Blizzard prey icon."] = "Exemple anneau attaché à l'icône de proie Blizzard.",
+
+    -- Random hunt settings
+    ["Random hunt"] = "Chasse aléatoire",
+    ["Automate randomized hunt purchasing from Astalor Bloodsworn."] = "Automatiser l'achat de chasses aléatoires auprès d'Astalor Liédesang.",
+    ["Auto-purchase random hunt"] = "Achat auto de chasse aléatoire",
+    ["Automatically request a randomized hunt from Astalor Bloodsworn when you open his gossip window."] = "Demander automatiquement une chasse aléatoire à Astalor Liédesang en ouvrant sa fenêtre de dialogue.",
+    ["Hunt difficulty"] = "Difficulté de chasse",
+    ["Choose which difficulty to purchase when auto-buying a randomized hunt."] = "Choisissez la difficulté lors de l'achat automatique d'une chasse aléatoire.",
+    ["Normal"] = "Normal",
+    ["Hard"] = "Difficile",
+    ["Nightmare"] = "Cauchemar",
+    ["Remnant reserve"] = "Réserve de vestiges",
+    ["Only purchase a hunt when you have at least this many Remnants of Anguish plus the 50 purchase cost."] = "N'acheter une chasse que si vous avez au moins ce nombre de Vestiges d'angoisse plus les 50 du coût d'achat.",
+
+    -- Hunt rewards settings
+    ["Hunt rewards"] = "Récompenses de chasse",
+    ["Automatically choose rewards when completing a prey hunt."] = "Choisir automatiquement les récompenses en terminant une chasse à la proie.",
+    ["Auto-select hunt reward"] = "Sélection auto de récompense",
+    ["Automatically pick a reward when a completed hunt offers multiple choices."] = "Choisir automatiquement une récompense lorsqu'une chasse terminée offre plusieurs options.",
+    ["Preferred reward"] = "Récompense préférée",
+    ["The reward type to pick first when completing a hunt."] = "Le type de récompense à choisir en priorité à la fin d'une chasse.",
+    ["Fallback reward"] = "Récompense de secours",
+    ["The reward to pick if your preferred choice is unavailable or its currency is capped."] = "La récompense à choisir si votre choix préféré est indisponible ou si sa monnaie est au maximum.",
+    ["Gear upgrade currency"] = "Monnaie d'amélioration d'équipement",
+    ["Remnant of Anguish"] = "Vestige d'angoisse",
+    ["Gold"] = "Or",
+    ["Voidlight Marl"] = "Marne de lumière du Vide",
 }
