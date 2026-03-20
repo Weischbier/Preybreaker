@@ -86,27 +86,74 @@ function Preybreaker:UpdateBootstrapState(event, arg1)
     return state
 end
 
-local function PlayPhaseChangeSound(previousState, newState)
-    if not ns.Settings or not ns.Settings:ShouldPlaySoundOnPhaseChange() then
+local function ShouldPlayHuntSounds()
+    return ns.Settings
+        and ns.Settings:ShouldPlaySoundOnPhaseChange()
+        and type(PlaySoundFile) == "function"
+end
+
+local function PlayConfiguredSound(soundPath)
+    if type(soundPath) ~= "string" or soundPath == "" then
         return
     end
 
-    local sounds = ns.Constants.Media.Sounds
-    if not sounds or type(PlaySoundFile) ~= "function" then
-        return
+    PlaySoundFile(soundPath, "Master")
+end
+
+local function ResolveSessionQuestID(snapshot)
+    if type(snapshot) ~= "table" then
+        return nil
     end
 
-    local finalState = (Enum and Enum.PreyHuntProgressState and Enum.PreyHuntProgressState.Final) or 3
+    local questID = snapshot.questID or snapshot.activeQuestID or snapshot.worldQuestID
+    if type(questID) ~= "number" then
+        return nil
+    end
 
-    if previousState == nil or newState == nil then
-        return
+    return questID
+end
+
+local function IsHuntSessionActive(snapshot)
+    local questID = ResolveSessionQuestID(snapshot)
+    if not questID then
+        return false
+    end
+
+    if ns.Util and type(ns.Util.IsRelevantPreyQuest) == "function" then
+        return ns.Util.IsRelevantPreyQuest(questID)
+    end
+
+    return true
+end
+
+local function ResolveStageTransitionSound(sounds, previousState, newState)
+    if type(sounds) ~= "table" then
+        return nil
+    end
+
+    if previousState == nil or newState == nil or previousState == newState then
+        return nil
+    end
+
+    local preyState = Enum and Enum.PreyHuntProgressState
+    local coldState = (preyState and preyState.Cold) or 0
+    local warmState = (preyState and preyState.Warm) or 1
+    local hotState = (preyState and preyState.Hot) or 2
+    local finalState = (preyState and preyState.Final) or 3
+
+    if previousState == coldState and newState == warmState then
+        return sounds.ColdToWarm or sounds.PhaseChange
+    end
+
+    if previousState == warmState and newState == hotState then
+        return sounds.WarmToHot or sounds.PhaseChange
     end
 
     if newState == finalState then
-        PlaySoundFile(sounds.FinalPhase, "Master")
-    elseif previousState ~= newState then
-        PlaySoundFile(sounds.PhaseChange, "Master")
+        return sounds.HotToFinal or sounds.FinalPhase or sounds.PhaseChange
     end
+
+    return sounds.PhaseChange
 end
 
 function Preybreaker:Refresh(reason, ...)
@@ -115,10 +162,21 @@ function Preybreaker:Refresh(reason, ...)
     self.activeWidgetID = enabled and snapshot.widgetID or nil
 
     local previousSnapshot = self.lastSnapshot
-    local previousState = previousSnapshot and previousSnapshot.active and previousSnapshot.progressState or nil
-    local newState = snapshot.active and snapshot.progressState or nil
-    if previousState ~= newState then
-        PlayPhaseChangeSound(previousState, newState)
+    if previousSnapshot and enabled and ShouldPlayHuntSounds() then
+        local sounds = ns.Constants and ns.Constants.Media and ns.Constants.Media.Sounds
+        local previousSessionActive = IsHuntSessionActive(previousSnapshot)
+        local newSessionActive = IsHuntSessionActive(snapshot)
+
+        if previousSessionActive and not newSessionActive then
+            PlayConfiguredSound(sounds and sounds.HuntEnd)
+        elseif not previousSessionActive and newSessionActive then
+            PlayConfiguredSound(sounds and sounds.HuntStart)
+        elseif previousSessionActive and newSessionActive then
+            local previousState = previousSnapshot.progressState
+            local newState = snapshot.progressState
+            local transitionSound = ResolveStageTransitionSound(sounds, previousState, newState)
+            PlayConfiguredSound(transitionSound)
+        end
     end
 
     self.lastSnapshot = snapshot

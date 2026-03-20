@@ -22,6 +22,7 @@ All notable changes to this project will be documented in this file.
 - Fixed changelog-tab scroll text overlap after deep scrolling.
 - Fixed reward preference matching by prioritizing reward/currency IDs over localized names.
 - Fixed hunt purchase scope so non-prey and non-target NPC interactions remain excluded.
+- Fixed hunt audio wiring so start/end and Cold->Warm->Hot->Final transitions use the packaged hunt cue files with safe fallback handling.
 
 
 ## [v1.0.0] - 2026-03-20
