@@ -177,12 +177,15 @@ ns.Constants = {
         Sounds = {
             HuntStart = "Interface\\AddOns\\Preybreaker\\Media\\Sounds\\AmongUs\\hunt_start.ogg",
             HuntEnd = "Interface\\AddOns\\Preybreaker\\Media\\Sounds\\AmongUs\\hunt_end.ogg",
+            Ambush = "Interface\\AddOns\\Preybreaker\\Media\\Sounds\\AmongUs\\ambush.ogg",
+            Riposte = "Interface\\AddOns\\Preybreaker\\Media\\Sounds\\AmongUs\\riposte.ogg",
+            Kill = "Interface\\AddOns\\Preybreaker\\Media\\Sounds\\AmongUs\\kill.ogg",
+            Interaction = "Interface\\AddOns\\Preybreaker\\Media\\Sounds\\AmongUs\\interaction.ogg",
+            -- Legacy aliases kept for compatibility with older code paths.
             ColdToWarm = "Interface\\AddOns\\Preybreaker\\Media\\Sounds\\AmongUs\\ambush.ogg",
             WarmToHot = "Interface\\AddOns\\Preybreaker\\Media\\Sounds\\AmongUs\\riposte.ogg",
             HotToFinal = "Interface\\AddOns\\Preybreaker\\Media\\Sounds\\AmongUs\\kill.ogg",
-            -- Fallback cue for uncommon stage transitions.
             PhaseChange = "Interface\\AddOns\\Preybreaker\\Media\\Sounds\\AmongUs\\interaction.ogg",
-            -- Backward-compatible alias for previous releases.
             FinalPhase = "Interface\\AddOns\\Preybreaker\\Media\\Sounds\\AmongUs\\kill.ogg",
         },
         StageBadgeTexCoord = {

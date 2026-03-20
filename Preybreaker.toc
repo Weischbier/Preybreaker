@@ -65,3 +65,6 @@ UI/Overlay/OverlayView.lua
 # UI/HuntPanel.lua
 
 Preybreaker.lua
+Core/Controller/RefreshAndSound.lua
+Core/Controller/Bootstrap.lua
+Core/Controller/EventRouter.lua

@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.1.3] - 2026-03-20
+
+### Changed
+
+- Reorganized controller code into a new `Core/Controller/` module layout to reduce file size and improve ownership boundaries.
+- Split the former monolithic `Preybreaker.lua` into focused modules:
+  - `Core/Controller/RefreshAndSound.lua` for snapshot refresh and sound/combat matching logic.
+  - `Core/Controller/Bootstrap.lua` for startup/bootstrap and widget hook flow.
+  - `Core/Controller/EventRouter.lua` for event dispatch and event registration.
+- Reduced `Preybreaker.lua` to a thin controller initialization/base helper module.
+- Updated `.toc` load order so controller modules initialize in deterministic sequence after base controller creation.
+
+## [v1.1.2] - 2026-03-20
+
+### Fixed
+
+- Fixed another `ADDON_ACTION_FORBIDDEN` on startup by removing top-level `COMBAT_LOG_EVENT_UNFILTERED` registration and deferring it until after `PLAYER_ENTERING_WORLD` while out of combat, with retry on `PLAYER_REGEN_ENABLED`.
+
+## [v1.1.1] - 2026-03-20
+
+### Changed
+
+- Improved prey target name matching by extracting the prey name from quest title format (`Prey: <prey name> (<difficulty>)`) in addition to existing normalized title candidates.
+
+### Fixed
+
+- Fixed `ADDON_ACTION_FORBIDDEN` caused by runtime optional sound-event registration; sound-related events are now statically registered and filtered in handlers instead of calling `RegisterEvent`/`UnregisterEvent` during refresh.
+
 ## [v1.1.0] - 2026-03-20
 
 ### Added
@@ -22,7 +50,7 @@ All notable changes to this project will be documented in this file.
 - Fixed changelog-tab scroll text overlap after deep scrolling.
 - Fixed reward preference matching by prioritizing reward/currency IDs over localized names.
 - Fixed hunt purchase scope so non-prey and non-target NPC interactions remain excluded.
-- Fixed hunt audio wiring so start/end and Cold->Warm->Hot->Final transitions use the packaged hunt cue files with safe fallback handling.
+- Fixed hunt audio wiring so cue playback is event-driven and language-agnostic, using prey stage transitions plus GUID/NPC-ID combat tracking (`hunt_start` on hunt entry, `ambush` on the prey ambush transition, `riposte` on Riposte cast, `kill` on tracked prey kill, and `hunt_end` on prey quest turn-in).
 
 
 ## [v1.0.0] - 2026-03-20
