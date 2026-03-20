@@ -4,11 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-### Fixed
-
-- Fixed settings summary card using dynamic height so text rows never overlap regardless of string length or localization.
-
-## [v1.0.0.@project-abbreviated-hash@] - 2026-03-19
+## [v1.0.0] - 2026-03-20
 
 ### Added
 
@@ -40,6 +36,7 @@ All notable changes to this project will be documented in this file.
 - Fixed default anchor positioning so zero offset now means centered on the resolved parent instead of carrying hidden built-in X/Y shifts.
 - Fixed ring and bar reset behavior so both progress modes snap back to zero immediately when the prey hunt disappears instead of easing out from stale state.
 - Fixed phase-change sounds to fire only on real in-session stage transitions, which suppresses login and reload noise while keeping Warm/Hot/Final cues intact.
+- Fixed settings summary card using dynamic height so text rows never overlap regardless of string length or localization.
 
 ### Removed
 
