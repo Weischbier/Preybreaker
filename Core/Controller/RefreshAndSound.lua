@@ -72,10 +72,6 @@ local function GetNowSeconds()
     return 0
 end
 
-local function IsCombatLockedDown()
-    return type(InCombatLockdown) == "function" and InCombatLockdown()
-end
-
 function Preybreaker:GetSoundState()
     if not self.soundState then
         self.soundState = {
@@ -88,21 +84,6 @@ function Preybreaker:GetSoundState()
     end
 
     return self.soundState
-end
-
-function Preybreaker:EnsureCombatLogEventRegistration()
-    if self.combatLogEventRegistered then
-        return
-    end
-
-    if IsCombatLockedDown() then
-        self.combatLogEventPending = true
-        return
-    end
-
-    self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
-    self.combatLogEventRegistered = true
-    self.combatLogEventPending = false
 end
 
 local PREY_STATE = Enum and Enum.PreyHuntProgressState
@@ -167,6 +148,33 @@ local function IsHostileUnitToken(unitToken)
     if type(UnitReaction) == "function" then
         local reaction = UnitReaction(unitToken, "player")
         if type(reaction) == "number" and reaction <= 4 then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function IsUnitDead(unitToken)
+    if type(unitToken) ~= "string" then
+        return false
+    end
+
+    if type(UnitExists) == "function" and not UnitExists(unitToken) then
+        return false
+    end
+
+    if type(UnitIsDeadOrGhost) == "function" and UnitIsDeadOrGhost(unitToken) then
+        return true
+    end
+
+    if type(UnitIsDead) == "function" and UnitIsDead(unitToken) then
+        return true
+    end
+
+    if type(UnitHealth) == "function" then
+        local health = UnitHealth(unitToken)
+        if type(health) == "number" and health <= 0 then
             return true
         end
     end
@@ -516,6 +524,40 @@ function Preybreaker:HandleNameplateUnitAddedForSounds(unitToken)
     self:RememberRecentHostileUnit(unitToken)
 end
 
+function Preybreaker:HandleNameplateUnitRemovedForSounds(unitToken)
+    if not ShouldPlayHuntSounds() or not IsHuntSessionActive(self.lastSnapshot) then
+        return
+    end
+
+    if type(unitToken) ~= "string" or type(UnitGUID) ~= "function" then
+        return
+    end
+
+    local guid = UnitGUID(unitToken)
+    if type(guid) ~= "string" then
+        return
+    end
+
+    if not IsUnitDead(unitToken) then
+        return
+    end
+
+    local name = type(UnitName) == "function" and UnitName(unitToken) or nil
+    if not self:IsLikelyPreyTarget(guid, name) then
+        return
+    end
+
+    local state = self:GetSoundState()
+    local now = GetNowSeconds()
+    if state.lastKilledGUID == guid and (now - (state.lastKillAt or 0)) < 4 then
+        return
+    end
+    state.lastKilledGUID = guid
+
+    local sounds = self:GetResolvedSoundPaths()
+    PlaySoundCue(self, sounds.kill, "lastKillAt", 0.25)
+end
+
 function Preybreaker:HandlePlayerTargetChangedForSounds()
     if not ShouldPlayHuntSounds() or not IsHuntSessionActive(self.lastSnapshot) then
         return
@@ -610,60 +652,6 @@ function Preybreaker:HandleUnitSpellcastSound(unit, spellID)
     if INTERACTION_SPELL_IDS[spellID] then
         PlaySoundCue(self, sounds.interaction, "lastInteractionAt", 0.25)
     end
-end
-
-local PREY_KILL_SUBEVENTS = {
-    PARTY_KILL = true,
-    UNIT_DIED = true,
-}
-
-local PREY_AMBUSH_SUBEVENTS = {
-    SWING_DAMAGE = true,
-    SWING_MISSED = true,
-    SPELL_DAMAGE = true,
-    SPELL_MISSED = true,
-    SPELL_PERIODIC_DAMAGE = true,
-    RANGE_DAMAGE = true,
-    RANGE_MISSED = true,
-}
-
-function Preybreaker:HandleCombatLogSound()
-    if not ShouldPlayHuntSounds() then
-        return
-    end
-
-    if not IsHuntSessionActive(self.lastSnapshot) or type(CombatLogGetCurrentEventInfo) ~= "function" then
-        return
-    end
-
-    local _, subevent, _, sourceGUID, sourceName, _, _, destGUID, destName = CombatLogGetCurrentEventInfo()
-    local sounds = self:GetResolvedSoundPaths()
-    local state = self:GetSoundState()
-    local now = GetNowSeconds()
-
-    local playerGUID = type(UnitGUID) == "function" and UnitGUID("player") or nil
-    if playerGUID and PREY_AMBUSH_SUBEVENTS[subevent] and destGUID == playerGUID and self:IsLikelyPreyTarget(sourceGUID, sourceName) then
-        local sourceToken = sourceGUID or NormalizeText(sourceName)
-        if sourceToken and (now - (state.lastAmbushAt or 0)) >= 6 then
-            state.lastAmbushSource = sourceToken
-            PlaySoundCue(self, sounds.ambush, "lastAmbushAt", 6)
-        end
-    end
-
-    if not PREY_KILL_SUBEVENTS[subevent] then
-        return
-    end
-
-    if type(destGUID) ~= "string" or not self:IsLikelyPreyTarget(destGUID, destName) then
-        return
-    end
-
-    if state.lastKilledGUID == destGUID and (now - (state.lastKillAt or 0)) < 4 then
-        return
-    end
-    state.lastKilledGUID = destGUID
-
-    PlaySoundCue(self, sounds.kill, "lastKillAt", 0.25)
 end
 
 function Preybreaker:Refresh(reason, ...)

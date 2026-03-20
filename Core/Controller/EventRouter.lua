@@ -18,20 +18,13 @@ Preybreaker:SetScript("OnEvent", function(self, event, arg1, ...)
         return
     end
 
-    if event == "PLAYER_REGEN_ENABLED" then
-        if self.combatLogEventPending then
-            self:EnsureCombatLogEventRegistration()
-        end
-        return
-    end
-
-    if event == "COMBAT_LOG_EVENT_UNFILTERED" then
-        self:HandleCombatLogSound()
-        return
-    end
-
     if event == "NAME_PLATE_UNIT_ADDED" then
         self:HandleNameplateUnitAddedForSounds(arg1)
+        return
+    end
+
+    if event == "NAME_PLATE_UNIT_REMOVED" then
+        self:HandleNameplateUnitRemovedForSounds(arg1)
         return
     end
 
@@ -138,10 +131,10 @@ end)
 
 Preybreaker:RegisterEvent("ADDON_LOADED")
 Preybreaker:RegisterEvent("PLAYER_ENTERING_WORLD")
-Preybreaker:RegisterEvent("PLAYER_REGEN_ENABLED")
 Preybreaker:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 Preybreaker:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
 Preybreaker:RegisterEvent("NAME_PLATE_UNIT_ADDED")
+Preybreaker:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
 Preybreaker:RegisterEvent("PLAYER_TARGET_CHANGED")
 Preybreaker:RegisterEvent("QUEST_ACCEPTED")
 Preybreaker:RegisterEvent("QUEST_TURNED_IN")

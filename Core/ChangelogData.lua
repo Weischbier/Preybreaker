@@ -22,6 +22,17 @@ local FALLBACK_MARKDOWN = [[
 
 All notable changes to this project will be documented in this file.
 
+## [v1.1.4] - 2026-03-20
+
+### Fixed
+
+- Fixed repeated `ADDON_ACTION_FORBIDDEN` errors caused by `RegisterEvent()` calls for combat-log wiring during bootstrap.
+- Removed combat-log event registration from the controller flow and eliminated runtime event registration toggling entirely.
+
+### Changed
+
+- Switched prey kill cue detection to `NAME_PLATE_UNIT_REMOVED` with prey candidate matching plus dead-state checks, so kill sounds still fire without combat-log event subscription.
+
 ## [v1.1.3] - 2026-03-20
 
 ### Changed

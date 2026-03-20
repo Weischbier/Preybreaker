@@ -59,10 +59,6 @@ function Preybreaker:Bootstrap(event, detail)
         self:UnregisterEvent("ADDON_LOADED")
     end
 
-    if state.worldEntered then
-        self:EnsureCombatLogEventRegistration()
-    end
-
     local reason = event
     if detail ~= nil then
         reason = string.format("%s:%s", event, tostring(detail))
