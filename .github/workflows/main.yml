@@ -20,7 +20,6 @@ jobs:
     env:
       CF_API_KEY: ${{ secrets.CF_API_KEY }}
       WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
-      GITHUB_OAUTH: ${{ secrets.GHUB_OAUTH }}
 
     steps:
       - name: Check out repository
@@ -28,11 +27,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Validate release secrets
+      - name: Validate publish secrets
         shell: bash
         run: |
           missing=0
-          for var in CF_API_KEY WAGO_API_TOKEN GITHUB_OAUTH; do
+          for var in CF_API_KEY WAGO_API_TOKEN; do
             if [ -z "${!var}" ]; then
               echo "::error title=Missing secret::$var is not configured for this repository."
               missing=1
