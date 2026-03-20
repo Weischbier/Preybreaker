@@ -172,13 +172,6 @@ local function IsUnitDead(unitToken)
         return true
     end
 
-    if type(UnitHealth) == "function" then
-        local health = UnitHealth(unitToken)
-        if type(health) == "number" and health <= 0 then
-            return true
-        end
-    end
-
     return false
 end
 
