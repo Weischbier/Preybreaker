@@ -195,6 +195,14 @@ local function IsHostileUnitToken(unitToken)
     return false
 end
 
+local function IsUnitTargetOrMouseover(unitToken)
+    if type(unitToken) ~= "string" or type(UnitIsUnit) ~= "function" then
+        return false
+    end
+
+    return UnitIsUnit(unitToken, "target") or UnitIsUnit(unitToken, "mouseover")
+end
+
 local function IsUnitDead(unitToken)
     if type(unitToken) ~= "string" then
         return false
@@ -799,8 +807,9 @@ function Preybreaker:HandleNameplateUnitAddedForSounds(unitToken)
 
     self:RememberRecentHostileUnit(unitToken)
     self:RememberTrapContextFromUnit(unitToken)
+    self:PromoteUnitPreyCandidateIfLikely(unitToken)
 
-    if self:IsAmbushCandidateWindowActive() then
+    if self:IsAmbushCandidateWindowActive() and IsUnitTargetOrMouseover(unitToken) then
         self:PromoteUnitPreyCandidateIfHostile(unitToken)
     end
 end
@@ -847,6 +856,10 @@ function Preybreaker:HandlePlayerTargetChangedForSounds()
     self:RememberRecentHostileUnit("target")
     self:RememberTrapContextFromUnit("target")
 
+    if self:IsAmbushCandidateWindowActive() then
+        self:PromoteUnitPreyCandidateIfHostile("target")
+    end
+
     local snapshot = self.lastSnapshot
     local progressState = snapshot and snapshot.progressState or nil
     if progressState == nil or progressState < PREY_STATE_WARM or type(UnitGUID) ~= "function" then
@@ -891,8 +904,10 @@ function Preybreaker:HandleAmbushChatMessageForSounds(message, sourceEvent)
     end
 
     self:PromoteRecentHostileCandidate(AMBUSH_CANDIDATE_WINDOW_SECONDS)
-    self:PromoteUnitPreyCandidateIfLikely("target")
     self:ArmAmbushCandidateWindow(AMBUSH_PREY_CAPTURE_WINDOW_SECONDS)
+    if not self:PromoteUnitPreyCandidateIfLikely("target") then
+        self:PromoteUnitPreyCandidateIfHostile("target")
+    end
     local sounds = self:GetResolvedSoundPaths()
     local played = PlaySoundCue(self, sounds.ambush, "lastAmbushAt", 6)
     if played and ns.Debug and type(ns.Debug.Log) == "function" then
@@ -926,16 +941,12 @@ function Preybreaker:HandleSnapshotSoundTransitions(previousSnapshot, snapshot)
         self:PromoteRecentHostileCandidate(AMBUSH_CANDIDATE_WINDOW_SECONDS)
         self:PromoteUnitPreyCandidateIfLikely("target")
         self:ArmAmbushCandidateWindow(AMBUSH_PREY_CAPTURE_WINDOW_SECONDS)
-        PlaySoundCue(self, sounds.ambush, "lastAmbushAt", 6)
     end
 
-    if previousState == PREY_STATE_WARM and newState == PREY_STATE_HOT then
-        PlaySoundCue(self, sounds.riposte, "lastStageRiposteAt", 6)
+    if type(previousState) == "number" and type(newState) == "number" and previousState ~= newState then
+        PlaySoundCue(self, sounds.interaction, "lastStageProgressAt", 0.75)
     end
 
-    if previousState == PREY_STATE_HOT and newState == PREY_STATE_FINAL then
-        PlaySoundCue(self, sounds.finalPhase, "lastStageFinalAt", 6)
-    end
 end
 
 function Preybreaker:PurgeAbandonedQuestSuppression()

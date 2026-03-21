@@ -611,7 +611,7 @@ local function runRefreshAndSoundRoutingTests()
     local state = controller:GetSoundState()
     expectNil("cold->warm blocks unrelated recent hostile promotion", state.preyCandidateGUIDs["Creature-0-0-0-0-11111-0000000001"])
     expectNil("cold->warm blocks unrelated target promotion", state.preyCandidateGUIDs["Creature-0-0-0-0-22222-0000000002"])
-    expectEqual("cold->warm still emits ambush cue", capturedSounds[1], "ambush.ogg")
+    expectEqual("cold->warm emits stage progress cue", capturedSounds[1], "interaction.ogg")
 
     -- Cold->Warm should promote a recent hostile only when prey name matches.
     resetHarness(0)
@@ -641,7 +641,7 @@ local function runRefreshAndSoundRoutingTests()
     expectNil("cold->warm still rejects unrelated target", state.preyCandidateGUIDs["Creature-0-0-0-0-44444-0000000004"])
     expectEqual("prey name match stays exact, not substring", controller:IsLikelyPreyTargetName("Razor"), false)
 
-    -- Stage and spell riposte use separate throttles and can both fire immediately.
+    -- Stage transition emits short stage cue; spell riposte remains separate.
     resetHarness(1)
     now = 300
     controller:HandleSnapshotSoundTransitions(
@@ -650,8 +650,8 @@ local function runRefreshAndSoundRoutingTests()
     )
     controller.lastSnapshot = { questID = 91458, progressState = 2 }
     controller:HandleUnitSpellcastSound("player", 1260432)
-    expectEqual("stage riposte cue", capturedSounds[1], "riposte.ogg")
-    expectEqual("spell riposte cue not throttled by stage cue", capturedSounds[2], "riposte.ogg")
+    expectEqual("warm->hot emits stage progress cue", capturedSounds[1], "interaction.ogg")
+    expectEqual("spell riposte cue still plays", capturedSounds[2], "riposte.ogg")
 
     -- Ambush chat cue should fire when localized message matches and hunt is active.
     resetHarness(0)
@@ -682,6 +682,29 @@ local function runRefreshAndSoundRoutingTests()
     now = 323
     controller:HandleAmbushChatMessageForSounds("Random warning", "CHAT_MSG_SYSTEM")
     expectNil("non-ambush chat does not trigger cue", capturedSounds[1])
+
+    -- Ambush prey kill should still play kill cue even when prey name differs from quest title.
+    resetHarness(0)
+    now = 324
+    local ambushPreyGUID = "Creature-0-0-0-0-77777-0000000007"
+    units.target = {
+        guid = ambushPreyGUID,
+        name = "Nightstalker Ambusher",
+        hostile = true,
+        reaction = 3,
+    }
+    controller:HandleAmbushChatMessageForSounds("Ambush!", "CHAT_MSG_SYSTEM")
+    controller:HandlePlayerTargetChangedForSounds()
+    units.nameplateAmbush = {
+        guid = ambushPreyGUID,
+        name = "Nightstalker Ambusher",
+        hostile = true,
+        reaction = 3,
+        dead = true,
+    }
+    controller:HandleNameplateUnitRemovedForSounds("nameplateAmbush")
+    expectEqual("ambush cue still plays for ambush event", capturedSounds[1], "ambush.ogg")
+    expectEqual("ambush prey kill plays kill cue", capturedSounds[2], "kill.ogg")
 
     -- Death during active hunt should preserve last known snapshot values.
     local previousSnapshot = {
@@ -774,7 +797,7 @@ local function runRefreshAndSoundRoutingTests()
     controller:HandleUnitSpellcastSound("player", 1242005)
     expectEqual("interaction cue not replayed after context expires", #capturedSounds, 1)
 
-    -- Stage final cue and confirmed prey-kill cue are separate semantic sounds.
+    -- Hot->Final emits short stage cue; confirmed prey death still emits kill cue.
     resetHarness(2)
     now = 400
     local preyGUID = "Creature-0-0-0-0-55555-0000000005"
@@ -793,7 +816,7 @@ local function runRefreshAndSoundRoutingTests()
         dead = true,
     }
     controller:HandleNameplateUnitRemovedForSounds("nameplate3")
-    expectEqual("hot->final uses final-phase cue", capturedSounds[1], "final_phase.ogg")
+    expectEqual("hot->final emits stage progress cue", capturedSounds[1], "interaction.ogg")
     expectEqual("confirmed prey death uses kill cue", capturedSounds[2], "kill.ogg")
 
     _G.Enum = previousGlobals.Enum
