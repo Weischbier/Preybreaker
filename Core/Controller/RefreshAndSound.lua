@@ -96,6 +96,10 @@ function Preybreaker:GetSoundState()
             lastTrapContextAt = nil,
             lastTrapContextName = nil,
             lastTrapContextSource = nil,
+            activeSoundTheme = nil,
+            soundVariantPools = nil,
+            lastPlayedVariantByKey = {},
+            deathCueArmed = false,
         }
     end
 
@@ -112,8 +116,24 @@ local AMBUSH_CANDIDATE_WINDOW_SECONDS = 2
 local AMBUSH_PREY_CAPTURE_WINDOW_SECONDS = 15
 local TRAP_CONTEXT_WINDOW_SECONDS = 4
 local ABANDON_SUPPRESSION_SECONDS = 15
+local DEFAULT_SOUND_THEME = "AmongUs"
+local GENERIC_SOUND_THEME = "Generic"
+local RANDOM_SOUND_THEME = "Random"
+local BONUS_VARIANT_CHANCE = 0.05
+local SOUND_PATH_ROOT = "Interface\\AddOns\\Preybreaker\\Media\\Sounds\\"
+local MAX_MAP_PARENT_DEPTH = 16
 local IsLikelyTrapUnitName
 local AmbushMessageCache = {}
+local SOUND_KEY_ALIASES = {
+    hunt_start = { "hunt_start", "harandir_enter" },
+    hunt_end = { "hunt_end" },
+    ambush = { "ambush" },
+    riposte = { "riposte" },
+    interaction = { "interaction" },
+    progress = { "progress", "interaction" },
+    kill = { "kill" },
+    death = { "death" },
+}
 local KNOWN_TRAP_NAME_FRAGMENTS = {
     ["thorny trap"] = true,
 }
@@ -238,6 +258,7 @@ function Preybreaker:ResetPreyCombatCandidates()
     state.lastAmbushAt = nil
     state.lastKilledGUID = nil
     state.lastPreyKilledAt = nil
+    state.deathCueArmed = false
 end
 
 function Preybreaker:PromotePreyCombatCandidate(guid)
@@ -425,6 +446,142 @@ local function PlaySoundCue(controller, soundPath, throttleKey, throttleSeconds)
 
     PlayConfiguredSound(soundPath)
     return true
+end
+
+local function BuildPackSoundPath(packName, fileName)
+    if type(packName) ~= "string" or packName == "" or type(fileName) ~= "string" or fileName == "" then
+        return nil
+    end
+
+    return SOUND_PATH_ROOT .. packName .. "\\" .. fileName
+end
+
+local function ParseCatalogSoundKey(fileName)
+    if type(fileName) ~= "string" then
+        return nil, false
+    end
+
+    local stem = fileName:gsub("%.ogg$", "")
+    if stem == "" then
+        return nil, false
+    end
+
+    local baseBonus = stem:match("^(.-)_bonus%d+$")
+    if baseBonus and baseBonus ~= "" then
+        return string.lower(baseBonus), true
+    end
+
+    local numberedBase = stem:match("^(.-)%d+$")
+    if numberedBase and numberedBase ~= "" then
+        return string.lower(numberedBase), false
+    end
+
+    return string.lower(stem), false
+end
+
+local function AddVariantEntry(targetByKey, key, soundPath)
+    if type(targetByKey) ~= "table" or type(key) ~= "string" or type(soundPath) ~= "string" then
+        return
+    end
+
+    local bucket = targetByKey[key]
+    if type(bucket) ~= "table" then
+        bucket = {}
+        targetByKey[key] = bucket
+    end
+    bucket[#bucket + 1] = soundPath
+end
+
+local function AddCatalogPackVariants(regularByKey, bonusByKey, catalog, packName)
+    if type(catalog) ~= "table" or type(packName) ~= "string" or packName == "" then
+        return
+    end
+
+    local fileNames = catalog[packName]
+    if type(fileNames) ~= "table" then
+        return
+    end
+
+    for _, fileName in ipairs(fileNames) do
+        local key, isBonus = ParseCatalogSoundKey(fileName)
+        local soundPath = BuildPackSoundPath(packName, fileName)
+        if key and soundPath then
+            AddVariantEntry(isBonus and bonusByKey or regularByKey, key, soundPath)
+        end
+    end
+end
+
+local function GetRandomRoll()
+    if type(math) ~= "table" or type(math.random) ~= "function" then
+        return nil
+    end
+
+    local ok, value = pcall(math.random)
+    if not ok or type(value) ~= "number" then
+        return nil
+    end
+
+    return value
+end
+
+local function GetRandomIndex(maxCount)
+    if type(maxCount) ~= "number" or maxCount <= 1 then
+        return 1
+    end
+
+    if type(math) == "table" and type(math.random) == "function" then
+        local ok, value = pcall(math.random, maxCount)
+        if ok and type(value) == "number" then
+            value = math.floor(value)
+            if value >= 1 and value <= maxCount then
+                return value
+            end
+        end
+    end
+
+    return 1
+end
+
+local function IsPlayerInSnapshotMap(snapshot)
+    if type(snapshot) ~= "table" then
+        return false
+    end
+
+    local huntMapID = snapshot.mapID
+    if type(huntMapID) ~= "number" then
+        return false
+    end
+
+    if type(C_Map) ~= "table" or type(C_Map.GetBestMapForUnit) ~= "function" then
+        return false
+    end
+
+    local currentMapID = C_Map.GetBestMapForUnit("player")
+    if type(currentMapID) ~= "number" then
+        return false
+    end
+
+    if currentMapID == huntMapID then
+        return true
+    end
+
+    if type(C_Map.GetMapInfo) ~= "function" then
+        return false
+    end
+
+    for _ = 1, MAX_MAP_PARENT_DEPTH do
+        local mapInfo = C_Map.GetMapInfo(currentMapID)
+        local parentMapID = mapInfo and mapInfo.parentMapID or nil
+        if type(parentMapID) ~= "number" or parentMapID <= 0 then
+            return false
+        end
+        if parentMapID == huntMapID then
+            return true
+        end
+        currentMapID = parentMapID
+    end
+
+    return false
 end
 
 local function TrimString(value)
@@ -682,6 +839,150 @@ local function IsKnownPreyQuestID(questID)
     return KnownPreyQuestLookup[questID] == true
 end
 
+function Preybreaker:GetSelectedSoundTheme()
+    local configuredTheme = ns.Settings and type(ns.Settings.GetSoundTheme) == "function" and ns.Settings:GetSoundTheme() or nil
+    local media = ns.Constants and ns.Constants.Media or nil
+    local catalog = media and media.SoundCatalog or nil
+
+    if type(configuredTheme) == "string" and configuredTheme ~= "" and type(catalog) == "table" and type(catalog[configuredTheme]) == "table" then
+        return configuredTheme
+    end
+
+    if type(catalog) == "table" and type(catalog[DEFAULT_SOUND_THEME]) == "table" then
+        return DEFAULT_SOUND_THEME
+    end
+
+    return DEFAULT_SOUND_THEME
+end
+
+function Preybreaker:BuildSoundVariantPools(themeName)
+    local media = ns.Constants and ns.Constants.Media or nil
+    local catalog = media and media.SoundCatalog or nil
+    local pools = {
+        regular = {},
+        bonus = {},
+        fallbackRegular = {},
+        fallbackBonus = {},
+    }
+
+    AddCatalogPackVariants(pools.regular, pools.bonus, catalog, themeName)
+
+    if themeName ~= GENERIC_SOUND_THEME then
+        AddCatalogPackVariants(pools.fallbackRegular, pools.fallbackBonus, catalog, GENERIC_SOUND_THEME)
+    end
+
+    local deathFiles = media and media.DeathSounds or nil
+    if type(deathFiles) == "table" then
+        for _, fileName in ipairs(deathFiles) do
+            local deathPath = BuildPackSoundPath("Death", fileName)
+            if deathPath then
+                AddVariantEntry(pools.regular, "death", deathPath)
+            end
+        end
+    end
+
+    return pools
+end
+
+function Preybreaker:GetSoundVariantPools()
+    local state = self:GetSoundState()
+    local selectedTheme = self:GetSelectedSoundTheme()
+    if type(state.soundVariantPools) == "table" and state.activeSoundTheme == selectedTheme then
+        return state.soundVariantPools
+    end
+
+    state.soundVariantPools = self:BuildSoundVariantPools(selectedTheme)
+    state.activeSoundTheme = selectedTheme
+    state.lastPlayedVariantByKey = {}
+    return state.soundVariantPools
+end
+
+function Preybreaker:PickSoundVariantPath(variantKey, regularVariants, bonusVariants)
+    local regularCount = type(regularVariants) == "table" and #regularVariants or 0
+    local bonusCount = type(bonusVariants) == "table" and #bonusVariants or 0
+    if regularCount <= 0 and bonusCount <= 0 then
+        return nil
+    end
+
+    local variants = regularVariants
+    if bonusCount > 0 then
+        local useBonus = false
+        if regularCount <= 0 then
+            useBonus = true
+        else
+            local roll = GetRandomRoll()
+            useBonus = type(roll) == "number" and roll <= BONUS_VARIANT_CHANCE
+        end
+
+        if useBonus then
+            variants = bonusVariants
+        end
+    end
+
+    if type(variants) ~= "table" or #variants <= 0 then
+        variants = regularCount > 0 and regularVariants or bonusVariants
+    end
+
+    if type(variants) ~= "table" or #variants <= 0 then
+        return nil
+    end
+
+    local state = self:GetSoundState()
+    local index = GetRandomIndex(#variants)
+    local previousPath = state.lastPlayedVariantByKey and state.lastPlayedVariantByKey[variantKey] or nil
+    if #variants > 1 and variants[index] == previousPath then
+        index = (index % #variants) + 1
+    end
+
+    local pickedPath = variants[index]
+    if type(state.lastPlayedVariantByKey) ~= "table" then
+        state.lastPlayedVariantByKey = {}
+    end
+    state.lastPlayedVariantByKey[variantKey] = pickedPath
+    return pickedPath
+end
+
+function Preybreaker:ResolveThemedSoundPath(soundKey, fallbackPath)
+    if type(soundKey) ~= "string" or soundKey == "" then
+        return fallbackPath
+    end
+
+    local normalizedKey = string.lower(soundKey)
+    local aliasList = SOUND_KEY_ALIASES[normalizedKey] or { normalizedKey }
+    local pools = self:GetSoundVariantPools()
+
+    for _, alias in ipairs(aliasList) do
+        local path = self:PickSoundVariantPath(alias, pools.regular[alias], pools.bonus[alias])
+        if type(path) == "string" and path ~= "" then
+            return path
+        end
+    end
+
+    if normalizedKey ~= "death" then
+        for _, alias in ipairs(aliasList) do
+            local fallbackKey = alias .. "@fallback"
+            local path = self:PickSoundVariantPath(fallbackKey, pools.fallbackRegular[alias], pools.fallbackBonus[alias])
+            if type(path) == "string" and path ~= "" then
+                return path
+            end
+        end
+
+        if pools and pools.regular and self:GetSelectedSoundTheme() == RANDOM_SOUND_THEME then
+            local randomPath = self:PickSoundVariantPath("random", pools.regular.random, pools.bonus.random)
+            if type(randomPath) == "string" and randomPath ~= "" then
+                return randomPath
+            end
+        end
+    end
+
+    return fallbackPath
+end
+
+local function PlayResolvedSoundCue(controller, soundKey, fallbackPath, throttleKey, throttleSeconds)
+    local resolvedPath = controller:ResolveThemedSoundPath(soundKey, fallbackPath)
+    return PlaySoundCue(controller, resolvedPath, throttleKey, throttleSeconds)
+end
+
 function Preybreaker:GetResolvedSoundPaths()
     local sounds = ns.Constants and ns.Constants.Media and ns.Constants.Media.Sounds
     return {
@@ -690,8 +991,10 @@ function Preybreaker:GetResolvedSoundPaths()
         ambush = ResolveSoundPath(sounds, "Ambush", "ColdToWarm", "PhaseChange"),
         riposte = ResolveSoundPath(sounds, "Riposte", "WarmToHot", "PhaseChange"),
         finalPhase = ResolveSoundPath(sounds, "FinalPhase"),
+        progress = ResolveSoundPath(sounds, "Progress", "PhaseChange", "Interaction"),
         interaction = ResolveSoundPath(sounds, "Interaction", "PhaseChange"),
         kill = ResolveSoundPath(sounds, "Kill"),
+        death = ResolveSoundPath(sounds, "Death"),
     }
 end
 
@@ -845,7 +1148,7 @@ function Preybreaker:HandleNameplateUnitRemovedForSounds(unitToken)
     state.lastKilledGUID = guid
 
     local sounds = self:GetResolvedSoundPaths()
-    PlaySoundCue(self, sounds.kill, "lastPreyKilledAt", 0.25)
+    PlayResolvedSoundCue(self, "kill", sounds.kill, "lastPreyKilledAt", 0.25)
 end
 
 function Preybreaker:HandlePlayerTargetChangedForSounds()
@@ -909,7 +1212,7 @@ function Preybreaker:HandleAmbushChatMessageForSounds(message, sourceEvent)
         self:PromoteUnitPreyCandidateIfHostile("target")
     end
     local sounds = self:GetResolvedSoundPaths()
-    local played = PlaySoundCue(self, sounds.ambush, "lastAmbushAt", 6)
+    local played = PlayResolvedSoundCue(self, "ambush", sounds.ambush, "lastAmbushAt", 6)
     if played and ns.Debug and type(ns.Debug.Log) == "function" then
         ns.Debug:Log("sound", ns.Debug:KV("cue", "ambush"), ns.Debug:KV("source", sourceEvent or "chat"), ns.Debug:KV("message", normalized))
     end
@@ -922,7 +1225,7 @@ function Preybreaker:HandleSnapshotSoundTransitions(previousSnapshot, snapshot)
 
     if not previousSessionActive and newSessionActive then
         self:ResetPreyCombatCandidates()
-        PlaySoundCue(self, sounds.huntStart, "lastHuntStartAt", 0.75)
+        PlayResolvedSoundCue(self, "hunt_start", sounds.huntStart, "lastHuntStartAt", 0.75)
         return
     end
 
@@ -944,7 +1247,7 @@ function Preybreaker:HandleSnapshotSoundTransitions(previousSnapshot, snapshot)
     end
 
     if type(previousState) == "number" and type(newState) == "number" and previousState ~= newState then
-        PlaySoundCue(self, sounds.interaction, "lastStageProgressAt", 0.75)
+        PlayResolvedSoundCue(self, "progress", sounds.progress or sounds.interaction, "lastStageProgressAt", 0.75)
     end
 
 end
@@ -1004,7 +1307,7 @@ function Preybreaker:HandleQuestTurnedInSound(questID)
     end
 
     local sounds = self:GetResolvedSoundPaths()
-    PlaySoundCue(self, sounds.huntEnd, "lastHuntEndAt", 0.75)
+    PlayResolvedSoundCue(self, "hunt_end", sounds.huntEnd, "lastHuntEndAt", 0.75)
 end
 
 local RIPOSTE_SPELL_IDS = {
@@ -1030,7 +1333,7 @@ function Preybreaker:HandleUnitSpellcastSound(unit, spellID)
 
     local sounds = self:GetResolvedSoundPaths()
     if RIPOSTE_SPELL_IDS[spellID] then
-        PlaySoundCue(self, sounds.riposte, "lastSpellRiposteAt", 0.25)
+        PlayResolvedSoundCue(self, "riposte", sounds.riposte, "lastSpellRiposteAt", 0.25)
         return
     end
 
@@ -1038,9 +1341,53 @@ function Preybreaker:HandleUnitSpellcastSound(unit, spellID)
         self:RememberTrapContextFromUnit("target")
         self:RememberTrapContextFromUnit("mouseover")
         if self:HasRecentTrapContext(TRAP_CONTEXT_WINDOW_SECONDS) then
-            PlaySoundCue(self, sounds.interaction, "lastInteractionAt", 0.25)
+            PlayResolvedSoundCue(self, "interaction", sounds.interaction, "lastInteractionAt", 0.25)
         end
     end
+end
+
+function Preybreaker:ShouldPlayDeathSound()
+    if not ShouldPlayHuntSounds() then
+        return false
+    end
+
+    if ns.Settings and type(ns.Settings.ShouldPlayDeathSounds) == "function" and not ns.Settings:ShouldPlayDeathSounds() then
+        return false
+    end
+
+    local snapshot = self.lastSnapshot
+    if not IsHuntSessionActive(snapshot) then
+        return false
+    end
+
+    if not IsPlayerDeadOrGhostSafe() then
+        return false
+    end
+
+    return IsPlayerInSnapshotMap(snapshot)
+end
+
+function Preybreaker:HandlePlayerDeathForSounds()
+    if not self:ShouldPlayDeathSound() then
+        return
+    end
+
+    local state = self:GetSoundState()
+    if state.deathCueArmed == true then
+        return
+    end
+
+    local sounds = self:GetResolvedSoundPaths()
+    local played = PlayResolvedSoundCue(self, "death", sounds.death, "lastDeathCueAt", 0.5)
+    if played then
+        state.deathCueArmed = true
+    end
+end
+
+function Preybreaker:HandlePlayerRevivedForSounds()
+    local state = self:GetSoundState()
+    state.deathCueArmed = false
+    state.lastDeathCueAt = nil
 end
 
 function Preybreaker:ShouldPreserveSnapshotWhileDead(previousSnapshot, snapshot)

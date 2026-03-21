@@ -18,6 +18,16 @@ Preybreaker:SetScript("OnEvent", function(self, event, arg1, ...)
         return
     end
 
+    if event == "PLAYER_DEAD" then
+        self:HandlePlayerDeathForSounds()
+        return
+    end
+
+    if event == "PLAYER_ALIVE" or event == "PLAYER_UNGHOST" then
+        self:HandlePlayerRevivedForSounds()
+        return
+    end
+
     if event == "NAME_PLATE_UNIT_ADDED" then
         self:HandleNameplateUnitAddedForSounds(arg1)
         return
@@ -149,6 +159,9 @@ end)
 
 Preybreaker:RegisterEvent("ADDON_LOADED")
 Preybreaker:RegisterEvent("PLAYER_ENTERING_WORLD")
+Preybreaker:RegisterEvent("PLAYER_DEAD")
+Preybreaker:RegisterEvent("PLAYER_ALIVE")
+Preybreaker:RegisterEvent("PLAYER_UNGHOST")
 Preybreaker:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 Preybreaker:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
 Preybreaker:RegisterEvent("CHAT_MSG_SYSTEM")

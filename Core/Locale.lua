@@ -50,6 +50,8 @@ local baseStrings = {
     ["Focus the prey quest"] = "Focus the prey quest",
     ["Auto turn-in prey quest"] = "Auto turn-in prey quest",
     ["Play sound on phase change"] = "Play sound on phase change",
+    ["Sound theme"] = "Sound theme",
+    ["Death cue during hunt"] = "Death cue during hunt",
     ["Use character profile"] = "Use character profile",
 
     -- Field descriptions
@@ -69,6 +71,8 @@ local baseStrings = {
     ["Keep the active prey quest selected for your objective arrow."] = "Keep the active prey quest selected for your objective arrow.",
     ["Automatically complete the prey quest when it pops up, unless a reward choice is required."] = "Automatically complete the prey quest when it pops up, unless a reward choice is required.",
     ["Hear an audio cue when the prey hunt moves to a new stage."] = "Hear an audio cue when the prey hunt moves to a new stage.",
+    ["Select the active sound pack used for prey hunt audio cues."] = "Select the active sound pack used for prey hunt audio cues.",
+    ["Play a death cue when you die during an active prey hunt in the hunt zone."] = "Play a death cue when you die during an active prey hunt in the hunt zone.",
     ["Store a separate set of settings for this character."] = "Store a separate set of settings for this character.",
     ["Nudge the tracker left or right around the prey icon."] = "Nudge the tracker left or right around the prey icon.",
     ["Nudge the tracker up or down around the prey icon."] = "Nudge the tracker up or down around the prey icon.",
@@ -78,6 +82,13 @@ local baseStrings = {
     ["Orbs"] = "Orbs",
     ["Bar"] = "Bar",
     ["Text"] = "Text",
+    ["Among Us"] = "Among Us",
+    ["Generic"] = "Generic",
+    ["Jurassic Park"] = "Jurassic Park",
+    ["Pokemon"] = "Pokemon",
+    ["Predator"] = "Predator",
+    ["Stranger Things"] = "Stranger Things",
+    ["Random"] = "Random",
 
     -- Stage labels
     ["COLD"] = "COLD",

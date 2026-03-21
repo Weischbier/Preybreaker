@@ -465,9 +465,17 @@ end
 local function runRefreshAndSoundRoutingTests()
     local ns = newNamespace()
     ns.Controller = {}
+    local selectedSoundTheme = "AmongUs"
+    local deathSoundsEnabled = true
     ns.Settings = {
         ShouldPlaySoundOnPhaseChange = function()
             return true
+        end,
+        GetSoundTheme = function()
+            return selectedSoundTheme
+        end,
+        ShouldPlayDeathSounds = function()
+            return deathSoundsEnabled
         end,
         IsEnabled = function()
             return true
@@ -486,11 +494,42 @@ local function runRefreshAndSoundRoutingTests()
             Interaction = "interaction.ogg",
             FinalPhase = "final_phase.ogg",
         },
+        SoundCatalog = {
+            AmongUs = {
+                "ambush.ogg",
+                "hunt_end.ogg",
+                "hunt_start.ogg",
+            },
+            Generic = {
+                "interaction.ogg",
+                "kill.ogg",
+                "riposte.ogg",
+            },
+            Pokemon = {
+                "ambush.ogg",
+                "ambush_bonus1.ogg",
+                "progress.ogg",
+                "progress2.ogg",
+                "progress3.ogg",
+            },
+            Random = {
+                "random1.ogg",
+                "random2.ogg",
+            },
+        },
+        DeathSounds = {
+            "loser1.ogg",
+            "loser2.ogg",
+        },
     }
 
     local capturedSounds = {}
     local now = 100
     local units = {}
+    local mapParents = {}
+    local function soundPath(pack, fileName)
+        return "Interface\\AddOns\\Preybreaker\\Media\\Sounds\\" .. pack .. "\\" .. fileName
+    end
 
     local previousGlobals = {
         Enum = _G.Enum,
@@ -507,6 +546,8 @@ local function runRefreshAndSoundRoutingTests()
         UnitName = _G.UnitName,
         UnitIsDeadOrGhost = _G.UnitIsDeadOrGhost,
         UnitIsDead = _G.UnitIsDead,
+        C_Map = _G.C_Map,
+        MathRandom = math.random,
     }
 
     _G.Enum = {
@@ -571,6 +612,19 @@ local function runRefreshAndSoundRoutingTests()
         return unit and unit.dead == true or false
     end
     _G.UnitIsDead = _G.UnitIsDeadOrGhost
+    _G.C_Map = {
+        GetBestMapForUnit = function(unitToken)
+            local unit = units[unitToken]
+            return unit and unit.mapID or nil
+        end,
+        GetMapInfo = function(mapID)
+            local parentMapID = mapParents[mapID]
+            if type(parentMapID) ~= "number" then
+                return nil
+            end
+            return { parentMapID = parentMapID }
+        end,
+    }
 
     loadModule("Core/Controller/RefreshAndSound.lua", ns)
     local controller = ns.Controller
@@ -611,7 +665,7 @@ local function runRefreshAndSoundRoutingTests()
     local state = controller:GetSoundState()
     expectNil("cold->warm blocks unrelated recent hostile promotion", state.preyCandidateGUIDs["Creature-0-0-0-0-11111-0000000001"])
     expectNil("cold->warm blocks unrelated target promotion", state.preyCandidateGUIDs["Creature-0-0-0-0-22222-0000000002"])
-    expectEqual("cold->warm emits stage progress cue", capturedSounds[1], "interaction.ogg")
+    expectEqual("cold->warm emits stage progress cue", capturedSounds[1], soundPath("Generic", "interaction.ogg"))
 
     -- Cold->Warm should promote a recent hostile only when prey name matches.
     resetHarness(0)
@@ -650,14 +704,14 @@ local function runRefreshAndSoundRoutingTests()
     )
     controller.lastSnapshot = { questID = 91458, progressState = 2 }
     controller:HandleUnitSpellcastSound("player", 1260432)
-    expectEqual("warm->hot emits stage progress cue", capturedSounds[1], "interaction.ogg")
-    expectEqual("spell riposte cue still plays", capturedSounds[2], "riposte.ogg")
+    expectEqual("warm->hot emits stage progress cue", capturedSounds[1], soundPath("Generic", "interaction.ogg"))
+    expectEqual("spell riposte cue still plays", capturedSounds[2], soundPath("Generic", "riposte.ogg"))
 
     -- Ambush chat cue should fire when localized message matches and hunt is active.
     resetHarness(0)
     now = 320
     controller:HandleAmbushChatMessageForSounds("Ambush!", "CHAT_MSG_SYSTEM")
-    expectEqual("chat ambush cue in enUS", capturedSounds[1], "ambush.ogg")
+    expectEqual("chat ambush cue in enUS", capturedSounds[1], soundPath("AmongUs", "ambush.ogg"))
 
     resetHarness(0)
     now = 321
@@ -671,7 +725,7 @@ local function runRefreshAndSoundRoutingTests()
         return nil
     end
     controller:HandleAmbushChatMessageForSounds("Hinterhalt!", "CHAT_MSG_MONSTER_EMOTE")
-    expectEqual("chat ambush cue in deDE", capturedSounds[1], "ambush.ogg")
+    expectEqual("chat ambush cue in deDE", capturedSounds[1], soundPath("AmongUs", "ambush.ogg"))
 
     resetHarness(2)
     now = 322
@@ -682,6 +736,61 @@ local function runRefreshAndSoundRoutingTests()
     now = 323
     controller:HandleAmbushChatMessageForSounds("Random warning", "CHAT_MSG_SYSTEM")
     expectNil("non-ambush chat does not trigger cue", capturedSounds[1])
+
+    -- Numbered variants should randomize within the selected sound theme.
+    selectedSoundTheme = "Pokemon"
+    resetHarness(1)
+    now = 323.2
+    math.random = function(maxValue)
+        if maxValue then
+            return 2
+        end
+        return 0.99
+    end
+    controller:HandleSnapshotSoundTransitions(
+        { questID = 91458, progressState = 1 },
+        { questID = 91458, progressState = 2 }
+    )
+    expectEqual("pokemon numbered progress variant selected", capturedSounds[1], soundPath("Pokemon", "progress2.ogg"))
+
+    -- Bonus variants should be rare and never exposed as a setting.
+    resetHarness(0)
+    now = 323.4
+    math.random = function(maxValue)
+        if maxValue then
+            return 1
+        end
+        return 0.01
+    end
+    controller:HandleAmbushChatMessageForSounds("Ambush!", "CHAT_MSG_SYSTEM")
+    expectEqual("bonus ambush variant selected on low roll", capturedSounds[1], soundPath("Pokemon", "ambush_bonus1.ogg"))
+
+    resetHarness(0)
+    now = 323.6
+    math.random = function(maxValue)
+        if maxValue then
+            return 1
+        end
+        return 0.99
+    end
+    controller:HandleAmbushChatMessageForSounds("Ambush!", "CHAT_MSG_SYSTEM")
+    expectEqual("regular ambush variant selected on high roll", capturedSounds[1], soundPath("Pokemon", "ambush.ogg"))
+
+    -- Random theme falls back to random pool when an event key has no direct clip.
+    selectedSoundTheme = "Random"
+    resetHarness(2)
+    now = 323.8
+    math.random = function(maxValue)
+        if maxValue then
+            return 2
+        end
+        return 0.99
+    end
+    controller:HandleQuestTurnedInSound(91458)
+    expectEqual("random theme fallback clip selected", capturedSounds[1], soundPath("Random", "random2.ogg"))
+
+    selectedSoundTheme = "AmongUs"
+    math.random = previousGlobals.MathRandom
 
     -- Ambush prey kill should still play kill cue even when prey name differs from quest title.
     resetHarness(0)
@@ -703,8 +812,55 @@ local function runRefreshAndSoundRoutingTests()
         dead = true,
     }
     controller:HandleNameplateUnitRemovedForSounds("nameplateAmbush")
-    expectEqual("ambush cue still plays for ambush event", capturedSounds[1], "ambush.ogg")
-    expectEqual("ambush prey kill plays kill cue", capturedSounds[2], "kill.ogg")
+    expectEqual("ambush cue still plays for ambush event", capturedSounds[1], soundPath("AmongUs", "ambush.ogg"))
+    expectEqual("ambush prey kill plays kill cue", capturedSounds[2], soundPath("Generic", "kill.ogg"))
+
+    -- Death clips only play while dead in the active hunt zone.
+    resetHarness(2)
+    now = 324.5
+    math.random = function(maxValue)
+        if maxValue then
+            return 1
+        end
+        return 0.99
+    end
+    units.player = { dead = true, mapID = 2472 }
+    mapParents[2472] = 0
+    controller.lastSnapshot.mapID = 2472
+    controller:HandlePlayerDeathForSounds()
+    expectEqual("death cue plays in active hunt zone", capturedSounds[1], soundPath("Death", "loser1.ogg"))
+    controller:HandlePlayerDeathForSounds()
+    expectEqual("death cue is armed until revive", #capturedSounds, 1)
+    controller:HandlePlayerRevivedForSounds()
+    controller:HandlePlayerDeathForSounds()
+    expectEqual("death cue can play again after revive", #capturedSounds, 2)
+
+    resetHarness(2)
+    now = 324.7
+    units.player = { dead = true, mapID = 9999 }
+    mapParents[9999] = 0
+    controller.lastSnapshot.mapID = 2472
+    controller:HandlePlayerDeathForSounds()
+    expectNil("death cue blocked outside hunt zone", capturedSounds[1])
+
+    resetHarness(2)
+    now = 324.9
+    units.player = { dead = true, mapID = 3000 }
+    mapParents[3000] = 2472
+    mapParents[2472] = 0
+    controller.lastSnapshot.mapID = 2472
+    controller:HandlePlayerDeathForSounds()
+    expectEqual("death cue allowed in child map of hunt zone", capturedSounds[1], soundPath("Death", "loser1.ogg"))
+
+    resetHarness(2)
+    now = 325.1
+    deathSoundsEnabled = false
+    units.player = { dead = true, mapID = 2472 }
+    controller.lastSnapshot.mapID = 2472
+    controller:HandlePlayerDeathForSounds()
+    expectNil("death cue respects setting toggle", capturedSounds[1])
+    deathSoundsEnabled = true
+    math.random = previousGlobals.MathRandom
 
     -- Death during active hunt should preserve last known snapshot values.
     local previousSnapshot = {
@@ -763,7 +919,7 @@ local function runRefreshAndSoundRoutingTests()
     expectNil("abandon suppresses immediate hunt-end cue", capturedSounds[1])
     now = now + 20
     controller:HandleQuestTurnedInSound(91458)
-    expectEqual("suppression expires for later legitimate turn-in", capturedSounds[1], "hunt_end.ogg")
+    expectEqual("suppression expires for later legitimate turn-in", capturedSounds[1], soundPath("AmongUs", "hunt_end.ogg"))
 
     -- QUEST_REMOVED for completed quest should not suppress hunt-end.
     resetHarness(2)
@@ -773,7 +929,7 @@ local function runRefreshAndSoundRoutingTests()
     end
     controller:HandleQuestRemovedForSounds(91458)
     controller:HandleQuestTurnedInSound(91458)
-    expectEqual("completed quest removal does not suppress hunt-end", capturedSounds[1], "hunt_end.ogg")
+    expectEqual("completed quest removal does not suppress hunt-end", capturedSounds[1], soundPath("AmongUs", "hunt_end.ogg"))
     _G.C_QuestLog.IsQuestFlaggedCompleted = function()
         return false
     end
@@ -791,7 +947,7 @@ local function runRefreshAndSoundRoutingTests()
     }
     controller:HandleMouseoverChangedForSounds()
     controller:HandleUnitSpellcastSound("player", 1242005)
-    expectEqual("interaction cue allowed with trap context", capturedSounds[1], "interaction.ogg")
+    expectEqual("interaction cue allowed with trap context", capturedSounds[1], soundPath("Generic", "interaction.ogg"))
     units.mouseover = nil
     now = now + 5
     controller:HandleUnitSpellcastSound("player", 1242005)
@@ -816,8 +972,8 @@ local function runRefreshAndSoundRoutingTests()
         dead = true,
     }
     controller:HandleNameplateUnitRemovedForSounds("nameplate3")
-    expectEqual("hot->final emits stage progress cue", capturedSounds[1], "interaction.ogg")
-    expectEqual("confirmed prey death uses kill cue", capturedSounds[2], "kill.ogg")
+    expectEqual("hot->final emits stage progress cue", capturedSounds[1], soundPath("Generic", "interaction.ogg"))
+    expectEqual("confirmed prey death uses kill cue", capturedSounds[2], soundPath("Generic", "kill.ogg"))
 
     _G.Enum = previousGlobals.Enum
     _G.C_QuestLog = previousGlobals.C_QuestLog
@@ -833,6 +989,8 @@ local function runRefreshAndSoundRoutingTests()
     _G.UnitName = previousGlobals.UnitName
     _G.UnitIsDeadOrGhost = previousGlobals.UnitIsDeadOrGhost
     _G.UnitIsDead = previousGlobals.UnitIsDead
+    _G.C_Map = previousGlobals.C_Map
+    math.random = previousGlobals.MathRandom
 end
 
 runQuestTrackingResolverTests()
