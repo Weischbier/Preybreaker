@@ -80,6 +80,10 @@ function Preybreaker:GetSoundState()
             preyCandidateGUIDs = {},
             preyCandidateNPCIDs = {},
             recentHostileGUIDs = {},
+            recentHostileNames = {},
+            lastTrapContextAt = nil,
+            lastTrapContextName = nil,
+            lastTrapContextSource = nil,
         }
     end
 
@@ -89,8 +93,15 @@ end
 local PREY_STATE = Enum and Enum.PreyHuntProgressState
 local PREY_STATE_COLD = (PREY_STATE and PREY_STATE.Cold) or 0
 local PREY_STATE_WARM = (PREY_STATE and PREY_STATE.Warm) or 1
+local PREY_STATE_HOT = (PREY_STATE and PREY_STATE.Hot) or 2
+local PREY_STATE_FINAL = (PREY_STATE and PREY_STATE.Final) or 3
 local RECENT_HOSTILE_EXPIRY_SECONDS = 8
 local AMBUSH_CANDIDATE_WINDOW_SECONDS = 2
+local TRAP_CONTEXT_WINDOW_SECONDS = 4
+local IsLikelyTrapUnitName
+local KNOWN_TRAP_NAME_FRAGMENTS = {
+    ["thorny trap"] = true,
+}
 
 local function IsCreatureLikeGUID(guidType)
     return guidType == "Creature" or guidType == "Vehicle" or guidType == "Pet"
@@ -180,10 +191,14 @@ function Preybreaker:ResetPreyCombatCandidates()
     state.preyCandidateGUIDs = {}
     state.preyCandidateNPCIDs = {}
     state.recentHostileGUIDs = {}
+    state.recentHostileNames = {}
+    state.lastTrapContextAt = nil
+    state.lastTrapContextName = nil
+    state.lastTrapContextSource = nil
     state.lastAmbushSource = nil
     state.lastAmbushAt = nil
     state.lastKilledGUID = nil
-    state.lastKillAt = nil
+    state.lastPreyKilledAt = nil
 end
 
 function Preybreaker:PromotePreyCombatCandidate(guid)
@@ -200,21 +215,24 @@ function Preybreaker:PromotePreyCombatCandidate(guid)
     end
 end
 
-function Preybreaker:RememberRecentHostileGUID(guid)
+function Preybreaker:RememberRecentHostileGUID(guid, name)
     if type(guid) ~= "string" then
         return
     end
 
     local state = self:GetSoundState()
+    local names = state.recentHostileNames
     local now = GetNowSeconds()
 
     for knownGUID, seenAt in pairs(state.recentHostileGUIDs) do
         if type(seenAt) ~= "number" or (now - seenAt) > RECENT_HOSTILE_EXPIRY_SECONDS then
             state.recentHostileGUIDs[knownGUID] = nil
+            names[knownGUID] = nil
         end
     end
 
     state.recentHostileGUIDs[guid] = now
+    names[guid] = type(name) == "string" and name or nil
 end
 
 function Preybreaker:RememberRecentHostileUnit(unitToken)
@@ -224,13 +242,61 @@ function Preybreaker:RememberRecentHostileUnit(unitToken)
 
     local guid = UnitGUID(unitToken)
     if type(guid) == "string" then
-        self:RememberRecentHostileGUID(guid)
+        local name = type(UnitName) == "function" and UnitName(unitToken) or nil
+        self:RememberRecentHostileGUID(guid, name)
     end
+end
+
+function Preybreaker:RememberTrapContext(name, source)
+    if not IsLikelyTrapUnitName(name) then
+        return false
+    end
+
+    local state = self:GetSoundState()
+    state.lastTrapContextAt = GetNowSeconds()
+    state.lastTrapContextName = name
+    state.lastTrapContextSource = source
+    return true
+end
+
+function Preybreaker:RememberTrapContextFromUnit(unitToken)
+    if type(unitToken) ~= "string" or type(UnitName) ~= "function" then
+        return false
+    end
+
+    if type(UnitExists) == "function" and not UnitExists(unitToken) then
+        return false
+    end
+
+    return self:RememberTrapContext(UnitName(unitToken), unitToken)
+end
+
+function Preybreaker:HasRecentTrapContext(maxAgeSeconds)
+    local state = self:GetSoundState()
+    local seenAt = state.lastTrapContextAt
+    if type(seenAt) ~= "number" then
+        return false
+    end
+
+    local threshold = type(maxAgeSeconds) == "number" and maxAgeSeconds or TRAP_CONTEXT_WINDOW_SECONDS
+    if threshold <= 0 then
+        return true
+    end
+
+    if (GetNowSeconds() - seenAt) > threshold then
+        state.lastTrapContextAt = nil
+        state.lastTrapContextName = nil
+        state.lastTrapContextSource = nil
+        return false
+    end
+
+    return true
 end
 
 function Preybreaker:PromoteRecentHostileCandidate(maxAgeSeconds)
     local state = self:GetSoundState()
     local recent = state.recentHostileGUIDs
+    local names = state.recentHostileNames
     if type(recent) ~= "table" then
         return
     end
@@ -243,9 +309,13 @@ function Preybreaker:PromoteRecentHostileCandidate(maxAgeSeconds)
         local age = now - (seenAt or 0)
         if type(seenAt) ~= "number" or age > RECENT_HOSTILE_EXPIRY_SECONDS then
             recent[guid] = nil
+            names[guid] = nil
         elseif age <= maxAgeSeconds and (not newestAt or seenAt > newestAt) then
-            newestGUID = guid
-            newestAt = seenAt
+            local name = names[guid]
+            if type(name) == "string" and self:IsLikelyPreyTargetName(name) then
+                newestGUID = guid
+                newestAt = seenAt
+            end
         end
     end
 
@@ -301,6 +371,21 @@ local function NormalizeText(value)
     end
 
     return string.lower(trimmed)
+end
+
+IsLikelyTrapUnitName = function(name)
+    local normalizedName = NormalizeText(name)
+    if not normalizedName then
+        return false
+    end
+
+    for fragment in pairs(KNOWN_TRAP_NAME_FRAGMENTS) do
+        if normalizedName:find(fragment, 1, true) then
+            return true
+        end
+    end
+
+    return false
 end
 
 local function SafeGetQuestTitle(questID)
@@ -380,7 +465,7 @@ local function BuildQuestTitleMatchSet(snapshot)
         AddQuestID(snapshot.worldQuestID)
     end
 
-    if ns.Util and type(ns.Util.BuildPreyQuestContext) == "function" then
+    if not next(relevantQuestIDs) and ns.Util and type(ns.Util.BuildPreyQuestContext) == "function" then
         local context = ns.Util.BuildPreyQuestContext()
         if type(context) == "table" then
             AddQuestID(context.trackedQuestID)
@@ -435,8 +520,9 @@ function Preybreaker:GetResolvedSoundPaths()
         huntEnd = ResolveSoundPath(sounds, "HuntEnd"),
         ambush = ResolveSoundPath(sounds, "Ambush", "ColdToWarm", "PhaseChange"),
         riposte = ResolveSoundPath(sounds, "Riposte", "WarmToHot", "PhaseChange"),
+        finalPhase = ResolveSoundPath(sounds, "FinalPhase"),
         interaction = ResolveSoundPath(sounds, "Interaction", "PhaseChange"),
-        kill = ResolveSoundPath(sounds, "Kill", "HotToFinal", "FinalPhase"),
+        kill = ResolveSoundPath(sounds, "Kill"),
     }
 end
 
@@ -479,16 +565,6 @@ function Preybreaker:IsLikelyPreyTargetName(name)
         return true
     end
 
-    if #normalizedName < 4 then
-        return false
-    end
-
-    for candidate in pairs(matchSet) do
-        if #candidate >= 4 and (candidate:find(normalizedName, 1, true) or normalizedName:find(candidate, 1, true)) then
-            return true
-        end
-    end
-
     return false
 end
 
@@ -509,12 +585,59 @@ function Preybreaker:IsLikelyPreyTarget(guid, name)
     return self:IsLikelyPreyTargetName(name)
 end
 
+function Preybreaker:IsConfirmedPreyTarget(guid, name)
+    if type(guid) ~= "string" then
+        return false
+    end
+
+    local state = self:GetSoundState()
+    if state.preyCandidateGUIDs[guid] then
+        return true
+    end
+
+    local npcID = ExtractNPCIDFromGUID(guid)
+    if npcID and state.preyCandidateNPCIDs[npcID] then
+        return true
+    end
+
+    local normalizedName = NormalizeText(name)
+    if not normalizedName then
+        return false
+    end
+
+    return state.preyNameMatches[normalizedName] == true
+end
+
+function Preybreaker:PromoteUnitPreyCandidateIfLikely(unitToken)
+    if type(unitToken) ~= "string" or type(UnitGUID) ~= "function" then
+        return false
+    end
+
+    if not IsHostileUnitToken(unitToken) then
+        return false
+    end
+
+    local guid = UnitGUID(unitToken)
+    if type(guid) ~= "string" then
+        return false
+    end
+
+    local name = type(UnitName) == "function" and UnitName(unitToken) or nil
+    if not name or not self:IsLikelyPreyTargetName(name) then
+        return false
+    end
+
+    self:PromotePreyCombatCandidate(guid)
+    return true
+end
+
 function Preybreaker:HandleNameplateUnitAddedForSounds(unitToken)
     if not ShouldPlayHuntSounds() or not IsHuntSessionActive(self.lastSnapshot) then
         return
     end
 
     self:RememberRecentHostileUnit(unitToken)
+    self:RememberTrapContextFromUnit(unitToken)
 end
 
 function Preybreaker:HandleNameplateUnitRemovedForSounds(unitToken)
@@ -536,19 +659,19 @@ function Preybreaker:HandleNameplateUnitRemovedForSounds(unitToken)
     end
 
     local name = type(UnitName) == "function" and UnitName(unitToken) or nil
-    if not self:IsLikelyPreyTarget(guid, name) then
+    if not self:IsConfirmedPreyTarget(guid, name) then
         return
     end
 
     local state = self:GetSoundState()
     local now = GetNowSeconds()
-    if state.lastKilledGUID == guid and (now - (state.lastKillAt or 0)) < 4 then
+    if state.lastKilledGUID == guid and (now - (state.lastPreyKilledAt or 0)) < 4 then
         return
     end
     state.lastKilledGUID = guid
 
     local sounds = self:GetResolvedSoundPaths()
-    PlaySoundCue(self, sounds.kill, "lastKillAt", 0.25)
+    PlaySoundCue(self, sounds.kill, "lastPreyKilledAt", 0.25)
 end
 
 function Preybreaker:HandlePlayerTargetChangedForSounds()
@@ -557,6 +680,7 @@ function Preybreaker:HandlePlayerTargetChangedForSounds()
     end
 
     self:RememberRecentHostileUnit("target")
+    self:RememberTrapContextFromUnit("target")
 
     local snapshot = self.lastSnapshot
     local progressState = snapshot and snapshot.progressState or nil
@@ -564,14 +688,16 @@ function Preybreaker:HandlePlayerTargetChangedForSounds()
         return
     end
 
-    local guid = UnitGUID("target")
-    if type(guid) == "string" and IsHostileUnitToken("target") then
-        self:PromotePreyCombatCandidate(guid)
-    end
+    self:PromoteUnitPreyCandidateIfLikely("target")
 end
 
-function Preybreaker:RefreshSoundEventRegistrations(snapshot)
-    self.soundEventsListening = ShouldPlayHuntSounds() and IsHuntSessionActive(snapshot)
+function Preybreaker:HandleMouseoverChangedForSounds()
+    if not ShouldPlayHuntSounds() or not IsHuntSessionActive(self.lastSnapshot) then
+        return
+    end
+
+    self:RememberRecentHostileUnit("mouseover")
+    self:RememberTrapContextFromUnit("mouseover")
 end
 
 function Preybreaker:HandleSnapshotSoundTransitions(previousSnapshot, snapshot)
@@ -598,11 +724,16 @@ function Preybreaker:HandleSnapshotSoundTransitions(previousSnapshot, snapshot)
     local newState = snapshot and snapshot.progressState or nil
     if previousState == PREY_STATE_COLD and newState == PREY_STATE_WARM then
         self:PromoteRecentHostileCandidate(AMBUSH_CANDIDATE_WINDOW_SECONDS)
-        if IsHostileUnitToken("target") and type(UnitGUID) == "function" then
-            local targetGUID = UnitGUID("target")
-            self:PromotePreyCombatCandidate(targetGUID)
-        end
+        self:PromoteUnitPreyCandidateIfLikely("target")
         PlaySoundCue(self, sounds.ambush, "lastAmbushAt", 6)
+    end
+
+    if previousState == PREY_STATE_WARM and newState == PREY_STATE_HOT then
+        PlaySoundCue(self, sounds.riposte, "lastStageRiposteAt", 6)
+    end
+
+    if previousState == PREY_STATE_HOT and newState == PREY_STATE_FINAL then
+        PlaySoundCue(self, sounds.finalPhase, "lastStageFinalAt", 6)
     end
 end
 
@@ -638,12 +769,16 @@ function Preybreaker:HandleUnitSpellcastSound(unit, spellID)
 
     local sounds = self:GetResolvedSoundPaths()
     if RIPOSTE_SPELL_IDS[spellID] then
-        PlaySoundCue(self, sounds.riposte, "lastRiposteAt", 0.25)
+        PlaySoundCue(self, sounds.riposte, "lastSpellRiposteAt", 0.25)
         return
     end
 
     if INTERACTION_SPELL_IDS[spellID] then
-        PlaySoundCue(self, sounds.interaction, "lastInteractionAt", 0.25)
+        self:RememberTrapContextFromUnit("target")
+        self:RememberTrapContextFromUnit("mouseover")
+        if self:HasRecentTrapContext(TRAP_CONTEXT_WINDOW_SECONDS) then
+            PlaySoundCue(self, sounds.interaction, "lastInteractionAt", 0.25)
+        end
     end
 end
 
@@ -658,7 +793,6 @@ function Preybreaker:Refresh(reason, ...)
     end
 
     self:RefreshSoundContext(snapshot)
-    self:RefreshSoundEventRegistrations(snapshot)
     self.lastSnapshot = snapshot
 
     ns.Debug:Log(

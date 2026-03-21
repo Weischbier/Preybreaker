@@ -205,7 +205,7 @@ local SANITIZERS = {
         return SanitizeChoice(value, { "dawncrest", "remnant", "gold", "marl" }, "gold")
     end,
     settingsTab = function(value)
-        return SanitizeChoice(value, { "settings", "changelog" }, "settings")
+        return SanitizeChoice(value, { "settings", "changelog", "social", "roadmap" }, "settings")
     end,
     huntPanelStandalone = function(value)
         return SanitizeBoolean(value, false)

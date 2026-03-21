@@ -184,9 +184,7 @@ ns.Constants = {
             -- Legacy aliases kept for compatibility with older code paths.
             ColdToWarm = "Interface\\AddOns\\Preybreaker\\Media\\Sounds\\AmongUs\\ambush.ogg",
             WarmToHot = "Interface\\AddOns\\Preybreaker\\Media\\Sounds\\AmongUs\\riposte.ogg",
-            HotToFinal = "Interface\\AddOns\\Preybreaker\\Media\\Sounds\\AmongUs\\kill.ogg",
             PhaseChange = "Interface\\AddOns\\Preybreaker\\Media\\Sounds\\AmongUs\\interaction.ogg",
-            FinalPhase = "Interface\\AddOns\\Preybreaker\\Media\\Sounds\\AmongUs\\kill.ogg",
         },
         StageBadgeTexCoord = {
             left = 1038 / 2048,

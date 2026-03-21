@@ -33,6 +33,11 @@ Preybreaker:SetScript("OnEvent", function(self, event, arg1, ...)
         return
     end
 
+    if event == "UPDATE_MOUSEOVER_UNIT" then
+        self:HandleMouseoverChangedForSounds()
+        return
+    end
+
     if event == "UNIT_SPELLCAST_SUCCEEDED" then
         local spellID = select(2, ...)
         self:HandleUnitSpellcastSound(arg1, spellID)
@@ -136,6 +141,7 @@ Preybreaker:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
 Preybreaker:RegisterEvent("NAME_PLATE_UNIT_ADDED")
 Preybreaker:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
 Preybreaker:RegisterEvent("PLAYER_TARGET_CHANGED")
+Preybreaker:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
 Preybreaker:RegisterEvent("QUEST_ACCEPTED")
 Preybreaker:RegisterEvent("QUEST_TURNED_IN")
 Preybreaker:RegisterEvent("QUEST_REMOVED")

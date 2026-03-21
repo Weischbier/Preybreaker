@@ -103,6 +103,12 @@ local function expectNotNil(label, value)
     end
 end
 
+local function expectNil(label, value)
+    if value ~= nil then
+        failures[#failures + 1] = string.format("%s: expected nil, got %s", label, tostring(value))
+    end
+end
+
 local function runQuestTrackingResolverTests()
     local ns = newNamespace()
     loadModule("Core/QuestTracking.lua", ns)
@@ -456,11 +462,244 @@ local function runHuntListQuickEvaluateTests()
     expectEqual("quick eval pin snapshot source", source, "pinSnapshot")
 end
 
+local function runRefreshAndSoundRoutingTests()
+    local ns = newNamespace()
+    ns.Controller = {}
+    ns.Settings = {
+        ShouldPlaySoundOnPhaseChange = function()
+            return true
+        end,
+        IsEnabled = function()
+            return true
+        end,
+    }
+    ns.Util.IsRelevantPreyQuest = function(questID)
+        return questID == 91458
+    end
+    ns.Constants.Media = {
+        Sounds = {
+            HuntStart = "hunt_start.ogg",
+            HuntEnd = "hunt_end.ogg",
+            Ambush = "ambush.ogg",
+            Riposte = "riposte.ogg",
+            Kill = "kill.ogg",
+            Interaction = "interaction.ogg",
+            FinalPhase = "final_phase.ogg",
+        },
+    }
+
+    local capturedSounds = {}
+    local now = 100
+    local units = {}
+
+    local previousGlobals = {
+        Enum = _G.Enum,
+        C_QuestLog = _G.C_QuestLog,
+        PlaySoundFile = _G.PlaySoundFile,
+        GetTimePreciseSec = _G.GetTimePreciseSec,
+        UnitExists = _G.UnitExists,
+        UnitIsPlayer = _G.UnitIsPlayer,
+        UnitCanAttack = _G.UnitCanAttack,
+        UnitReaction = _G.UnitReaction,
+        UnitGUID = _G.UnitGUID,
+        UnitName = _G.UnitName,
+        UnitIsDeadOrGhost = _G.UnitIsDeadOrGhost,
+        UnitIsDead = _G.UnitIsDead,
+    }
+
+    _G.Enum = {
+        PreyHuntProgressState = {
+            Cold = 0,
+            Warm = 1,
+            Hot = 2,
+            Final = 3,
+        },
+    }
+    _G.C_QuestLog = {
+        GetTitleForQuestID = function(questID)
+            if questID == 91458 then
+                return "Prey: Razorclaw (Nightmare)"
+            end
+            return nil
+        end,
+    }
+    _G.PlaySoundFile = function(path)
+        capturedSounds[#capturedSounds + 1] = path
+    end
+    _G.GetTimePreciseSec = function()
+        return now
+    end
+    _G.UnitExists = function(unitToken)
+        return units[unitToken] ~= nil
+    end
+    _G.UnitIsPlayer = function(unitToken)
+        local unit = units[unitToken]
+        return unit and unit.isPlayer == true or false
+    end
+    _G.UnitCanAttack = function(_, unitToken)
+        local unit = units[unitToken]
+        return unit and unit.hostile == true or false
+    end
+    _G.UnitReaction = function(unitToken)
+        local unit = units[unitToken]
+        return unit and unit.reaction or nil
+    end
+    _G.UnitGUID = function(unitToken)
+        local unit = units[unitToken]
+        return unit and unit.guid or nil
+    end
+    _G.UnitName = function(unitToken)
+        local unit = units[unitToken]
+        return unit and unit.name or nil
+    end
+    _G.UnitIsDeadOrGhost = function(unitToken)
+        local unit = units[unitToken]
+        return unit and unit.dead == true or false
+    end
+    _G.UnitIsDead = _G.UnitIsDeadOrGhost
+
+    loadModule("Core/Controller/RefreshAndSound.lua", ns)
+    local controller = ns.Controller
+    expectNotNil("refreshAndSound transition handler exists", controller.HandleSnapshotSoundTransitions)
+    expectNil("sound registration dead-state method removed", controller.RefreshSoundEventRegistrations)
+
+    local function resetHarness(progressState)
+        wipe(capturedSounds)
+        wipe(units)
+        controller.soundState = nil
+        controller.lastSnapshot = {
+            questID = 91458,
+            progressState = progressState or 0,
+        }
+        controller:RefreshSoundContext(controller.lastSnapshot)
+    end
+
+    -- Cold->Warm should not promote unrelated hostiles as prey candidates.
+    resetHarness(0)
+    now = 100
+    units.nameplate1 = {
+        guid = "Creature-0-0-0-0-11111-0000000001",
+        name = "Bandit Marauder",
+        hostile = true,
+        reaction = 3,
+    }
+    units.target = {
+        guid = "Creature-0-0-0-0-22222-0000000002",
+        name = "Bandit Marauder",
+        hostile = true,
+        reaction = 3,
+    }
+    controller:HandleNameplateUnitAddedForSounds("nameplate1")
+    controller:HandleSnapshotSoundTransitions(
+        { questID = 91458, progressState = 0 },
+        { questID = 91458, progressState = 1 }
+    )
+    local state = controller:GetSoundState()
+    expectNil("cold->warm blocks unrelated recent hostile promotion", state.preyCandidateGUIDs["Creature-0-0-0-0-11111-0000000001"])
+    expectNil("cold->warm blocks unrelated target promotion", state.preyCandidateGUIDs["Creature-0-0-0-0-22222-0000000002"])
+    expectEqual("cold->warm still emits ambush cue", capturedSounds[1], "ambush.ogg")
+
+    -- Cold->Warm should promote a recent hostile only when prey name matches.
+    resetHarness(0)
+    now = 200
+    units.nameplate2 = {
+        guid = "Creature-0-0-0-0-33333-0000000003",
+        name = "Razorclaw",
+        hostile = true,
+        reaction = 3,
+    }
+    units.target = {
+        guid = "Creature-0-0-0-0-44444-0000000004",
+        name = "Bandit Marauder",
+        hostile = true,
+        reaction = 3,
+    }
+    controller:HandleNameplateUnitAddedForSounds("nameplate2")
+    controller:HandleSnapshotSoundTransitions(
+        { questID = 91458, progressState = 0 },
+        { questID = 91458, progressState = 1 }
+    )
+    state = controller:GetSoundState()
+    expectTrue(
+        "cold->warm promotes matching recent hostile",
+        state.preyCandidateGUIDs["Creature-0-0-0-0-33333-0000000003"] == true
+    )
+    expectNil("cold->warm still rejects unrelated target", state.preyCandidateGUIDs["Creature-0-0-0-0-44444-0000000004"])
+    expectEqual("prey name match stays exact, not substring", controller:IsLikelyPreyTargetName("Razor"), false)
+
+    -- Stage and spell riposte use separate throttles and can both fire immediately.
+    resetHarness(1)
+    now = 300
+    controller:HandleSnapshotSoundTransitions(
+        { questID = 91458, progressState = 1 },
+        { questID = 91458, progressState = 2 }
+    )
+    controller.lastSnapshot = { questID = 91458, progressState = 2 }
+    controller:HandleUnitSpellcastSound("player", 1260432)
+    expectEqual("stage riposte cue", capturedSounds[1], "riposte.ogg")
+    expectEqual("spell riposte cue not throttled by stage cue", capturedSounds[2], "riposte.ogg")
+
+    -- Interaction cue requires recent trap context.
+    resetHarness(2)
+    now = 350
+    controller:HandleUnitSpellcastSound("player", 1242005)
+    expectNil("interaction cue blocked without trap context", capturedSounds[1])
+    units.mouseover = {
+        guid = "Creature-0-0-0-0-66666-0000000006",
+        name = "Thorny Trap",
+        hostile = false,
+        reaction = 4,
+    }
+    controller:HandleMouseoverChangedForSounds()
+    controller:HandleUnitSpellcastSound("player", 1242005)
+    expectEqual("interaction cue allowed with trap context", capturedSounds[1], "interaction.ogg")
+    units.mouseover = nil
+    now = now + 5
+    controller:HandleUnitSpellcastSound("player", 1242005)
+    expectEqual("interaction cue not replayed after context expires", #capturedSounds, 1)
+
+    -- Stage final cue and confirmed prey-kill cue are separate semantic sounds.
+    resetHarness(2)
+    now = 400
+    local preyGUID = "Creature-0-0-0-0-55555-0000000005"
+    controller:PromotePreyCombatCandidate(preyGUID)
+    controller:HandleSnapshotSoundTransitions(
+        { questID = 91458, progressState = 2 },
+        { questID = 91458, progressState = 3 }
+    )
+    controller.lastSnapshot = { questID = 91458, progressState = 3 }
+    controller:RefreshSoundContext(controller.lastSnapshot)
+    units.nameplate3 = {
+        guid = preyGUID,
+        name = "Razorclaw",
+        hostile = true,
+        reaction = 3,
+        dead = true,
+    }
+    controller:HandleNameplateUnitRemovedForSounds("nameplate3")
+    expectEqual("hot->final uses final-phase cue", capturedSounds[1], "final_phase.ogg")
+    expectEqual("confirmed prey death uses kill cue", capturedSounds[2], "kill.ogg")
+
+    _G.Enum = previousGlobals.Enum
+    _G.C_QuestLog = previousGlobals.C_QuestLog
+    _G.PlaySoundFile = previousGlobals.PlaySoundFile
+    _G.GetTimePreciseSec = previousGlobals.GetTimePreciseSec
+    _G.UnitExists = previousGlobals.UnitExists
+    _G.UnitIsPlayer = previousGlobals.UnitIsPlayer
+    _G.UnitCanAttack = previousGlobals.UnitCanAttack
+    _G.UnitReaction = previousGlobals.UnitReaction
+    _G.UnitGUID = previousGlobals.UnitGUID
+    _G.UnitName = previousGlobals.UnitName
+    _G.UnitIsDeadOrGhost = previousGlobals.UnitIsDeadOrGhost
+    _G.UnitIsDead = previousGlobals.UnitIsDead
+end
+
 runQuestTrackingResolverTests()
 runHuntPurchaseStateMachineTests()
 runHuntListDedupeSortFilterTests()
 runLocalePatternDifficultyTests()
 runHuntListQuickEvaluateTests()
+runRefreshAndSoundRoutingTests()
 
 if #failures > 0 then
     io.stderr:write("Deterministic tests failed:\n")

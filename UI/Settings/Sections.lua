@@ -244,6 +244,36 @@ local function ClearCards(page)
     wipe(page.Cards)
 end
 
+local function GetCardBuildWidth(page)
+    if not page or not page.ScrollChild or type(page.ScrollChild.GetWidth) ~= "function" then
+        return 0
+    end
+
+    return math.floor((page.ScrollChild:GetWidth() or 0) + 0.5)
+end
+
+local function ShouldRebuildCards(page)
+    if not page or not page.cardsBuilt then
+        return true
+    end
+
+    local currentWidth = GetCardBuildWidth(page)
+    if currentWidth <= 0 then
+        return false
+    end
+
+    return math.abs(currentWidth - (page.lastBuildWidth or 0)) >= 2
+end
+
+local function MarkCardsBuilt(page)
+    if not page then
+        return
+    end
+
+    page.cardsBuilt = true
+    page.lastBuildWidth = GetCardBuildWidth(page)
+end
+
 local function BuildChangelogCards(page)
     local panel = Constants.SettingsPanel
     local releases = GetChangelogSource()
@@ -259,6 +289,7 @@ local function BuildChangelogCards(page)
         empty:SetPoint("TOPRIGHT", page.ScrollChild, "TOPRIGHT", 0, 0)
         page.Cards[#page.Cards + 1] = empty
         page.ScrollChild:SetHeight(160)
+        MarkCardsBuilt(page)
         return
     end
 
@@ -279,6 +310,7 @@ local function BuildChangelogCards(page)
     end
 
     page.ScrollChild:SetHeight(math.max(totalHeight + panel.ContentInset, Constants.SettingsPanel.Height - Constants.SettingsPanel.HeaderHeight - (Constants.SettingsPanel.Padding * 2)))
+    MarkCardsBuilt(page)
 end
 
 local function CreateSocialLinkCard(parent, link)
@@ -352,6 +384,7 @@ local function BuildSocialCards(page)
     end
 
     page.ScrollChild:SetHeight(math.max(totalHeight + panel.ContentInset, Constants.SettingsPanel.Height - Constants.SettingsPanel.HeaderHeight - (Constants.SettingsPanel.Padding * 2)))
+    MarkCardsBuilt(page)
 end
 
 local function BuildBulletListCard(parent, titleText, descriptionText, entries, emptyMessage)
@@ -426,6 +459,7 @@ local function BuildRoadmapCards(page)
     page.Cards[#page.Cards + 1] = plansCard
 
     page.ScrollChild:SetHeight(math.max(totalHeight + panel.ContentInset, Constants.SettingsPanel.Height - Constants.SettingsPanel.HeaderHeight - (Constants.SettingsPanel.Padding * 2)))
+    MarkCardsBuilt(page)
 end
 
 function SP.CreateSections(parent)
@@ -903,10 +937,14 @@ function SP.CreateChangelogPage(parent)
         ScrollFrame = scrollFrame,
         ScrollChild = scrollChild,
         Cards = {},
+        cardsBuilt = false,
+        lastBuildWidth = 0,
     }
 
-    function page:Refresh()
-        BuildChangelogCards(self)
+    function page:Refresh(force)
+        if force or ShouldRebuildCards(self) then
+            BuildChangelogCards(self)
+        end
     end
 
     BuildChangelogCards(page)
@@ -922,10 +960,14 @@ function SP.CreateSocialPage(parent)
         ScrollFrame = scrollFrame,
         ScrollChild = scrollChild,
         Cards = {},
+        cardsBuilt = false,
+        lastBuildWidth = 0,
     }
 
-    function page:Refresh()
-        BuildSocialCards(self)
+    function page:Refresh(force)
+        if force or ShouldRebuildCards(self) then
+            BuildSocialCards(self)
+        end
     end
 
     BuildSocialCards(page)
@@ -941,34 +983,18 @@ function SP.CreateRoadmapPage(parent)
         ScrollFrame = scrollFrame,
         ScrollChild = scrollChild,
         Cards = {},
+        cardsBuilt = false,
+        lastBuildWidth = 0,
     }
 
-    function page:Refresh()
-        BuildRoadmapCards(self)
+    function page:Refresh(force)
+        if force or ShouldRebuildCards(self) then
+            BuildRoadmapCards(self)
+        end
     end
 
     BuildRoadmapCards(page)
     return page
-end
-
-function SP.CreateSection(parent, sectionSpec, controls)
-    local panel = Constants.SettingsPanel
-    local card = SP.CreateSectionCard(parent, sectionSpec.title, sectionSpec.description)
-    local currentY = -(panel.SectionHeaderHeight + 14)
-
-    for _, fieldSpec in ipairs(sectionSpec.fields) do
-        local builder = SP.FIELD_BUILDERS[fieldSpec.type]
-        if builder then
-            local row = builder(card, fieldSpec)
-            row:SetPoint("TOPLEFT", card, "TOPLEFT", panel.ContentInset, currentY)
-            row:SetPoint("TOPRIGHT", card, "TOPRIGHT", -panel.ContentInset, currentY)
-            currentY = currentY - row:GetHeight() - 8
-            controls[#controls + 1] = row
-        end
-    end
-
-    card:SetHeight(math.abs(currentY) + panel.ContentInset - 8)
-    return card
 end
 
 function SP.UpdatePreviewStageChips(preview, progressState)
