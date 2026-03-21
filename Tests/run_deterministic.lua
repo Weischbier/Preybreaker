@@ -495,6 +495,8 @@ local function runRefreshAndSoundRoutingTests()
     local previousGlobals = {
         Enum = _G.Enum,
         C_QuestLog = _G.C_QuestLog,
+        GetLocale = _G.GetLocale,
+        GetSpellInfo = _G.GetSpellInfo,
         PlaySoundFile = _G.PlaySoundFile,
         GetTimePreciseSec = _G.GetTimePreciseSec,
         UnitExists = _G.UnitExists,
@@ -522,9 +524,21 @@ local function runRefreshAndSoundRoutingTests()
             end
             return nil
         end,
+        IsQuestFlaggedCompleted = function()
+            return false
+        end,
     }
     _G.PlaySoundFile = function(path)
         capturedSounds[#capturedSounds + 1] = path
+    end
+    _G.GetLocale = function()
+        return "enUS"
+    end
+    _G.GetSpellInfo = function(spellID)
+        if spellID == 8676 then
+            return "Ambush"
+        end
+        return nil
     end
     _G.GetTimePreciseSec = function()
         return now
@@ -639,6 +653,108 @@ local function runRefreshAndSoundRoutingTests()
     expectEqual("stage riposte cue", capturedSounds[1], "riposte.ogg")
     expectEqual("spell riposte cue not throttled by stage cue", capturedSounds[2], "riposte.ogg")
 
+    -- Ambush chat cue should fire when localized message matches and hunt is active.
+    resetHarness(0)
+    now = 320
+    controller:HandleAmbushChatMessageForSounds("Ambush!", "CHAT_MSG_SYSTEM")
+    expectEqual("chat ambush cue in enUS", capturedSounds[1], "ambush.ogg")
+
+    resetHarness(0)
+    now = 321
+    _G.GetLocale = function()
+        return "deDE"
+    end
+    _G.GetSpellInfo = function(spellID)
+        if spellID == 8676 then
+            return "Hinterhalt"
+        end
+        return nil
+    end
+    controller:HandleAmbushChatMessageForSounds("Hinterhalt!", "CHAT_MSG_MONSTER_EMOTE")
+    expectEqual("chat ambush cue in deDE", capturedSounds[1], "ambush.ogg")
+
+    resetHarness(2)
+    now = 322
+    controller:HandleAmbushChatMessageForSounds("Hinterhalt!", "CHAT_MSG_MONSTER_EMOTE")
+    expectNil("chat ambush ignored after warm stage", capturedSounds[1])
+
+    resetHarness(0)
+    now = 323
+    controller:HandleAmbushChatMessageForSounds("Random warning", "CHAT_MSG_SYSTEM")
+    expectNil("non-ambush chat does not trigger cue", capturedSounds[1])
+
+    -- Death during active hunt should preserve last known snapshot values.
+    local previousSnapshot = {
+        active = true,
+        widgetID = 9001,
+        questID = 91458,
+        activeQuestID = 91458,
+        worldQuestID = nil,
+        mapID = 2472,
+        progressState = 2,
+        progress = 0.67,
+        percent = 67,
+    }
+    local inactiveSnapshot = {
+        active = false,
+        widgetID = nil,
+        questID = nil,
+        activeQuestID = nil,
+        worldQuestID = nil,
+        mapID = nil,
+        progressState = nil,
+        progress = 0,
+        percent = 0,
+    }
+    units.player = { dead = true }
+    expectTrue(
+        "death snapshot preservation gate",
+        controller:ShouldPreserveSnapshotWhileDead(previousSnapshot, inactiveSnapshot) == true
+    )
+    local preservedSnapshot = controller:BuildDeathPreservedSnapshot(previousSnapshot, inactiveSnapshot)
+    expectTrue("death preservation marks snapshot", preservedSnapshot.preservedWhileDead == true)
+    expectEqual("death preservation keeps stage", preservedSnapshot.progressState, 2)
+    expectEqual("death preservation keeps percent", preservedSnapshot.percent, 67)
+    units.player = { dead = false }
+    expectEqual(
+        "snapshot not preserved when player alive",
+        controller:ShouldPreserveSnapshotWhileDead(previousSnapshot, inactiveSnapshot),
+        false
+    )
+
+    _G.GetLocale = function()
+        return "enUS"
+    end
+    _G.GetSpellInfo = function(spellID)
+        if spellID == 8676 then
+            return "Ambush"
+        end
+        return nil
+    end
+
+    -- QUEST_REMOVED abandon should suppress immediate hunt-end cue.
+    resetHarness(2)
+    now = 340
+    controller:HandleQuestRemovedForSounds(91458)
+    controller:HandleQuestTurnedInSound(91458)
+    expectNil("abandon suppresses immediate hunt-end cue", capturedSounds[1])
+    now = now + 20
+    controller:HandleQuestTurnedInSound(91458)
+    expectEqual("suppression expires for later legitimate turn-in", capturedSounds[1], "hunt_end.ogg")
+
+    -- QUEST_REMOVED for completed quest should not suppress hunt-end.
+    resetHarness(2)
+    now = 350
+    _G.C_QuestLog.IsQuestFlaggedCompleted = function(questID)
+        return questID == 91458
+    end
+    controller:HandleQuestRemovedForSounds(91458)
+    controller:HandleQuestTurnedInSound(91458)
+    expectEqual("completed quest removal does not suppress hunt-end", capturedSounds[1], "hunt_end.ogg")
+    _G.C_QuestLog.IsQuestFlaggedCompleted = function()
+        return false
+    end
+
     -- Interaction cue requires recent trap context.
     resetHarness(2)
     now = 350
@@ -682,6 +798,8 @@ local function runRefreshAndSoundRoutingTests()
 
     _G.Enum = previousGlobals.Enum
     _G.C_QuestLog = previousGlobals.C_QuestLog
+    _G.GetLocale = previousGlobals.GetLocale
+    _G.GetSpellInfo = previousGlobals.GetSpellInfo
     _G.PlaySoundFile = previousGlobals.PlaySoundFile
     _G.GetTimePreciseSec = previousGlobals.GetTimePreciseSec
     _G.UnitExists = previousGlobals.UnitExists

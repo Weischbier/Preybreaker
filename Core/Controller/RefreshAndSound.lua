@@ -72,6 +72,18 @@ local function GetNowSeconds()
     return 0
 end
 
+local function IsPlayerDeadOrGhostSafe()
+    if type(UnitIsDeadOrGhost) == "function" then
+        return UnitIsDeadOrGhost("player") == true
+    end
+
+    if type(UnitIsDead) == "function" then
+        return UnitIsDead("player") == true
+    end
+
+    return false
+end
+
 function Preybreaker:GetSoundState()
     if not self.soundState then
         self.soundState = {
@@ -97,10 +109,27 @@ local PREY_STATE_HOT = (PREY_STATE and PREY_STATE.Hot) or 2
 local PREY_STATE_FINAL = (PREY_STATE and PREY_STATE.Final) or 3
 local RECENT_HOSTILE_EXPIRY_SECONDS = 8
 local AMBUSH_CANDIDATE_WINDOW_SECONDS = 2
+local AMBUSH_PREY_CAPTURE_WINDOW_SECONDS = 15
 local TRAP_CONTEXT_WINDOW_SECONDS = 4
+local ABANDON_SUPPRESSION_SECONDS = 15
 local IsLikelyTrapUnitName
+local AmbushMessageCache = {}
 local KNOWN_TRAP_NAME_FRAGMENTS = {
     ["thorny trap"] = true,
+}
+local ROGUE_AMBUSH_SPELL_ID = 8676
+local AMBUSH_CHAT_BY_LOCALE = {
+    enUS = { "Ambush!" },
+    deDE = { "Hinterhalt!" },
+    esES = { "¡Emboscada!" },
+    esMX = { "¡Emboscada!" },
+    frFR = { "C’est une embuscade !", "C'est une embuscade !" },
+    itIT = { "Imboscata!" },
+    koKR = { "기습이다!" },
+    ptBR = { "Emboscada!" },
+    ruRU = { "Нападение!" },
+    zhCN = { "有埋伏！", "有埋伏!" },
+    zhTW = { "突襲！", "突襲!" },
 }
 
 local function IsCreatureLikeGUID(guidType)
@@ -192,9 +221,11 @@ function Preybreaker:ResetPreyCombatCandidates()
     state.preyCandidateNPCIDs = {}
     state.recentHostileGUIDs = {}
     state.recentHostileNames = {}
+    state.recentAbandonedQuestIDs = {}
     state.lastTrapContextAt = nil
     state.lastTrapContextName = nil
     state.lastTrapContextSource = nil
+    state.ambushCandidateWindowEndsAt = nil
     state.lastAmbushSource = nil
     state.lastAmbushAt = nil
     state.lastKilledGUID = nil
@@ -245,6 +276,47 @@ function Preybreaker:RememberRecentHostileUnit(unitToken)
         local name = type(UnitName) == "function" and UnitName(unitToken) or nil
         self:RememberRecentHostileGUID(guid, name)
     end
+end
+
+function Preybreaker:ArmAmbushCandidateWindow(seconds)
+    if type(seconds) ~= "number" or seconds <= 0 then
+        return
+    end
+
+    self:GetSoundState().ambushCandidateWindowEndsAt = GetNowSeconds() + seconds
+end
+
+function Preybreaker:IsAmbushCandidateWindowActive()
+    local state = self:GetSoundState()
+    local windowEndsAt = state.ambushCandidateWindowEndsAt
+    if type(windowEndsAt) ~= "number" then
+        return false
+    end
+
+    if GetNowSeconds() > windowEndsAt then
+        state.ambushCandidateWindowEndsAt = nil
+        return false
+    end
+
+    return true
+end
+
+function Preybreaker:PromoteUnitPreyCandidateIfHostile(unitToken)
+    if type(unitToken) ~= "string" or type(UnitGUID) ~= "function" then
+        return false
+    end
+
+    if not IsHostileUnitToken(unitToken) then
+        return false
+    end
+
+    local guid = UnitGUID(unitToken)
+    if type(guid) ~= "string" then
+        return false
+    end
+
+    self:PromotePreyCombatCandidate(guid)
+    return true
 end
 
 function Preybreaker:RememberTrapContext(name, source)
@@ -373,6 +445,69 @@ local function NormalizeText(value)
     return string.lower(trimmed)
 end
 
+local function NormalizeAmbushChatMessage(value)
+    local trimmed = TrimString(value)
+    if not trimmed then
+        return nil
+    end
+
+    local normalized = trimmed
+    normalized = normalized:gsub("\194\160", " ") -- UTF-8 NBSP
+    normalized = normalized:gsub("\226\128\153", "'") -- UTF-8 right single quotation mark
+    normalized = normalized:gsub("\239\188\129", "!") -- UTF-8 full-width exclamation mark
+    normalized = normalized:gsub("%s+", " ")
+    return NormalizeText(normalized) or normalized
+end
+
+local function AddAmbushToken(tokenSet, token)
+    local normalized = NormalizeAmbushChatMessage(token)
+    if normalized then
+        tokenSet[normalized] = true
+    end
+end
+
+local function BuildAmbushMessageSetForLocale(locale)
+    local tokenSet = {}
+    for _, token in ipairs(AMBUSH_CHAT_BY_LOCALE[locale] or {}) do
+        AddAmbushToken(tokenSet, token)
+    end
+
+    local spellName = type(GetSpellInfo) == "function" and GetSpellInfo(ROGUE_AMBUSH_SPELL_ID) or nil
+    if type(spellName) == "string" and spellName ~= "" then
+        AddAmbushToken(tokenSet, spellName .. "!")
+        AddAmbushToken(tokenSet, "¡" .. spellName .. "!")
+        AddAmbushToken(tokenSet, spellName .. "！")
+    end
+
+    return tokenSet
+end
+
+local function GetAmbushMessageSet()
+    local locale = type(GetLocale) == "function" and GetLocale() or "enUS"
+    if type(locale) ~= "string" or locale == "" then
+        locale = "enUS"
+    end
+
+    local spellName = type(GetSpellInfo) == "function" and GetSpellInfo(ROGUE_AMBUSH_SPELL_ID) or ""
+    if type(spellName) ~= "string" then
+        spellName = ""
+    end
+
+    local cacheKey = locale .. "|" .. spellName
+    local cached = AmbushMessageCache[cacheKey]
+    if cached then
+        return cached
+    end
+
+    local tokenSet = BuildAmbushMessageSetForLocale(locale)
+    for _, token in ipairs(AMBUSH_CHAT_BY_LOCALE.enUS or {}) do
+        AddAmbushToken(tokenSet, token)
+    end
+
+    AmbushMessageCache = { [cacheKey] = tokenSet }
+    return tokenSet
+end
+
 IsLikelyTrapUnitName = function(name)
     local normalizedName = NormalizeText(name)
     if not normalizedName then
@@ -402,6 +537,32 @@ local function SafeGetQuestTitle(questID)
     end
 
     return C_QuestLog.GetTitleForQuestID(questID)
+end
+
+local function IsQuestCompletionFlagged(questID)
+    if type(questID) ~= "number" then
+        return false
+    end
+
+    if type(C_QuestLog) == "table" and type(C_QuestLog.IsQuestFlaggedCompleted) == "function" then
+        if ns.Util and type(ns.Util.SafeCall) == "function" then
+            return ns.Util.SafeCall(C_QuestLog.IsQuestFlaggedCompleted, questID) == true
+        end
+
+        local ok, result = pcall(C_QuestLog.IsQuestFlaggedCompleted, questID)
+        return ok and result == true
+    end
+
+    if type(IsQuestFlaggedCompleted) == "function" then
+        if ns.Util and type(ns.Util.SafeCall) == "function" then
+            return ns.Util.SafeCall(IsQuestFlaggedCompleted, questID) == true
+        end
+
+        local ok, result = pcall(IsQuestFlaggedCompleted, questID)
+        return ok and result == true
+    end
+
+    return false
 end
 
 local function AddNormalizedCandidate(matchSet, candidate)
@@ -638,6 +799,10 @@ function Preybreaker:HandleNameplateUnitAddedForSounds(unitToken)
 
     self:RememberRecentHostileUnit(unitToken)
     self:RememberTrapContextFromUnit(unitToken)
+
+    if self:IsAmbushCandidateWindowActive() then
+        self:PromoteUnitPreyCandidateIfHostile(unitToken)
+    end
 end
 
 function Preybreaker:HandleNameplateUnitRemovedForSounds(unitToken)
@@ -700,6 +865,41 @@ function Preybreaker:HandleMouseoverChangedForSounds()
     self:RememberTrapContextFromUnit("mouseover")
 end
 
+function Preybreaker:HandleAmbushChatMessageForSounds(message, sourceEvent)
+    if not ShouldPlayHuntSounds() then
+        return
+    end
+
+    local snapshot = self.lastSnapshot
+    if not IsHuntSessionActive(snapshot) then
+        return
+    end
+
+    local progressState = snapshot and snapshot.progressState or nil
+    if type(progressState) == "number" and progressState > PREY_STATE_WARM then
+        return
+    end
+
+    local normalized = NormalizeAmbushChatMessage(message)
+    if not normalized then
+        return
+    end
+
+    local messageSet = GetAmbushMessageSet()
+    if not messageSet[normalized] then
+        return
+    end
+
+    self:PromoteRecentHostileCandidate(AMBUSH_CANDIDATE_WINDOW_SECONDS)
+    self:PromoteUnitPreyCandidateIfLikely("target")
+    self:ArmAmbushCandidateWindow(AMBUSH_PREY_CAPTURE_WINDOW_SECONDS)
+    local sounds = self:GetResolvedSoundPaths()
+    local played = PlaySoundCue(self, sounds.ambush, "lastAmbushAt", 6)
+    if played and ns.Debug and type(ns.Debug.Log) == "function" then
+        ns.Debug:Log("sound", ns.Debug:KV("cue", "ambush"), ns.Debug:KV("source", sourceEvent or "chat"), ns.Debug:KV("message", normalized))
+    end
+end
+
 function Preybreaker:HandleSnapshotSoundTransitions(previousSnapshot, snapshot)
     local previousSessionActive = IsHuntSessionActive(previousSnapshot)
     local newSessionActive = IsHuntSessionActive(snapshot)
@@ -725,6 +925,7 @@ function Preybreaker:HandleSnapshotSoundTransitions(previousSnapshot, snapshot)
     if previousState == PREY_STATE_COLD and newState == PREY_STATE_WARM then
         self:PromoteRecentHostileCandidate(AMBUSH_CANDIDATE_WINDOW_SECONDS)
         self:PromoteUnitPreyCandidateIfLikely("target")
+        self:ArmAmbushCandidateWindow(AMBUSH_PREY_CAPTURE_WINDOW_SECONDS)
         PlaySoundCue(self, sounds.ambush, "lastAmbushAt", 6)
     end
 
@@ -737,9 +938,58 @@ function Preybreaker:HandleSnapshotSoundTransitions(previousSnapshot, snapshot)
     end
 end
 
+function Preybreaker:PurgeAbandonedQuestSuppression()
+    local state = self:GetSoundState()
+    local abandoned = state.recentAbandonedQuestIDs
+    if type(abandoned) ~= "table" then
+        return
+    end
+
+    local now = GetNowSeconds()
+    for questID, seenAt in pairs(abandoned) do
+        if type(questID) ~= "number" or type(seenAt) ~= "number" or (now - seenAt) > ABANDON_SUPPRESSION_SECONDS then
+            abandoned[questID] = nil
+        end
+    end
+end
+
+function Preybreaker:HandleQuestRemovedForSounds(questID)
+    if type(questID) ~= "number" then
+        return
+    end
+
+    local state = self:GetSoundState()
+    if type(state.recentAbandonedQuestIDs) ~= "table" then
+        state.recentAbandonedQuestIDs = {}
+    end
+
+    self:PurgeAbandonedQuestSuppression()
+
+    if IsQuestCompletionFlagged(questID) then
+        state.recentAbandonedQuestIDs[questID] = nil
+        return
+    end
+
+    if self:IsRelevantQuestForSound(questID) then
+        state.recentAbandonedQuestIDs[questID] = GetNowSeconds()
+    end
+end
+
 function Preybreaker:HandleQuestTurnedInSound(questID)
     if not ShouldPlayHuntSounds() or not self:IsRelevantQuestForSound(questID) then
         return
+    end
+
+    self:PurgeAbandonedQuestSuppression()
+    local state = self:GetSoundState()
+    local abandonedAt = state.recentAbandonedQuestIDs and state.recentAbandonedQuestIDs[questID] or nil
+    if type(abandonedAt) == "number" and (GetNowSeconds() - abandonedAt) <= ABANDON_SUPPRESSION_SECONDS then
+        state.recentAbandonedQuestIDs[questID] = nil
+        return
+    end
+
+    if state.recentAbandonedQuestIDs then
+        state.recentAbandonedQuestIDs[questID] = nil
     end
 
     local sounds = self:GetResolvedSoundPaths()
@@ -782,12 +1032,62 @@ function Preybreaker:HandleUnitSpellcastSound(unit, spellID)
     end
 end
 
+function Preybreaker:ShouldPreserveSnapshotWhileDead(previousSnapshot, snapshot)
+    if type(previousSnapshot) ~= "table" or type(snapshot) ~= "table" then
+        return false
+    end
+
+    if previousSnapshot.active ~= true or snapshot.active == true then
+        return false
+    end
+
+    if not IsHuntSessionActive(previousSnapshot) then
+        return false
+    end
+
+    if not IsPlayerDeadOrGhostSafe() then
+        return false
+    end
+
+    local previousQuestID = previousSnapshot.questID or previousSnapshot.activeQuestID or previousSnapshot.worldQuestID
+    local newQuestID = snapshot.questID or snapshot.activeQuestID or snapshot.worldQuestID
+    if type(newQuestID) == "number" and type(previousQuestID) == "number" and newQuestID ~= previousQuestID then
+        return false
+    end
+
+    return true
+end
+
+function Preybreaker:BuildDeathPreservedSnapshot(previousSnapshot, snapshot)
+    if not self:ShouldPreserveSnapshotWhileDead(previousSnapshot, snapshot) then
+        return snapshot
+    end
+
+    return {
+        active = true,
+        widgetID = snapshot.widgetID or previousSnapshot.widgetID,
+        questID = previousSnapshot.questID,
+        activeQuestID = previousSnapshot.activeQuestID,
+        worldQuestID = previousSnapshot.worldQuestID,
+        mapID = previousSnapshot.mapID,
+        progressState = previousSnapshot.progressState,
+        progress = previousSnapshot.progress,
+        percent = previousSnapshot.percent,
+        preservedWhileDead = true,
+    }
+end
+
 function Preybreaker:Refresh(reason, ...)
     local enabled = not ns.Settings or ns.Settings:IsEnabled()
     local snapshot = enabled and ns.DataSource.BuildSnapshot() or self:BuildInactiveSnapshot()
-    self.activeWidgetID = enabled and snapshot.widgetID or nil
 
     local previousSnapshot = self.lastSnapshot
+    if previousSnapshot and enabled then
+        snapshot = self:BuildDeathPreservedSnapshot(previousSnapshot, snapshot)
+    end
+
+    self.activeWidgetID = enabled and snapshot.widgetID or nil
+
     if previousSnapshot and enabled and ShouldPlayHuntSounds() then
         self:HandleSnapshotSoundTransitions(previousSnapshot, snapshot)
     end
@@ -803,6 +1103,7 @@ function Preybreaker:Refresh(reason, ...)
         ns.Debug:KV("widgetID", snapshot.widgetID),
         ns.Debug:KV("progressState", snapshot.progressState),
         ns.Debug:KV("percent", snapshot.percent),
+        ns.Debug:KV("preservedWhileDead", snapshot.preservedWhileDead == true),
         ns.Debug:KV("bootstrap", self:GetBootstrapSummary())
     )
 

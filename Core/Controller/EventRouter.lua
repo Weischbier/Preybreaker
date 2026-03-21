@@ -44,8 +44,21 @@ Preybreaker:SetScript("OnEvent", function(self, event, arg1, ...)
         return
     end
 
+    if event == "CHAT_MSG_SYSTEM"
+        or event == "CHAT_MSG_MONSTER_EMOTE"
+        or event == "CHAT_MSG_MONSTER_SAY"
+        or event == "CHAT_MSG_MONSTER_YELL"
+        or event == "CHAT_MSG_RAID_BOSS_EMOTE" then
+        self:HandleAmbushChatMessageForSounds(arg1, event)
+        return
+    end
+
     if event == "QUEST_TURNED_IN" then
         self:HandleQuestTurnedInSound(arg1)
+    end
+
+    if event == "QUEST_REMOVED" then
+        self:HandleQuestRemovedForSounds(arg1)
     end
 
     if event == "QUEST_AUTOCOMPLETE" then
@@ -138,6 +151,11 @@ Preybreaker:RegisterEvent("ADDON_LOADED")
 Preybreaker:RegisterEvent("PLAYER_ENTERING_WORLD")
 Preybreaker:RegisterEvent("ZONE_CHANGED_NEW_AREA")
 Preybreaker:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
+Preybreaker:RegisterEvent("CHAT_MSG_SYSTEM")
+Preybreaker:RegisterEvent("CHAT_MSG_MONSTER_EMOTE")
+Preybreaker:RegisterEvent("CHAT_MSG_MONSTER_SAY")
+Preybreaker:RegisterEvent("CHAT_MSG_MONSTER_YELL")
+Preybreaker:RegisterEvent("CHAT_MSG_RAID_BOSS_EMOTE")
 Preybreaker:RegisterEvent("NAME_PLATE_UNIT_ADDED")
 Preybreaker:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
 Preybreaker:RegisterEvent("PLAYER_TARGET_CHANGED")
