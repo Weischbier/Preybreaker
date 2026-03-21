@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.1.5] - 2026-03-21
+
+### Changed
+
+- Restored stage-progression audio to the prior short single cue (`interaction.ogg`) for in-session prey stage transitions (`Cold->Warm`, `Warm->Hot`, and `Hot->Final`).
+
+### Fixed
+
+- Fixed ambush prey defeats not playing `kill.ogg` when the ambush target name did not match quest-title prey-name extraction by adding an ambush capture window that promotes the active hostile target/mouseover as a prey candidate.
+
 ## [v1.1.4] - 2026-03-20
 
 ### Fixed
