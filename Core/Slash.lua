@@ -12,7 +12,7 @@ local function OpenSettings()
 end
 
 local function PrintHelp()
-    ns.Util.Print("Commands: /pb, /pb settings, /pb toggle, /pb refresh, /pb reset, /pb debug")
+    ns.Util.Print("Commands: /pb, /pb settings, /pb toggle, /pb refresh, /pb hunts, /pb reset, /pb debug")
 end
 
 SLASH_PREYBREAKER1 = "/preybreaker"
@@ -69,6 +69,13 @@ SlashCmdList.PREYBREAKER = function(message)
         end
 
         ns.Util.Print(L["Settings reset to defaults."])
+        return
+    end
+
+    if command == "hunts" or command == "hunt" or command == "panel" then
+        if ns.HuntPanel then
+            ns.HuntPanel:ShowStandalone()
+        end
         return
     end
 

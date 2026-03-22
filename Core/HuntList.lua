@@ -21,14 +21,14 @@ local FILTER_ALL = "All"
 local FILTER_NIGHTMARE = "Nightmare"
 local FILTER_HARD = "Hard"
 local FILTER_NORMAL = "Normal"
-local SCAN_SAMPLE_INTERVAL_SECONDS = 0.16
-local SCAN_MIN_SAMPLE_SECONDS = 0.32
-local SCAN_TIMEOUT_SECONDS = 2.25
-local SCAN_STABLE_FINGERPRINT_READS = 1
+local PIN_POLL_SECONDS = 0.15
+local PIN_STABLE_READS = 3
+local PIN_MAX_WAIT_SECONDS = 6.0
 local WARMUP_POLL_SECONDS = 0.10
 local WARMUP_STABLE_READS = 3
-local WARMUP_TIMEOUT_SECONDS = 4
+local WARMUP_TIMEOUT_SECONDS = 4.0
 local WARMUP_MAX_EMPTY_ATTEMPTS = 3
+local WARMUP_PASS_COOLDOWN_SECONDS = 0.9
 
 local FILTER_TO_DB = {
     [FILTER_ALL] = "all",
@@ -104,12 +104,32 @@ end
 local function GetPinPool()
     local missionFrame = _G.CovenantMissionFrame
     local mapTab = missionFrame and missionFrame.MapTab or nil
-    local pools = mapTab and mapTab.pinPools or nil
-    if type(pools) ~= "table" then
-        return nil
-    end
+    return mapTab and mapTab.pinPools and mapTab.pinPools[PIN_POOL_NAME] or nil
+end
 
-    return pools[PIN_POOL_NAME]
+local function CountPins()
+    local pool = GetPinPool()
+    if not pool then return 0 end
+    local n = 0
+    for _ in pool:EnumerateActive() do n = n + 1 end
+    return n
+end
+
+local function CollectActiveQuestPins()
+    local pool = GetPinPool()
+    if not pool then return {} end
+
+    local pins = {}
+    local seen = {}
+    for pin in pool:EnumerateActive() do
+        if pin and pin.questID and pin.title then
+            if not seen[pin.questID] then
+                seen[pin.questID] = true
+                pins[#pins + 1] = pin
+            end
+        end
+    end
+    return pins
 end
 
 local function ParseDifficulty(descriptionText)
@@ -203,56 +223,47 @@ local function BuildQuestIDSet(hunts)
     return set
 end
 
-local function BuildRewardEntry(choiceIndex)
-    local questInfoType = "choice"
-    local lootType = type(GetQuestItemInfoLootType) == "function" and GetQuestItemInfoLootType(questInfoType, choiceIndex) or nil
-    local name, texture, quantity, _, _, itemID = nil, nil, nil, nil, nil, nil
-
-    if type(GetQuestItemInfo) == "function" then
-        name, texture, quantity, _, _, itemID = GetQuestItemInfo(questInfoType, choiceIndex)
+local function SnapshotDialogPoolRewards(dialog)
+    if not dialog or type(dialog) ~= "table" then
+        return {}
     end
 
-    local currencyInfo = nil
-    if type(C_QuestOffer) == "table" and type(C_QuestOffer.GetQuestRewardCurrencyInfo) == "function" then
-        currencyInfo = Util.SafeCall(C_QuestOffer.GetQuestRewardCurrencyInfo, questInfoType, choiceIndex)
+    local rewardPool = dialog.rewardPool
+    if not rewardPool or type(rewardPool.EnumerateActive) ~= "function" then
+        return {}
     end
 
-    if type(currencyInfo) == "table" and currencyInfo.currencyID then
-        return {
-            rewardIndex = choiceIndex,
-            questInfoType = questInfoType,
-            tooltipType = "currency",
-            currencyID = currencyInfo.currencyID,
-            name = currencyInfo.name or name,
-            texture = currencyInfo.texture or texture or "Interface\\Icons\\INV_Misc_QuestionMark",
-            count = (currencyInfo.quantity and currencyInfo.quantity > 1) and currencyInfo.quantity or nil,
-            lootType = lootType,
-        }
-    end
-
-    if not name or name == "" then
-        return nil
-    end
-
-    return {
-        rewardIndex = choiceIndex,
-        questInfoType = questInfoType,
-        tooltipType = "item",
-        itemID = itemID,
-        name = name,
-        texture = texture or "Interface\\Icons\\INV_Misc_QuestionMark",
-        count = (quantity and quantity > 1) and quantity or nil,
-        lootType = lootType,
-    }
-end
-
-local function SnapshotChoiceRewards()
     local rewards = {}
-    local numChoices = type(GetNumQuestChoices) == "function" and GetNumQuestChoices() or 0
-    for choiceIndex = 1, numChoices do
-        local entry = BuildRewardEntry(choiceIndex)
-        if entry then
-            rewards[#rewards + 1] = entry
+    local rewardIndex = 0
+    for reward in rewardPool:EnumerateActive() do
+        rewardIndex = rewardIndex + 1
+
+        local name
+        if reward and reward.Name and type(reward.Name.GetText) == "function" then
+            name = reward.Name:GetText()
+        end
+
+        local texture
+        if reward and reward.Icon and type(reward.Icon.GetTexture) == "function" then
+            texture = reward.Icon:GetTexture()
+        end
+
+        local count
+        if reward and reward.Count and type(reward.Count.GetText) == "function" then
+            local countText = reward.Count:GetText()
+            if countText and countText ~= "" and countText ~= "1" then
+                count = countText
+            end
+        end
+
+        if type(name) == "string" and name ~= "" then
+            rewards[#rewards + 1] = {
+                rewardIndex = rewardIndex,
+                tooltipType = "text",
+                name = name,
+                texture = texture or "Interface\\Icons\\INV_Misc_QuestionMark",
+                count = count,
+            }
         end
     end
 
@@ -272,10 +283,10 @@ function HuntList:GetState()
             filter = storedFilter,
             rewardCache = {},
             attemptCount = {},
+            nextWarmupAt = 0,
             scanning = false,
             warming = false,
             stabilizeTicker = nil,
-            warmupTicker = nil,
             cancelWarmup = nil,
         }
     end
@@ -313,12 +324,7 @@ function HuntList:IsWarmupActive()
 end
 
 function HuntList:FindPin(questID)
-    local pool = GetPinPool()
-    if not pool or type(pool.EnumerateActive) ~= "function" then
-        return nil
-    end
-
-    for pin in pool:EnumerateActive() do
+    for _, pin in ipairs(CollectActiveQuestPins()) do
         if pin and pin.questID == questID then
             return pin
         end
@@ -332,30 +338,36 @@ function HuntList:GetHuntByQuestID(questID)
     return state.questIndex[questID]
 end
 
+function HuntList:RemoveByQuestID(questID)
+    local state = self:GetState()
+    if not state.questIndex[questID] then return false end
+    state.questIndex[questID] = nil
+    state.rewardCache[questID] = nil
+    state.attemptCount[questID] = nil
+    for i = #state.hunts, 1, -1 do
+        if state.hunts[i].questID == questID then
+            table.remove(state.hunts, i)
+            break
+        end
+    end
+    LogHunts("removeByQuestID", questID, #state.hunts)
+    return true
+end
+
 function HuntList:HasAnyHunts()
     return #self:GetState().hunts > 0
 end
 
 local function BuildRawHuntsFromPins()
-    local pool = GetPinPool()
-    if not pool or type(pool.EnumerateActive) ~= "function" then
-        return {}
-    end
-
     local hunts = {}
-    for pin in pool:EnumerateActive() do
-        local questID = pin and pin.questID or nil
-        local title = pin and pin.title or nil
-        if questID and type(title) == "string" and title ~= "" then
-            hunts[#hunts + 1] = {
-                questID = questID,
-                name = title,
-                difficulty = ParseDifficulty(pin.description),
-                zone = ResolveZoneByCoords(pin.normalizedX, pin.normalizedY),
-            }
-        end
+    for _, pin in ipairs(CollectActiveQuestPins()) do
+        hunts[#hunts + 1] = {
+            questID = pin.questID,
+            name = pin.title,
+            difficulty = ParseDifficulty(pin.description),
+            zone = ResolveZoneByCoords(pin.normalizedX, pin.normalizedY),
+        }
     end
-
     return hunts
 end
 
@@ -370,26 +382,6 @@ local function DedupeHuntsByDifficultyAndZone(rawHunts)
         end
     end
     return deduped
-end
-
-local function BuildScanFingerprint(hunts)
-    if type(hunts) ~= "table" or #hunts == 0 then
-        return ""
-    end
-
-    local tokens = {}
-    for _, hunt in ipairs(hunts) do
-        tokens[#tokens + 1] = string.format(
-            "%s:%s:%s:%s",
-            tostring(hunt.questID or 0),
-            tostring(hunt.difficulty or ""),
-            tostring(hunt.zone or ""),
-            tostring(hunt.name or "")
-        )
-    end
-
-    table.sort(tokens)
-    return table.concat(tokens, "|")
 end
 
 function HuntList:ApplyRefreshedHunts(refreshed, sourceTag)
@@ -450,7 +442,9 @@ function HuntList:QuickEvaluateAvailability()
         end
     end
 
-    return false, 0, "emptyMap"
+    -- Map-visible empties can be transient while pin pools are still filling.
+    -- Return indeterminate so callers can proceed with stabilized scanning.
+    return nil, 0, "awaitingPins"
 end
 
 function HuntList:GetFilteredSortedHunts()
@@ -475,17 +469,30 @@ function HuntList:GetFilteredSortedHunts()
         end
     end
 
+    local isAllFilter = state.filter == FILTER_ALL
+
     table.sort(output, function(left, right)
+        -- In "All" mode, group by zone first so region separators work
+        if isAllFilter then
+            local leftZone = zoneOrder[left.zone] or 99
+            local rightZone = zoneOrder[right.zone] or 99
+            if leftZone ~= rightZone then
+                return leftZone < rightZone
+            end
+        end
+
         local leftDiff = DIFFICULTY_ORDER[left.difficulty] or 99
         local rightDiff = DIFFICULTY_ORDER[right.difficulty] or 99
         if leftDiff ~= rightDiff then
             return leftDiff < rightDiff
         end
 
-        local leftZone = zoneOrder[left.zone] or 99
-        local rightZone = zoneOrder[right.zone] or 99
-        if leftZone ~= rightZone then
-            return leftZone < rightZone
+        if not isAllFilter then
+            local leftZone = zoneOrder[left.zone] or 99
+            local rightZone = zoneOrder[right.zone] or 99
+            if leftZone ~= rightZone then
+                return leftZone < rightZone
+            end
         end
 
         local leftStatus = left.inProgress and 0 or 1
@@ -505,10 +512,6 @@ function HuntList:CancelWarmup()
     if state.stabilizeTicker then
         state.stabilizeTicker:Cancel()
         state.stabilizeTicker = nil
-    end
-    if state.warmupTicker then
-        state.warmupTicker:Cancel()
-        state.warmupTicker = nil
     end
     if state.cancelWarmup then
         state.cancelWarmup()
@@ -560,197 +563,206 @@ function HuntList:BeginStabilizedScan(onReady)
         return
     end
 
+    -- PreyTracker-style pin-count polling:
+    -- Poll until the pin pool count is > 0 and identical for PIN_STABLE_READS
+    -- consecutive reads, or until PIN_MAX_WAIT_SECONDS elapses.
+    -- Only then build the hunt list, so transient title/pin delays are resolved.
     local elapsed = 0
-    local previousFingerprint = nil
-    local stableReads = 0
-    local bestSnapshot = {}
-    local bestCount = -1
+    local lastCount = -1
+    local stableN = 0
 
-    state.stabilizeTicker = C_Timer.NewTicker(SCAN_SAMPLE_INTERVAL_SECONDS, function()
+    state.stabilizeTicker = C_Timer.NewTicker(PIN_POLL_SECONDS, function()
         if not (missionFrame and missionFrame:IsShown()) then
-            local cacheWarm, huntCount = self:ApplyRefreshedHunts(bestSnapshot, "scanMapClosed")
+            local cacheWarm, huntCount = self:ApplyRefreshedHunts(
+                DedupeHuntsByDifficultyAndZone(BuildRawHuntsFromPins()),
+                "scanMapClosed"
+            )
             Finish(cacheWarm, huntCount, "mapClosed")
             return
         end
 
-        elapsed = elapsed + SCAN_SAMPLE_INTERVAL_SECONDS
-        local snapshot = DedupeHuntsByDifficultyAndZone(BuildRawHuntsFromPins())
-        local snapshotCount = #snapshot
-        local fingerprint = BuildScanFingerprint(snapshot)
+        elapsed = elapsed + PIN_POLL_SECONDS
+        local n = CountPins()
 
-        if snapshotCount > bestCount then
-            bestCount = snapshotCount
-            bestSnapshot = snapshot
-        end
-
-        if fingerprint ~= "" and fingerprint == previousFingerprint then
-            stableReads = stableReads + 1
+        if n > 0 and n == lastCount then
+            stableN = stableN + 1
+            if stableN >= PIN_STABLE_READS then
+                local snapshot = DedupeHuntsByDifficultyAndZone(BuildRawHuntsFromPins())
+                LogHunts("scanStable", n, string.format("elapsed=%.2f,hunts=%d", elapsed, #snapshot))
+                local cacheWarm, huntCount = self:ApplyRefreshedHunts(snapshot, "scanStableSnapshot")
+                Finish(cacheWarm, huntCount, "stableSnapshot")
+                return
+            end
         else
-            previousFingerprint = fingerprint
-            stableReads = 0
+            stableN = 0
+            lastCount = n
         end
 
-        local sampledEnough = elapsed >= SCAN_MIN_SAMPLE_SECONDS
-        local stableSnapshot = sampledEnough and stableReads >= SCAN_STABLE_FINGERPRINT_READS
-        local timedOut = elapsed >= SCAN_TIMEOUT_SECONDS
-        if stableSnapshot or timedOut then
-            local finalSnapshot = snapshotCount >= bestCount and snapshot or bestSnapshot
-            local cacheWarm, huntCount = self:ApplyRefreshedHunts(
-                finalSnapshot,
-                stableSnapshot and "scanStableSnapshot" or "scanTimeoutSnapshot"
-            )
-            Finish(cacheWarm, huntCount, stableSnapshot and "stableSnapshot" or "timeout")
+        if elapsed >= PIN_MAX_WAIT_SECONDS then
+            local snapshot = DedupeHuntsByDifficultyAndZone(BuildRawHuntsFromPins())
+            LogHunts("scanTimeout", n, string.format("elapsed=%.2f,hunts=%d", elapsed, #snapshot))
+            local cacheWarm, huntCount = self:ApplyRefreshedHunts(snapshot, "scanTimeoutSnapshot")
+            Finish(cacheWarm, huntCount, "timeout")
         end
     end)
 end
 
-function HuntList:WarmRewardCacheAsync(onProgress, onDone)
+function HuntList:WarmRewardCacheAsync(onProgress, onDone, questIDs)
     local state = self:GetState()
     if state.warming then
+        LogHunts("warmupSkip", "alreadyWarming", nil)
         return
     end
 
     local dialog = GetQuestChoiceDialog()
-    if not (dialog and type(dialog.ShowWithQuest) == "function" and type(C_Timer) == "table" and type(C_Timer.NewTicker) == "function") then
-        if type(onDone) == "function" then
+    if not (dialog and type(dialog.ShowWithQuest) == "function") then
+        LogHunts("warmupSkip", "dialogUnavailable", nil)
+        if type(C_Timer) == "table" and type(C_Timer.After) == "function" then
+            C_Timer.After(0.4, function() self:WarmRewardCacheAsync(onProgress, onDone, questIDs) end)
+        elseif type(onDone) == "function" then
             onDone()
         end
         return
+    end
+
+    -- Build queue: only quests not yet cached
+    local allowedQuestIDs = nil
+    if type(questIDs) == "table" and #questIDs > 0 then
+        allowedQuestIDs = {}
+        for _, qid in ipairs(questIDs) do
+            if type(qid) == "number" and qid > 0 then
+                allowedQuestIDs[qid] = true
+            end
+        end
     end
 
     local queue = {}
     for _, hunt in ipairs(state.hunts) do
-        if state.rewardCache[hunt.questID] == nil then
-            queue[#queue + 1] = hunt.questID
+        local qid = hunt.questID
+        if allowedQuestIDs and not allowedQuestIDs[qid] then
+            -- skip, not in target list
+        elseif state.rewardCache[qid] == nil then
+            queue[#queue + 1] = hunt
         end
     end
 
     local total = #state.hunts
-    local done = total - #queue
-    if type(onProgress) == "function" then
-        onProgress(done, total, nil)
-    end
+    local doneCount = total - #queue
 
     if #queue == 0 then
-        if type(onDone) == "function" then
-            onDone()
-        end
+        if type(onDone) == "function" then onDone() end
         return
     end
 
+    LogHunts("warmupStart", #queue, string.format("total=%d", total))
+
     state.warming = true
-    local missionFrame = _G.CovenantMissionFrame or UIParent
-    local queueIndex = 1
+    local prevAlpha = dialog:GetAlpha()
     local cancelled = false
-    local originalAlpha = dialog:GetAlpha() or 1
-
-    local function RestoreDialog()
-        dialog:Hide()
-        dialog:SetAlpha(originalAlpha)
-    end
-
-    local function Finish()
-        if state.warmupTicker then
-            state.warmupTicker:Cancel()
-            state.warmupTicker = nil
-        end
-        state.cancelWarmup = nil
-        state.warming = false
-        RestoreDialog()
-        if type(onDone) == "function" then
-            onDone()
-        end
-    end
+    local ticker = nil
+    local qIdx = 1
+    local elapsed = 0
+    local lastCount = -1
+    local stableN = 0
 
     state.cancelWarmup = function()
         cancelled = true
-        if state.warmupTicker then
-            state.warmupTicker:Cancel()
-            state.warmupTicker = nil
-        end
-        RestoreDialog()
+        if ticker then ticker:Cancel(); ticker = nil end
+        dialog:Hide()
+        dialog:SetAlpha(prevAlpha)
+        state.cancelWarmup = nil
     end
 
-    local function CommitQuest(questID, rewards, timedOutEmpty)
+    local StartNext
+
+    local function CommitAndAdvance(rewards, timedOutEmpty)
+        if ticker then ticker:Cancel(); ticker = nil end
+        dialog:Hide()
+        dialog:SetAlpha(prevAlpha)
+
+        local questID = queue[qIdx].questID
         if timedOutEmpty then
-            local attempts = (state.attemptCount[questID] or 0) + 1
-            state.attemptCount[questID] = attempts
-            if attempts >= WARMUP_MAX_EMPTY_ATTEMPTS then
+            state.attemptCount[questID] = (state.attemptCount[questID] or 0) + 1
+            if state.attemptCount[questID] >= WARMUP_MAX_EMPTY_ATTEMPTS then
                 state.rewardCache[questID] = {}
+                LogHunts("warmupCommit", questID, string.format("timedOutEmpty:accepted attempts=%d", state.attemptCount[questID]))
             else
                 state.rewardCache[questID] = nil
+                LogHunts("warmupCommit", questID, string.format("timedOutEmpty:retry attempts=%d", state.attemptCount[questID]))
             end
         else
-            state.attemptCount[questID] = nil
             state.rewardCache[questID] = rewards
+            state.attemptCount[questID] = nil
+            LogHunts("warmupCommit", questID, string.format("ready rewards=%d", #rewards))
         end
 
-        done = done + 1
-        if type(onProgress) == "function" then
-            onProgress(done, total, self:GetHuntByQuestID(questID))
+        doneCount = doneCount + 1
+        if type(onProgress) == "function" then onProgress(doneCount, total) end
+
+        qIdx = qIdx + 1
+        if qIdx > #queue then
+            state.warming = false
+            state.cancelWarmup = nil
+            state.nextWarmupAt = ((type(GetTime) == "function" and GetTime()) or 0) + WARMUP_PASS_COOLDOWN_SECONDS
+            LogHunts("warmupFinish", doneCount, string.format("cooldown=%.2f", WARMUP_PASS_COOLDOWN_SECONDS))
+            if type(onDone) == "function" then onDone() end
+            return
+        end
+
+        if type(C_Timer.After) == "function" then
+            C_Timer.After(0.05, function()
+                if not cancelled then StartNext() end
+            end)
+        elseif not cancelled then
+            StartNext()
         end
     end
 
-    local function ProcessNext()
-        if cancelled then
-            Finish()
-            return
-        end
+    StartNext = function()
+        if cancelled then return end
+        elapsed = 0
+        lastCount = -1
+        stableN = 0
 
-        local questID = queue[queueIndex]
-        if not questID then
-            Finish()
-            return
-        end
-
-        local pin = self:FindPin(questID)
+        local hunt = queue[qIdx]
+        local pin = self:FindPin(hunt.questID)
         if not pin then
-            CommitQuest(questID, {}, false)
-            queueIndex = queueIndex + 1
-            ProcessNext()
+            LogHunts("warmupQuest", hunt.questID, "noPin")
+            CommitAndAdvance({}, false)
             return
         end
 
+        LogHunts("warmupQuest", hunt.questID, "showWithQuest")
         dialog:SetAlpha(0)
         dialog:Hide()
-        dialog:ShowWithQuest(missionFrame, pin, questID)
+        dialog:ShowWithQuest(_G.CovenantMissionFrame or UIParent, pin, hunt.questID)
 
-        local elapsed = 0
-        local previousCount = -1
-        local stableReads = 0
-        state.warmupTicker = C_Timer.NewTicker(WARMUP_POLL_SECONDS, function(ticker)
-            if cancelled then
-                ticker:Cancel()
-                state.warmupTicker = nil
-                Finish()
-                return
-            end
-
+        ticker = C_Timer.NewTicker(WARMUP_POLL_SECONDS, function()
+            if cancelled then return end
             elapsed = elapsed + WARMUP_POLL_SECONDS
-            local rewards = SnapshotChoiceRewards()
-            local rewardCount = #rewards
-            if rewardCount > 0 and rewardCount == previousCount then
-                stableReads = stableReads + 1
+
+            local rewards = SnapshotDialogPoolRewards(dialog)
+            local n = #rewards
+
+            if n > 0 and n == lastCount then
+                stableN = stableN + 1
+                if stableN >= WARMUP_STABLE_READS then
+                    LogHunts("warmupQuest", hunt.questID, string.format("complete elapsed=%.2f,rewards=%d,stableReads=%d", elapsed, n, stableN))
+                    CommitAndAdvance(rewards, false)
+                    return
+                end
             else
-                previousCount = rewardCount
-                stableReads = 0
+                stableN = 0
+                lastCount = n
             end
 
-            if stableReads >= WARMUP_STABLE_READS or elapsed >= WARMUP_TIMEOUT_SECONDS then
-                ticker:Cancel()
-                state.warmupTicker = nil
-
-                local timedOutEmpty = elapsed >= WARMUP_TIMEOUT_SECONDS and rewardCount == 0
-                CommitQuest(questID, rewards, timedOutEmpty)
-                queueIndex = queueIndex + 1
-                if type(C_Timer.After) == "function" then
-                    C_Timer.After(0.05, ProcessNext)
-                else
-                    ProcessNext()
-                end
+            if elapsed >= WARMUP_TIMEOUT_SECONDS then
+                LogHunts("warmupQuest", hunt.questID, string.format("timeout elapsed=%.2f,rewards=%d", elapsed, n))
+                CommitAndAdvance(rewards, n == 0)
             end
         end)
     end
 
-    ProcessNext()
+    if type(onProgress) == "function" then onProgress(doneCount, total) end
+    StartNext()
 end

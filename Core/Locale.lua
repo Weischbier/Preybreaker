@@ -143,6 +143,7 @@ local baseStrings = {
     ["Left-click: Enable or disable the tracker"] = "Left-click: Enable or disable the tracker",
     ["Shift-left-click: Open settings"] = "Shift-left-click: Open settings",
     ["Right-click: Force a tracker refresh"] = "Right-click: Force a tracker refresh",
+    ["Shift-right-click: Open hunt panel"] = "Shift-right-click: Open hunt panel",
 
     -- Settings panel chrome
     ["Shape the prey tracker around your HUD with a live preview and clear sections."] = "Shape the prey tracker around your HUD with a live preview and clear sections.",

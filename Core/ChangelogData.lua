@@ -26,21 +26,26 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- Added an original, clean-room Hunt Operations surface for prey routing and reward intake.
-- Added a compact tactical panel mode that docks beside the Adventure Map plus a standalone mode with draggable placement memory.
-- Added a dynamic hunt stream with per-row difficulty accents, reward slots, status chips, and direct quest-open actions.
-- Added an async reward-sync pipeline that stages quest choice data in the background and recovers from transient empty reads.
-- Added a pin-stability sampler on map open so hunt snapshots settle before display.
-- Added persistent hunt filters (All, Nightmare, Hard, Normal) with immediate refresh behavior.
-- Added live summary telemetry for filter state, active hunts, ready hunts, and current Anguish currency.
-- Added contextual loading overlays for both panel and map contexts during scan/warmup operations.
-- Added event-driven refresh hooks for quest, zone, currency, and mission-frame transitions.
+- Hunt panel: new panel that docks next to the Adventure Map showing all your hunts with difficulty colors, reward slots, status, and one-click quest opening. Also works as a standalone draggable panel (`/pb hunt`).
+- Hunt filters: filter by All / Nightmare / Hard / Normal with instant refresh.
+- Hunt summary bar: shows filter state, active count, ready count, and current Anguish at a glance.
+- Loading overlays for both the docked and standalone panel while scans settle.
+- Reward warmup: quest reward data now loads in the background so choices are ready before you finish.
+- Roadmap tab in settings showing known issues and planned features.
+- Updated all 10 locale files with the latest translation strings.
 
 ### Changed
 
-- Shifted the hunt panel direction away from the previous board-style prototype to a new compact tactical-console presentation.
-- Simplified the interaction model around fast scan, filter, and open workflows for hunt sessions.
-- Added motion polish to the new panel flow: entry fades, filter feedback flashes, active-hunt pulse treatment, and loading-bar shimmer during sync operations.
+- Replaced the old board-style hunt prototype with a compact list layout.
+- Hunt panel auto-shows when you open the Adventure Map and hides when you close it.
+- Smoother transitions: entry fades, filter flash feedback, active-hunt pulse, and a shimmer bar while loading.
+
+### Fixed
+
+- Pin scanning now waits for 3 consecutive stable pin counts before snapshotting, so late-loading pins no longer get missed.
+- Reward warmup processes one quest at a time with proper timeouts instead of blasting them all at once.
+- Fixed the loading bar sometimes rendering at zero width during early layout.
+- Fixed hunt panel not appearing when the Adventure Map was already open on panel load.
 
 ## [v1.1.6] - 2026-03-22
 

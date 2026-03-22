@@ -1534,7 +1534,14 @@ function Preybreaker:Refresh(reason, ...)
         ns.SettingsPanel:RefreshPreview(snapshot)
     end
     if ns.HuntPanel and ns.HuntPanel.frame and ns.HuntPanel.frame:IsShown() then
+        ns.Debug:Log("hunts", ns.Debug:KV("action", "controllerRefresh"), ns.Debug:KV("detail", "panelRefresh"), ns.Debug:KV("extra", nil))
         ns.HuntPanel:Refresh()
+    elseif ns.HuntPanel and _G.CovenantMissionFrame and _G.CovenantMissionFrame:IsShown() then
+        -- Mission frame is open but hunt panel isn't shown (hook may have missed).
+        ns.Debug:Log("hunts", ns.Debug:KV("action", "controllerRefresh"), ns.Debug:KV("detail", "showAttachedFallback"), ns.Debug:KV("extra", string.format("panelFrame=%s,panelShown=%s", tostring(ns.HuntPanel.frame ~= nil), tostring(ns.HuntPanel.frame and ns.HuntPanel.frame:IsShown()))))
+        ns.HuntPanel:ShowAttached()
+    else
+        ns.Debug:Log("hunts", ns.Debug:KV("action", "controllerRefresh"), ns.Debug:KV("detail", "skip"), ns.Debug:KV("extra", string.format("huntPanel=%s,panelFrame=%s,missionFrame=%s,missionShown=%s", tostring(ns.HuntPanel ~= nil), tostring(ns.HuntPanel and ns.HuntPanel.frame ~= nil), tostring(_G.CovenantMissionFrame ~= nil), tostring(_G.CovenantMissionFrame and _G.CovenantMissionFrame:IsShown()))))
     end
 end
 

@@ -95,6 +95,20 @@ ns.Constants = {
         BorderSoftColor = { 0.66, 0.49, 0.21, 0.34 },
     },
 
+    HuntPanel = {
+        PanelWidth = 396,
+        PanelHeight = 574,
+        AttachedWidth = 316,
+        HeaderHeight = 64,
+        RowHeight = 78,
+        RowSpacing = 8,
+        FilterButtonHeight = 24,
+        RewardIconSize = 17,
+        MaxRewardIcons = 5,
+        XOffset = 8,
+        FrameLevel = 200,
+    },
+
     Debug = {
         Enabled = false,
     },

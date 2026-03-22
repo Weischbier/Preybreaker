@@ -1,0 +1,376 @@
+<!-- SPDX-License-Identifier: GPL-3.0-only -->
+<!-- Copyright (C) 2026 Danny Patten -->
+<!-- Hunt panel templates. XML owns stable layout; Lua owns behavior, state, and colors. -->
+<Ui xmlns="http://www.blizzard.com/wow/ui/"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.blizzard.com/wow/ui/..\FrameXML\UI.xsd">
+
+    <!-- PreybreakerAccentButtonTemplate
+         Flat accent-colored button. Lua owns: backdrop colors, enabled state. -->
+    <Button name="PreybreakerAccentButtonTemplate" inherits="BackdropTemplate" virtual="true">
+        <Size x="64" y="20"/>
+        <Layers>
+            <Layer level="OVERLAY">
+                <FontString parentKey="Label" inherits="GameFontHighlightSmall" justifyH="CENTER">
+                    <Anchors>
+                        <Anchor point="CENTER" y="0"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+            <Layer level="HIGHLIGHT">
+                <Texture parentKey="Highlight" setAllPoints="true" alphaMode="ADD" alpha="0.18"/>
+            </Layer>
+        </Layers>
+    </Button>
+
+    <!-- PreybreakerHuntRowTemplate
+         A single hunt list row with difficulty pill, status frame, title,
+         zone, reward shelf, and accept button.
+         Lua owns: backdrop colors, text content, reward display, pulse/shimmer state. -->
+    <Button name="PreybreakerHuntRowTemplate" inherits="BackdropTemplate" virtual="true">
+        <Size x="362" y="78"/>
+        <Layers>
+            <Layer level="BACKGROUND">
+                <Texture parentKey="Pulse" setAllPoints="true" alpha="0"/>
+            </Layer>
+            <Layer level="HIGHLIGHT">
+                <Texture parentKey="Highlight" setAllPoints="true" alphaMode="ADD"/>
+            </Layer>
+            <Layer level="ARTWORK">
+                <Texture parentKey="SideBand">
+                    <Size x="4" y="0"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT"/>
+                        <Anchor point="BOTTOMLEFT"/>
+                    </Anchors>
+                </Texture>
+                <Texture parentKey="Scanline">
+                    <Size x="0" y="1"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="8" y="-7"/>
+                        <Anchor point="TOPRIGHT" x="-8" y="-7"/>
+                    </Anchors>
+                </Texture>
+                <Texture parentKey="FooterRule">
+                    <Size x="0" y="1"/>
+                    <Anchors>
+                        <Anchor point="LEFT" x="8"/>
+                        <Anchor point="RIGHT" x="-8"/>
+                        <Anchor point="BOTTOM" y="22"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+            <Layer level="OVERLAY">
+                <FontString parentKey="Title" inherits="GameFontHighlight" justifyH="LEFT" wordwrap="false">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="10" y="-30"/>
+                        <Anchor point="TOPRIGHT" x="-74" y="-30"/>
+                    </Anchors>
+                </FontString>
+                <FontString parentKey="Zone" inherits="GameFontDisableSmall" justifyH="LEFT" wordwrap="false">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Title" relativePoint="BOTTOMLEFT" y="-1"/>
+                        <Anchor point="TOPRIGHT" x="-74" y="-42"/>
+                    </Anchors>
+                </FontString>
+                <FontString parentKey="RewardLabel" inherits="GameFontDisableSmall" justifyH="LEFT">
+                    <Size x="132" y="0"/>
+                    <Anchors>
+                        <Anchor point="BOTTOMLEFT" x="10" y="6"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Frames>
+            <!-- Difficulty pill -->
+            <Frame parentKey="DifficultyPill" inherits="BackdropTemplate">
+                <Size x="78" y="16"/>
+                <Anchors>
+                    <Anchor point="TOPLEFT" x="10" y="-10"/>
+                </Anchors>
+                <Layers>
+                    <Layer level="OVERLAY">
+                        <FontString parentKey="Text" inherits="GameFontHighlightSmall" justifyH="CENTER">
+                            <Anchors>
+                                <Anchor point="CENTER"/>
+                            </Anchors>
+                        </FontString>
+                    </Layer>
+                </Layers>
+            </Frame>
+            <!-- Status frame -->
+            <Frame parentKey="StatusFrame" inherits="BackdropTemplate">
+                <Size x="96" y="16"/>
+                <Anchors>
+                    <Anchor point="TOPRIGHT" x="-8" y="-10"/>
+                </Anchors>
+                <Layers>
+                    <Layer level="OVERLAY">
+                        <FontString parentKey="Text" inherits="GameFontNormalSmall" justifyH="CENTER">
+                            <Anchors>
+                                <Anchor point="CENTER"/>
+                            </Anchors>
+                        </FontString>
+                    </Layer>
+                </Layers>
+            </Frame>
+            <!-- Reward shelf -->
+            <Frame parentKey="RewardShelf">
+                <Size x="106" y="18"/>
+                <Anchors>
+                    <Anchor point="BOTTOMLEFT" x="104" y="6"/>
+                </Anchors>
+            </Frame>
+            <!-- Accept button (modern accent style) -->
+            <Button parentKey="AcceptButton" inherits="PreybreakerAccentButtonTemplate">
+                <Size x="58" y="18"/>
+                <Anchors>
+                    <Anchor point="RIGHT" x="-8" y="-7"/>
+                </Anchors>
+            </Button>
+        </Frames>
+    </Button>
+
+    <!-- PreybreakerHuntLoadingCardTemplate
+         Progress card for scan/warmup status.
+         Lua owns: progress values, shimmer animation, status text. -->
+    <Frame name="PreybreakerHuntLoadingCardTemplate" inherits="BackdropTemplate" virtual="true">
+        <Size x="286" y="96"/>
+        <Layers>
+            <Layer level="OVERLAY">
+                <FontString parentKey="Title" inherits="GameFontHighlight">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="12" y="-10"/>
+                    </Anchors>
+                </FontString>
+                <FontString parentKey="StatusText" inherits="GameFontNormalSmall" justifyH="LEFT">
+                    <Size x="262" y="0"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Title" relativePoint="BOTTOMLEFT" y="-8"/>
+                    </Anchors>
+                </FontString>
+                <FontString parentKey="ProgressText" inherits="GameFontHighlightSmall">
+                    <Anchors>
+                        <Anchor point="TOP" relativeKey="$parent.ProgressTrack" relativePoint="BOTTOM" y="-6"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+            <Layer level="ARTWORK">
+                <Texture parentKey="ProgressTrack">
+                    <Size x="262" y="8"/>
+                    <Anchors>
+                        <Anchor point="BOTTOMLEFT" x="12" y="14"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+            <Layer level="ARTWORK" textSubLevel="1">
+                <Texture parentKey="ProgressFill">
+                    <Size x="1" y="8"/>
+                    <Anchors>
+                        <Anchor point="LEFT" relativeKey="$parent.ProgressTrack" relativePoint="LEFT"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+        </Layers>
+    </Frame>
+
+    <!-- PreybreakerHuntFilterButtonTemplate
+         Difficulty filter chip with underscore indicator.
+         Lua owns: backdrop colors, label text, selected state. -->
+    <Button name="PreybreakerHuntFilterButtonTemplate" inherits="BackdropTemplate" virtual="true">
+        <Size x="72" y="24"/>
+        <Layers>
+            <Layer level="OVERLAY">
+                <FontString parentKey="Label" inherits="GameFontHighlightSmall" justifyH="CENTER">
+                    <Anchors>
+                        <Anchor point="CENTER"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+            <Layer level="ARTWORK">
+                <Texture parentKey="Underscore">
+                    <Size x="0" y="2"/>
+                    <Anchors>
+                        <Anchor point="BOTTOMLEFT" x="4" y="2"/>
+                        <Anchor point="BOTTOMRIGHT" x="-4" y="2"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+            <Layer level="HIGHLIGHT">
+                <Texture parentKey="Highlight" setAllPoints="true" alphaMode="ADD" alpha="0.12"/>
+            </Layer>
+        </Layers>
+    </Button>
+
+    <!-- PreybreakerHuntPanel
+         Main hunt panel frame with header, filter bar, scroll container,
+         footer bar, loading overlay, and empty state.
+         Lua owns: anchoring, mode switching, data binding, scan/warmup flow. -->
+    <Frame name="PreybreakerHuntPanel" parent="UIParent" inherits="BackdropTemplate"
+           frameStrata="DIALOG" frameLevel="200"
+           movable="true" enableMouse="true" clampedToScreen="true"
+           registerForDrag="LeftButton" hidden="true">
+        <Size x="396" y="574"/>
+        <Layers>
+            <Layer level="ARTWORK">
+                <!-- Header band -->
+                <Texture parentKey="HeaderBand">
+                    <Size x="0" y="64"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="4" y="-4"/>
+                        <Anchor point="TOPRIGHT" x="-4" y="-4"/>
+                    </Anchors>
+                </Texture>
+                <!-- Header glow (rendered behind HeaderBand in same layer) -->
+                <Texture parentKey="HeaderGlow">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.HeaderBand"/>
+                        <Anchor point="BOTTOMRIGHT" relativeKey="$parent.HeaderBand"/>
+                    </Anchors>
+                </Texture>
+                <!-- Header accent line -->
+                <Texture parentKey="HeaderLine">
+                    <Size x="0" y="1"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.HeaderBand" relativePoint="BOTTOMLEFT" y="-1"/>
+                        <Anchor point="TOPRIGHT" relativeKey="$parent.HeaderBand" relativePoint="BOTTOMRIGHT" y="-1"/>
+                    </Anchors>
+                </Texture>
+            </Layer>
+            <Layer level="OVERLAY">
+                <!-- Title -->
+                <FontString parentKey="Title" inherits="GameFontNormalLarge">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="16" y="-12"/>
+                        <Anchor point="RIGHT" x="-42" y="0"/>
+                    </Anchors>
+                </FontString>
+                <!-- Subtitle -->
+                <FontString parentKey="Subtitle" inherits="GameFontDisableSmall" justifyH="LEFT" wordwrap="true">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeKey="$parent.Title" relativePoint="BOTTOMLEFT" y="-4"/>
+                        <Anchor point="RIGHT" x="-42"/>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Frames>
+            <!-- Close button -->
+            <Button parentKey="CloseButton" inherits="UIPanelCloseButton">
+                <Anchors>
+                    <Anchor point="TOPRIGHT" x="-4" y="-4"/>
+                </Anchors>
+            </Button>
+            <!-- Body container -->
+            <Frame parentKey="Body" inherits="BackdropTemplate">
+                <Anchors>
+                    <Anchor point="TOPLEFT" x="8" y="-68"/>
+                    <Anchor point="BOTTOMRIGHT" x="-8" y="36"/>
+                </Anchors>
+                <Frames>
+                    <!-- Filter bar -->
+                    <Frame parentKey="FilterBar">
+                        <Size x="0" y="24"/>
+                        <Anchors>
+                            <Anchor point="TOPLEFT" x="8" y="-8"/>
+                            <Anchor point="TOPRIGHT" x="-8" y="-8"/>
+                        </Anchors>
+                    </Frame>
+                    <!-- Scroll frame (no template — Lua wires mouse-wheel + slim track) -->
+                    <ScrollFrame parentKey="ScrollFrame">
+                        <Anchors>
+                            <Anchor point="TOPLEFT" x="4" y="-56"/>
+                            <Anchor point="BOTTOMRIGHT" x="-4" y="4"/>
+                        </Anchors>
+                    </ScrollFrame>
+                    <!-- Slim scroll track -->
+                    <Frame parentKey="ScrollTrack">
+                        <Size x="3" y="0"/>
+                        <Anchors>
+                            <Anchor point="TOPRIGHT" relativeKey="$parent.ScrollFrame" relativePoint="TOPRIGHT" x="1" y="0"/>
+                            <Anchor point="BOTTOMRIGHT" relativeKey="$parent.ScrollFrame" relativePoint="BOTTOMRIGHT" x="1" y="0"/>
+                        </Anchors>
+                        <Layers>
+                            <Layer level="BACKGROUND">
+                                <Texture parentKey="Background" setAllPoints="true"/>
+                            </Layer>
+                            <Layer level="OVERLAY">
+                                <Texture parentKey="Thumb">
+                                    <Size x="3" y="24"/>
+                                    <Anchors>
+                                        <Anchor point="TOP"/>
+                                    </Anchors>
+                                </Texture>
+                            </Layer>
+                        </Layers>
+                    </Frame>
+                </Frames>
+                <Layers>
+                    <Layer level="OVERLAY">
+                        <!-- Summary line -->
+                        <FontString parentKey="Summary" inherits="GameFontHighlightSmall" justifyH="LEFT">
+                            <Anchors>
+                                <Anchor point="TOPLEFT" relativeKey="$parent.FilterBar" relativePoint="BOTTOMLEFT" y="-7"/>
+                                <Anchor point="TOPRIGHT" relativeKey="$parent.FilterBar" relativePoint="BOTTOMRIGHT" y="-7"/>
+                            </Anchors>
+                        </FontString>
+                    </Layer>
+                </Layers>
+            </Frame>
+            <!-- Footer bar (Anguish + Mode toggle) -->
+            <Frame parentKey="Footer">
+                <Size x="0" y="28"/>
+                <Anchors>
+                    <Anchor point="BOTTOMLEFT" x="8" y="8"/>
+                    <Anchor point="BOTTOMRIGHT" x="-8" y="8"/>
+                </Anchors>
+                <Layers>
+                    <Layer level="ARTWORK">
+                        <Texture parentKey="AnguishIcon">
+                            <Size x="16" y="16"/>
+                            <Anchors>
+                                <Anchor point="LEFT" x="4" y="0"/>
+                            </Anchors>
+                        </Texture>
+                    </Layer>
+                    <Layer level="OVERLAY">
+                        <FontString parentKey="AnguishText" inherits="GameFontHighlightSmall" justifyH="LEFT">
+                            <Anchors>
+                                <Anchor point="LEFT" relativeKey="$parent.AnguishIcon" relativePoint="RIGHT" x="4" y="0"/>
+                            </Anchors>
+                        </FontString>
+                    </Layer>
+                </Layers>
+                <Frames>
+                    <!-- Mode toggle button (modern accent style) -->
+                    <Button parentKey="ModeButton" inherits="PreybreakerAccentButtonTemplate">
+                        <Size x="72" y="20"/>
+                        <Anchors>
+                            <Anchor point="RIGHT" x="-2" y="0"/>
+                        </Anchors>
+                    </Button>
+                </Frames>
+            </Frame>
+            <!-- Loading overlay -->
+            <Frame parentKey="LoadingOverlay" setAllPoints="true" hidden="true">
+                <Layers>
+                    <Layer level="BACKGROUND">
+                        <Texture parentKey="Background" setAllPoints="true"/>
+                    </Layer>
+                </Layers>
+            </Frame>
+        </Frames>
+    </Frame>
+
+    <!-- PreybreakerHuntMapOverlay
+         Transparent overlay shown over CovenantMissionFrame during scan/warmup.
+         Lua owns: parent/position relative to mission frame, visibility. -->
+    <Frame name="PreybreakerHuntMapOverlay" parent="UIParent" frameStrata="DIALOG" frameLevel="220" hidden="true">
+        <Layers>
+            <Layer level="BACKGROUND">
+                <Texture parentKey="Background" setAllPoints="true"/>
+            </Layer>
+        </Layers>
+    </Frame>
+
+</Ui>

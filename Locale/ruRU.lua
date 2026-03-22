@@ -9,68 +9,79 @@ ns._activeTranslation = {
     ["Tracker"] = "Трекер",
     ["Placement"] = "Розташування",
     ["Readout"] = "Показник",
+    ["Text style"] = "Стиль тексту",
     ["Quest help"] = "Допомога завдань",
     ["Audio & feedback"] = "Аудіо та зворотний зв'язок",
-    ["Drag & grid"] = "Перетягування та сітка",
     ["Profile"] = "Профіль",
 
     -- Section descriptions
     ["Pick the tracker style and the overall size that feels right on your screen."] = "Оберіть стиль трекера та розмір, що найкраще пасує вашому екрану.",
-    ["Keep the tracker on the prey icon or switch it to a movable floating layout."] = "Тримайте трекер на іконці здобичі або перемкніть на плаваюче розміщення.",
+    ["Keep the tracker attached to the prey icon and nudge it into place."] = "Тримайте трекер прикріпленим до іконки здобичі та підсуньте його на місце.",
     ["Choose which cues appear around the tracker while you hunt."] = "Оберіть, які підказки з'являються навколо трекера під час полювання.",
+    ["Adjust tracker text styling without adding a hard dependency. LibSharedMedia fonts appear automatically when the library is installed."] = "Налаштуйте стиль тексту трекера без жорсткої залежності. Шрифти LibSharedMedia з'являються автоматично, коли бібліотека встановлена.",
     ["Keep the active prey quest easy to spot while the hunt is running."] = "Тримайте активне завдання здобичі на видному місці під час полювання.",
     ["Control sound cues that fire when your hunt phase changes."] = "Керуйте звуковими сигналами, що лунають при зміні фази полювання.",
-    ["Fine-tune how the floating tracker behaves when you reposition it."] = "Налаштуйте поведінку плаваючого трекера під час переміщення.",
     ["Choose whether this character uses its own settings or the account-wide defaults."] = "Оберіть, чи цей персонаж використовує власні налаштування, чи загальні для облікового запису.",
 
     -- Field titles
     ["Enable tracker"] = "Увімкнути трекер",
     ["Display style"] = "Стиль відображення",
     ["Display size"] = "Розмір відображення",
-    ["Detach from prey icon"] = "Від'єднати від іконки здобичі",
-    ["Lock floating position"] = "Зафіксувати плаваючу позицію",
-    ["Reset floating position"] = "Скинути плаваючу позицію",
     ["Hide Blizzard prey icon"] = "Сховати іконку здобичі Blizzard",
     ["Horizontal position"] = "Горизонтальна позиція",
     ["Vertical position"] = "Вертикальна позиція",
     ["Show progress number"] = "Показати число прогресу",
     ["Show stage badge"] = "Показати значок фази",
+    ["Font face"] = "Шрифт",
+    ["Outline"] = "Обведення",
+    ["Shadow"] = "Тінь",
+    ["Number size"] = "Розмір числа",
+    ["Badge size"] = "Розмір значка",
     ["Add prey quest to tracker"] = "Додати завдання здобичі до відстеження",
     ["Focus the prey quest"] = "Сфокусувати завдання здобичі",
+    ["Auto turn-in prey quest"] = "Автозавершення завдання здобичі",
     ["Play sound on phase change"] = "Відтворити звук при зміні фази",
-    ["Snap to grid"] = "Прив'язати до сітки",
-    ["Grid size"] = "Розмір сітки",
+    ["Sound theme"] = "Звукова тема",
+    ["Death cue during hunt"] = "Сигнал смерті під час полювання",
     ["Use character profile"] = "Використовувати профіль персонажа",
 
     -- Field descriptions
     ["Turn Preybreaker on or off without losing your layout."] = "Увімкніть або вимкніть Preybreaker, не втрачаючи розташування.",
     ["Choose the shape that best fits your UI."] = "Оберіть форму, яка найкраще пасує вашому інтерфейсу.",
     ["Make the current style bigger or smaller."] = "Збільшіть або зменшіть поточний стиль.",
-    ["Turn the tracker into a free-floating element you can place anywhere."] = "Перетворіть трекер на вільний плаваючий елемент, який можна розмістити будь-де.",
-    ["Keep the floating tracker fixed once it is where you want it."] = "Зафіксуйте плаваючий трекер, коли він у потрібному місці.",
-    ["Available after you switch the tracker to the floating layout."] = "Доступно після переходу до плаваючого розміщення.",
-    ["Bring the floating tracker back to the center of your screen."] = "Поверніть плаваючий трекер до центру екрана.",
     ["Show only Preybreaker while the prey hunt is active."] = "Показувати лише Preybreaker, поки полювання активне.",
     ["Show a simple number inside the tracker."] = "Показувати просте число всередині трекера.",
     ["Display COLD, WARM, HOT, or FINAL below the tracker."] = "Показувати ХОЛОДНО, ТЕПЛО, ГАРЯЧЕ або ФІНАЛ під трекером.",
     ["Stage badges are available in ring and orb styles."] = "Значки фаз доступні у стилях кільце та сфера.",
+    ["Choose a Blizzard font by default, or pick a LibSharedMedia font when one is available."] = "Використовуйте стандартний шрифт Blizzard або оберіть шрифт LibSharedMedia, якщо доступний.",
+    ["Override the text outline used by the tracker readouts."] = "Перевизначити обведення тексту, що використовується показниками трекера.",
+    ["Override the text shadow used by the tracker readouts."] = "Перевизначити тінь тексту, що використовується показниками трекера.",
+    ["Scale the progress number and the text-only readout without changing the tracker frame itself."] = "Масштабувати число прогресу та текстовий показник без зміни рамки трекера.",
+    ["Scale the stage badge text separately from the main progress number."] = "Масштабувати текст значка фази окремо від основного числа прогресу.",
     ["Automatically place the active prey quest in your watch list."] = "Автоматично додати активне завдання здобичі до списку спостереження.",
     ["Keep the active prey quest selected for your objective arrow."] = "Тримати активне завдання здобичі обраним для стрілки цілі.",
+    ["Automatically complete the prey quest when it pops up, unless a reward choice is required."] = "Автоматично завершити завдання здобичі, коли воно з'являється, якщо не потрібен вибір нагороди.",
     ["Hear an audio cue when the prey hunt moves to a new stage."] = "Почути звуковий сигнал, коли полювання переходить до нової фази.",
-    ["Align the floating tracker to an invisible pixel grid when you drop it."] = "Вирівняти плаваючий трекер по невидимій піксельній сітці при відпусканні.",
-    ["Spacing of the snap grid in pixels."] = "Крок сітки прив'язки у пікселях.",
+    ["Select the active sound pack used for prey hunt audio cues."] = "Оберіть активний звуковий пакет для сигналів полювання на здобич.",
+    ["Play a death cue when you die during an active prey hunt in the hunt zone."] = "Відтворити сигнал смерті, коли ви гинете під час активного полювання в зоні полювання.",
     ["Store a separate set of settings for this character."] = "Зберегти окремий набір налаштувань для цього персонажа.",
-    ["Reset position"] = "Скинути позицію",
     ["Nudge the tracker left or right around the prey icon."] = "Зсунути трекер ліворуч або праворуч навколо іконки здобичі.",
-    ["Move the floating tracker left or right on the screen."] = "Перемістити плаваючий трекер ліворуч або праворуч на екрані.",
     ["Nudge the tracker up or down around the prey icon."] = "Зсунути трекер вгору або вниз навколо іконки здобичі.",
-    ["Move the floating tracker up or down on the screen."] = "Перемістити плаваючий трекер вгору або вниз на екрані.",
 
     -- Display mode labels
     ["Ring"] = "Кільце",
     ["Orbs"] = "Сфери",
     ["Bar"] = "Смуга",
     ["Text"] = "Текст",
+
+    -- Sound theme labels
+    ["Among Us"] = "Among Us",
+    ["Generic"] = "Загальний",
+    ["Jurassic Park"] = "Jurassic Park",
+    ["Pokemon"] = "Pokemon",
+    ["Predator"] = "Predator",
+    ["Stranger Things"] = "Stranger Things",
+    ["Random"] = "Випадковий",
 
     -- Stage labels
     ["COLD"] = "ХОЛОДНО",
@@ -82,6 +93,9 @@ ns._activeTranslation = {
     ["On"] = "Увімк.",
     ["Off"] = "Вимк.",
     ["Unavailable"] = "Недоступно",
+    ["Default"] = "Стандартно",
+    ["None"] = "Жодного",
+    ["Thick outline"] = "Товсте обведення",
 
     -- Summary / sidebar labels
     ["Current setup"] = "Поточна конфігурація",
@@ -89,7 +103,6 @@ ns._activeTranslation = {
     ["Quick actions"] = "Швидкі дії",
     ["Style"] = "Стиль",
     ["Blizzard UI"] = "Інтерфейс Blizzard",
-    ["Floating"] = "Плаваючий",
     ["Attached"] = "Прикріплений",
     ["Overlay only"] = "Лише накладення",
     ["Show both"] = "Показати обидва",
@@ -104,8 +117,6 @@ ns._activeTranslation = {
     ["Text only"] = "Лише текст",
     ["Reset all"] = "Скинути все",
     ["Refresh now"] = "Оновити зараз",
-    ["DRAG TO MOVE"] = "ПЕРЕТЯГНІТЬ ДЛЯ ПЕРЕМІЩЕННЯ",
-    ["DRAGGING"] = "ПЕРЕМІЩЕННЯ",
 
     -- Chat / slash messages
     ["Settings reset to defaults."] = "Налаштування скинуто до стандартних.",
@@ -114,6 +125,8 @@ ns._activeTranslation = {
     ["Tracker disabled."] = "Трекер вимкнено.",
     ["Debug tracing enabled."] = "Відстеження зневадження увімкнено.",
     ["Debug tracing disabled."] = "Відстеження зневадження вимкнено.",
+    ["Standalone hunt panel shown."] = "Окрему панель полювання показано.",
+    ["Standalone hunt panel hidden."] = "Окрему панель полювання приховано.",
 
     -- Compartment tooltip
     ["Compact prey-hunt tracker anchored to the Blizzard widget."] = "Компактний трекер полювання, прив'язаний до віджета Blizzard.",
@@ -123,6 +136,7 @@ ns._activeTranslation = {
     ["Left-click: Enable or disable the tracker"] = "Лівий клік: увімкнути або вимкнути трекер",
     ["Shift-left-click: Open settings"] = "Shift-лівий клік: відкрити налаштування",
     ["Right-click: Force a tracker refresh"] = "Правий клік: примусово оновити трекер",
+    ["Shift-right-click: Open hunt panel"] = "Shift-правий клік: відкрити панель полювання",
 
     -- Settings panel chrome
     ["Shape the prey tracker around your HUD with a live preview and clear sections."] = "Налаштуйте трекер здобичі навколо вашого HUD із попереднім переглядом та зрозумілими секціями.",
@@ -139,8 +153,6 @@ ns._activeTranslation = {
 
     -- Preview notes
     ["Preview stays available while the tracker is turned off."] = "Попередній перегляд залишається доступним, поки трекер вимкнено.",
-    ["Floating layout locked. Unlock it to drag the live tracker."] = "Плаваюче розміщення заблоковано. Розблокуйте, щоб перетягнути трекер.",
-    ["Floating layout ready. Drag the live tracker when a hunt is active."] = "Плаваюче розміщення готове. Перетягніть трекер, коли полювання активне.",
     ["Text view without the Blizzard prey icon."] = "Текстовий вигляд без іконки здобичі Blizzard.",
     ["Text view attached to the Blizzard prey icon."] = "Текстовий вигляд, прикріплений до іконки здобичі Blizzard.",
     ["Bar view without the Blizzard prey icon."] = "Вигляд смуги без іконки здобичі Blizzard.",
@@ -178,4 +190,17 @@ ns._activeTranslation = {
     ["Remnant of Anguish"] = "Залишок муки",
     ["Gold"] = "Золото",
     ["Voidlight Marl"] = "Порожнечосвітній мергель",
+
+    -- Tab labels
+    ["Settings"] = "Налаштування",
+    ["Changelog"] = "Журнал змін",
+    ["Social"] = "Соціальне",
+    ["Roadmap"] = "План розвитку",
+    ["Select"] = "Обрати",
+    ["Select URL text and copy it."] = "Оберіть текст URL та скопіюйте.",
+    ["Known issues"] = "Відомі проблеми",
+    ["Planned features"] = "Заплановані функції",
+    ["Items tracked for upcoming releases."] = "Елементи, відстежувані для наступних випусків.",
+    ["No known issues currently listed."] = "Наразі відомих проблем не зазначено.",
+    ["No planned features currently listed."] = "Наразі запланованих функцій не зазначено.",
 }

@@ -61,6 +61,7 @@ UI/Overlay/OverlayResolver.lua
 UI/Overlay/AnchorResolver.lua
 UI/Overlay/WidgetHiding.lua
 UI/Overlay/OverlayView.lua
+UI/HuntPanel.xml
 UI/HuntPanel.lua
 
 Preybreaker.lua

@@ -9,68 +9,79 @@ ns._activeTranslation = {
     ["Tracker"] = "Tracker",
     ["Placement"] = "Platzierung",
     ["Readout"] = "Anzeige",
+    ["Text style"] = "Textstil",
     ["Quest help"] = "Questhilfe",
     ["Audio & feedback"] = "Audio & Feedback",
-    ["Drag & grid"] = "Ziehen & Raster",
     ["Profile"] = "Profil",
 
     -- Section descriptions
     ["Pick the tracker style and the overall size that feels right on your screen."] = "Wähle den Trackerstil und die Gesamtgröße, die auf deinem Bildschirm am besten passt.",
-    ["Keep the tracker on the prey icon or switch it to a movable floating layout."] = "Behalte den Tracker am Beutesymbol oder wechsle zu einem verschiebbaren Layout.",
+    ["Keep the tracker attached to the prey icon and nudge it into place."] = "Halte den Tracker am Beutesymbol fest und verschiebe ihn in die richtige Position.",
     ["Choose which cues appear around the tracker while you hunt."] = "Wähle, welche Hinweise während der Jagd um den Tracker erscheinen.",
+    ["Adjust tracker text styling without adding a hard dependency. LibSharedMedia fonts appear automatically when the library is installed."] = "Passe die Textstile des Trackers an, ohne eine feste Abhängigkeit hinzuzufügen. LibSharedMedia-Schriften erscheinen automatisch, wenn die Bibliothek installiert ist.",
     ["Keep the active prey quest easy to spot while the hunt is running."] = "Die aktive Beutequest bleibt während der Jagd gut sichtbar.",
     ["Control sound cues that fire when your hunt phase changes."] = "Steuere Tonhinweise, die beim Phasenwechsel ertönen.",
-    ["Fine-tune how the floating tracker behaves when you reposition it."] = "Passe an, wie sich der schwebende Tracker beim Verschieben verhält.",
     ["Choose whether this character uses its own settings or the account-wide defaults."] = "Wähle, ob dieser Charakter eigene Einstellungen oder die kontoweiten Standardwerte nutzt.",
 
     -- Field titles
     ["Enable tracker"] = "Tracker aktivieren",
     ["Display style"] = "Anzeigestil",
     ["Display size"] = "Anzeigegröße",
-    ["Detach from prey icon"] = "Vom Beutesymbol lösen",
-    ["Lock floating position"] = "Schwebende Position sperren",
-    ["Reset floating position"] = "Schwebende Position zurücksetzen",
     ["Hide Blizzard prey icon"] = "Blizzard-Beutesymbol ausblenden",
     ["Horizontal position"] = "Horizontale Position",
     ["Vertical position"] = "Vertikale Position",
     ["Show progress number"] = "Fortschrittszahl anzeigen",
     ["Show stage badge"] = "Stufenabzeichen anzeigen",
+    ["Font face"] = "Schriftart",
+    ["Outline"] = "Umriss",
+    ["Shadow"] = "Schatten",
+    ["Number size"] = "Zahlengröße",
+    ["Badge size"] = "Abzeichengröße",
     ["Add prey quest to tracker"] = "Beutequest zum Tracker hinzufügen",
     ["Focus the prey quest"] = "Beutequest fokussieren",
+    ["Auto turn-in prey quest"] = "Beutequest automatisch abgeben",
     ["Play sound on phase change"] = "Ton bei Phasenwechsel abspielen",
-    ["Snap to grid"] = "Am Raster ausrichten",
-    ["Grid size"] = "Rastergröße",
+    ["Sound theme"] = "Klangthema",
+    ["Death cue during hunt"] = "Todessignal während der Jagd",
     ["Use character profile"] = "Charakterprofil verwenden",
 
     -- Field descriptions
     ["Turn Preybreaker on or off without losing your layout."] = "Preybreaker ein- oder ausschalten, ohne dein Layout zu verlieren.",
     ["Choose the shape that best fits your UI."] = "Wähle die Form, die am besten zu deiner Oberfläche passt.",
     ["Make the current style bigger or smaller."] = "Den aktuellen Stil vergrößern oder verkleinern.",
-    ["Turn the tracker into a free-floating element you can place anywhere."] = "Den Tracker in ein frei schwebendes Element verwandeln.",
-    ["Keep the floating tracker fixed once it is where you want it."] = "Den schwebenden Tracker fixieren, sobald er an der gewünschten Stelle ist.",
-    ["Available after you switch the tracker to the floating layout."] = "Verfügbar, nachdem du zum schwebenden Layout gewechselt hast.",
-    ["Bring the floating tracker back to the center of your screen."] = "Den schwebenden Tracker zurück in die Bildschirmmitte bringen.",
     ["Show only Preybreaker while the prey hunt is active."] = "Nur Preybreaker anzeigen, solange die Beutejagd aktiv ist.",
     ["Show a simple number inside the tracker."] = "Eine einfache Zahl im Tracker anzeigen.",
     ["Display COLD, WARM, HOT, or FINAL below the tracker."] = "KALT, WARM, HEISS oder FINAL unter dem Tracker anzeigen.",
     ["Stage badges are available in ring and orb styles."] = "Stufenabzeichen sind in Ring- und Kugelstilen verfügbar.",
+    ["Choose a Blizzard font by default, or pick a LibSharedMedia font when one is available."] = "Standardmäßig eine Blizzard-Schrift verwenden oder eine LibSharedMedia-Schrift wählen, wenn verfügbar.",
+    ["Override the text outline used by the tracker readouts."] = "Den Textumriss der Trackeranzeigen überschreiben.",
+    ["Override the text shadow used by the tracker readouts."] = "Den Textschatten der Trackeranzeigen überschreiben.",
+    ["Scale the progress number and the text-only readout without changing the tracker frame itself."] = "Die Fortschrittszahl und die Textanzeige skalieren, ohne den Trackerrahmen zu ändern.",
+    ["Scale the stage badge text separately from the main progress number."] = "Den Text des Stufenabzeichens separat von der Fortschrittszahl skalieren.",
     ["Automatically place the active prey quest in your watch list."] = "Die aktive Beutequest automatisch in deine Beobachtungsliste setzen.",
     ["Keep the active prey quest selected for your objective arrow."] = "Die aktive Beutequest für deinen Zielpfeil ausgewählt lassen.",
+    ["Automatically complete the prey quest when it pops up, unless a reward choice is required."] = "Die Beutequest automatisch abschließen, wenn sie erscheint, es sei denn eine Belohnungsauswahl ist erforderlich.",
     ["Hear an audio cue when the prey hunt moves to a new stage."] = "Einen Ton hören, wenn die Beutejagd in eine neue Phase wechselt.",
-    ["Align the floating tracker to an invisible pixel grid when you drop it."] = "Den schwebenden Tracker beim Ablegen an einem unsichtbaren Pixelraster ausrichten.",
-    ["Spacing of the snap grid in pixels."] = "Abstand des Einrastrasters in Pixeln.",
+    ["Select the active sound pack used for prey hunt audio cues."] = "Das aktive Soundpaket für Beutejagd-Audiosignale auswählen.",
+    ["Play a death cue when you die during an active prey hunt in the hunt zone."] = "Ein Todessignal abspielen, wenn du während einer aktiven Beutejagd im Jagdgebiet stirbst.",
     ["Store a separate set of settings for this character."] = "Einen eigenen Satz Einstellungen für diesen Charakter speichern.",
-    ["Reset position"] = "Position zurücksetzen",
     ["Nudge the tracker left or right around the prey icon."] = "Den Tracker um das Beutesymbol nach links oder rechts verschieben.",
-    ["Move the floating tracker left or right on the screen."] = "Den schwebenden Tracker auf dem Bildschirm nach links oder rechts bewegen.",
     ["Nudge the tracker up or down around the prey icon."] = "Den Tracker um das Beutesymbol nach oben oder unten verschieben.",
-    ["Move the floating tracker up or down on the screen."] = "Den schwebenden Tracker auf dem Bildschirm nach oben oder unten bewegen.",
 
     -- Display mode labels
     ["Ring"] = "Ring",
     ["Orbs"] = "Kugeln",
     ["Bar"] = "Balken",
     ["Text"] = "Text",
+
+    -- Sound theme labels
+    ["Among Us"] = "Among Us",
+    ["Generic"] = "Allgemein",
+    ["Jurassic Park"] = "Jurassic Park",
+    ["Pokemon"] = "Pokemon",
+    ["Predator"] = "Predator",
+    ["Stranger Things"] = "Stranger Things",
+    ["Random"] = "Zufällig",
 
     -- Stage labels
     ["COLD"] = "KALT",
@@ -82,6 +93,9 @@ ns._activeTranslation = {
     ["On"] = "An",
     ["Off"] = "Aus",
     ["Unavailable"] = "Nicht verfügbar",
+    ["Default"] = "Standard",
+    ["None"] = "Keine",
+    ["Thick outline"] = "Dicker Umriss",
 
     -- Summary / sidebar labels
     ["Current setup"] = "Aktuelle Konfiguration",
@@ -89,7 +103,6 @@ ns._activeTranslation = {
     ["Quick actions"] = "Schnellaktionen",
     ["Style"] = "Stil",
     ["Blizzard UI"] = "Blizzard-Oberfläche",
-    ["Floating"] = "Schwebend",
     ["Attached"] = "Angeheftet",
     ["Overlay only"] = "Nur Overlay",
     ["Show both"] = "Beides anzeigen",
@@ -104,8 +117,6 @@ ns._activeTranslation = {
     ["Text only"] = "Nur Text",
     ["Reset all"] = "Alles zurücksetzen",
     ["Refresh now"] = "Jetzt aktualisieren",
-    ["DRAG TO MOVE"] = "ZIEHEN ZUM BEWEGEN",
-    ["DRAGGING"] = "WIRD BEWEGT",
 
     -- Chat / slash messages
     ["Settings reset to defaults."] = "Einstellungen auf Standard zurückgesetzt.",
@@ -114,6 +125,8 @@ ns._activeTranslation = {
     ["Tracker disabled."] = "Tracker deaktiviert.",
     ["Debug tracing enabled."] = "Debug-Protokollierung aktiviert.",
     ["Debug tracing disabled."] = "Debug-Protokollierung deaktiviert.",
+    ["Standalone hunt panel shown."] = "Eigenständiges Jagdfenster angezeigt.",
+    ["Standalone hunt panel hidden."] = "Eigenständiges Jagdfenster ausgeblendet.",
 
     -- Compartment tooltip
     ["Compact prey-hunt tracker anchored to the Blizzard widget."] = "Kompakter Beutejagd-Tracker am Blizzard-Widget verankert.",
@@ -123,6 +136,7 @@ ns._activeTranslation = {
     ["Left-click: Enable or disable the tracker"] = "Linksklick: Tracker ein- oder ausschalten",
     ["Shift-left-click: Open settings"] = "Umschalt-Linksklick: Einstellungen öffnen",
     ["Right-click: Force a tracker refresh"] = "Rechtsklick: Tracker-Aktualisierung erzwingen",
+    ["Shift-right-click: Open hunt panel"] = "Umschalt-Rechtsklick: Jagdfenster öffnen",
 
     -- Settings panel chrome
     ["Shape the prey tracker around your HUD with a live preview and clear sections."] = "Passe den Beutetracker an dein HUD an, mit Live-Vorschau und klaren Abschnitten.",
@@ -139,8 +153,6 @@ ns._activeTranslation = {
 
     -- Preview notes
     ["Preview stays available while the tracker is turned off."] = "Die Vorschau bleibt verfügbar, solange der Tracker ausgeschaltet ist.",
-    ["Floating layout locked. Unlock it to drag the live tracker."] = "Schwebendes Layout gesperrt. Entsperren, um den Live-Tracker zu ziehen.",
-    ["Floating layout ready. Drag the live tracker when a hunt is active."] = "Schwebendes Layout bereit. Ziehe den Live-Tracker, wenn eine Jagd aktiv ist.",
     ["Text view without the Blizzard prey icon."] = "Textansicht ohne das Blizzard-Beutesymbol.",
     ["Text view attached to the Blizzard prey icon."] = "Textansicht am Blizzard-Beutesymbol angeheftet.",
     ["Bar view without the Blizzard prey icon."] = "Balkenansicht ohne das Blizzard-Beutesymbol.",
@@ -178,4 +190,17 @@ ns._activeTranslation = {
     ["Remnant of Anguish"] = "Überrest der Qual",
     ["Gold"] = "Gold",
     ["Voidlight Marl"] = "Leerenlichtmergel",
+
+    -- Tab labels
+    ["Settings"] = "Einstellungen",
+    ["Changelog"] = "Änderungsprotokoll",
+    ["Social"] = "Sozial",
+    ["Roadmap"] = "Fahrplan",
+    ["Select"] = "Auswählen",
+    ["Select URL text and copy it."] = "URL-Text auswählen und kopieren.",
+    ["Known issues"] = "Bekannte Probleme",
+    ["Planned features"] = "Geplante Funktionen",
+    ["Items tracked for upcoming releases."] = "Elemente, die für kommende Veröffentlichungen verfolgt werden.",
+    ["No known issues currently listed."] = "Keine bekannten Probleme aktuell aufgeführt.",
+    ["No planned features currently listed."] = "Keine geplanten Funktionen aktuell aufgeführt.",
 }

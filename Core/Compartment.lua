@@ -46,6 +46,14 @@ function _G.Preybreaker_OnAddonCompartmentClick(addonName, buttonName)
         return
     end
 
+    -- Shift + Right-click: open hunt panel standalone
+    if buttonName == "RightButton" and IsShiftKeyDown() then
+        if ns.HuntPanel then
+            ns.HuntPanel:ShowStandalone()
+        end
+        return
+    end
+
     local controller = GetController()
     if buttonName == "RightButton" then
         if not ns.Settings:IsEnabled() then
@@ -85,6 +93,7 @@ function _G.Preybreaker_OnAddonCompartmentEnter(addonName, menuButtonFrame)
     GameTooltip:AddLine(L["Left-click: Enable or disable the tracker"], 0.65, 0.85, 1, true)
     GameTooltip:AddLine(L["Shift-left-click: Open settings"], 0.65, 0.85, 1, true)
     GameTooltip:AddLine(L["Right-click: Force a tracker refresh"], 0.65, 0.85, 1, true)
+    GameTooltip:AddLine(L["Shift-right-click: Open hunt panel"], 0.65, 0.85, 1, true)
     GameTooltip:Show()
 end
 
