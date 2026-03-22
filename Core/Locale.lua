@@ -102,7 +102,6 @@ local baseStrings = {
     ["Unavailable"] = "Unavailable",
     ["Default"] = "Default",
     ["None"] = "None",
-    ["Outline"] = "Outline",
     ["Thick outline"] = "Thick outline",
 
     -- Summary / sidebar labels

@@ -18,16 +18,25 @@ function ns.Util.SafeCall(func, ...)
         return nil
     end
 
-    local results = { pcall(func, ...) }
-    local ok = table.remove(results, 1)
+    local ok, r1, r2, r3, r4 = pcall(func, ...)
     if ok then
-        return unpack(results)
+        return r1, r2, r3, r4
     end
 
     if ns.Debug and type(ns.Debug.Log) == "function" and type(ns.Debug.KV) == "function" then
-        ns.Debug:Log("error", ns.Debug:KV("source", "SafeCall"), ns.Debug:KV("err", tostring(results[1])))
+        ns.Debug:Log("error", ns.Debug:KV("source", "SafeCall"), ns.Debug:KV("err", tostring(r1)))
     end
 
+    return nil
+end
+
+function ns.Util.GetLocalizedSpellName(spellID)
+    if type(C_Spell) == "table" and type(C_Spell.GetSpellName) == "function" then
+        return ns.Util.SafeCall(C_Spell.GetSpellName, spellID)
+    end
+    if type(GetSpellInfo) == "function" then
+        return ns.Util.SafeCall(GetSpellInfo, spellID)
+    end
     return nil
 end
 
@@ -216,4 +225,58 @@ function ns.Util.Print(message)
     if type(print) == "function" then
         print(text)
     end
+end
+
+function ns.Util.TextContainsAny(text, patterns)
+    if type(text) ~= "string" then
+        return false
+    end
+
+    local lower = text:lower()
+    for _, pattern in ipairs(patterns or {}) do
+        if text:find(pattern, 1, true) then
+            return true
+        end
+        if lower:find(pattern:lower(), 1, true) then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function IsCreatureLikeGUID(guidType)
+    return guidType == "Creature" or guidType == "Vehicle" or guidType == "Pet"
+end
+
+function ns.Util.ExtractNPCIDFromGUID(guid)
+    if type(guid) ~= "string" then
+        return nil
+    end
+
+    local guidType, npcID
+    if type(strsplit) == "function" then
+        guidType, _, _, _, _, npcID = strsplit("-", guid)
+    else
+        local fields = {}
+        for field in guid:gmatch("[^-]+") do
+            fields[#fields + 1] = field
+            if #fields >= 6 then
+                break
+            end
+        end
+        guidType = fields[1]
+        npcID = fields[6]
+    end
+
+    if not IsCreatureLikeGUID(guidType) then
+        return nil
+    end
+
+    npcID = tonumber(npcID)
+    if not npcID or npcID <= 0 then
+        return nil
+    end
+
+    return npcID
 end

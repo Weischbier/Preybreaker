@@ -63,6 +63,9 @@ Preybreaker:SetScript("OnEvent", function(self, event, arg1, ...)
         return
     end
 
+    -- Events below intentionally fall through to Refresh() after running
+    -- their specific handler. Do not add `return` statements here.
+
     if event == "QUEST_TURNED_IN" then
         self:HandleQuestTurnedInSound(arg1)
     end

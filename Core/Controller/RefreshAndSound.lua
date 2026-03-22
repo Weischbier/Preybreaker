@@ -18,6 +18,8 @@ local function PlayConfiguredSound(soundPath)
     PlaySoundFile(soundPath, "Master")
 end
 
+-- ResolveSoundPath: legacy fallback for static Media.Sounds paths.
+-- Prefer ResolveThemedSoundPath for all new sound cue resolution.
 local function ResolveSoundPath(sounds, ...)
     if type(sounds) ~= "table" then
         return nil
@@ -93,9 +95,25 @@ function Preybreaker:GetSoundState()
             preyCandidateNPCIDs = {},
             recentHostileGUIDs = {},
             recentHostileNames = {},
+            recentAbandonedQuestIDs = {},
             lastTrapContextAt = nil,
             lastTrapContextName = nil,
             lastTrapContextSource = nil,
+            ambushCandidateWindowEndsAt = nil,
+            lastAmbushSource = nil,
+            lastAmbushAt = nil,
+            lastKilledGUID = nil,
+            lastPreyKilledAt = nil,
+            lastAnySoundAt = nil,
+            lastPlayedSoundPath = nil,
+            lastPreyCombatAt = nil,
+            lastHuntStartAt = nil,
+            lastHuntEndAt = nil,
+            lastStageProgressAt = nil,
+            lastSpellRiposteAt = nil,
+            lastInteractionAt = nil,
+            lastDeathCueAt = nil,
+            cachedMatchQuestID = nil,
             activeSoundTheme = nil,
             soundVariantPools = nil,
             lastPlayedVariantByKey = {},
@@ -131,6 +149,7 @@ local SOUND_KEY_ALIASES = {
     riposte = { "riposte" },
     interaction = { "interaction" },
     progress = { "progress", "interaction" },
+    prey_combat = { "prey_combat", "ambush" },
     kill = { "kill" },
     death = { "death" },
 }
@@ -152,41 +171,7 @@ local AMBUSH_CHAT_BY_LOCALE = {
     zhTW = { "突襲！", "突襲!" },
 }
 
-local function IsCreatureLikeGUID(guidType)
-    return guidType == "Creature" or guidType == "Vehicle" or guidType == "Pet"
-end
-
-local function ExtractNPCIDFromGUID(guid)
-    if type(guid) ~= "string" then
-        return nil
-    end
-
-    local guidType, npcID
-    if type(strsplit) == "function" then
-        guidType, _, _, _, _, npcID = strsplit("-", guid)
-    else
-        local fields = {}
-        for field in guid:gmatch("[^-]+") do
-            fields[#fields + 1] = field
-            if #fields >= 6 then
-                break
-            end
-        end
-        guidType = fields[1]
-        npcID = fields[6]
-    end
-
-    if not IsCreatureLikeGUID(guidType) then
-        return nil
-    end
-
-    npcID = tonumber(npcID)
-    if not npcID or npcID <= 0 then
-        return nil
-    end
-
-    return npcID
-end
+local ExtractNPCIDFromGUID = ns.Util.ExtractNPCIDFromGUID
 
 local function IsHostileUnitToken(unitToken)
     if type(unitToken) ~= "string" then
@@ -258,6 +243,9 @@ function Preybreaker:ResetPreyCombatCandidates()
     state.lastAmbushAt = nil
     state.lastKilledGUID = nil
     state.lastPreyKilledAt = nil
+    state.lastAnySoundAt = nil
+    state.lastPreyCombatAt = nil
+    state.lastDeathCueAt = nil
     state.deathCueArmed = false
 end
 
@@ -425,6 +413,8 @@ function Preybreaker:PromoteRecentHostileCandidate(maxAgeSeconds)
     end
 end
 
+local GLOBAL_SOUND_COOLDOWN_SECONDS = 0.4
+
 local function PlaySoundCue(controller, soundPath, throttleKey, throttleSeconds)
     if not ShouldPlayHuntSounds() then
         return false
@@ -434,9 +424,16 @@ local function PlaySoundCue(controller, soundPath, throttleKey, throttleSeconds)
         return false
     end
 
+    local state = controller:GetSoundState()
+    local now = GetNowSeconds()
+
+    -- Global cooldown: only one sound cue per short window.
+    local lastAnySoundAt = state.lastAnySoundAt or 0
+    if (now - lastAnySoundAt) < GLOBAL_SOUND_COOLDOWN_SECONDS then
+        return false
+    end
+
     if throttleKey and throttleSeconds and throttleSeconds > 0 then
-        local state = controller:GetSoundState()
-        local now = GetNowSeconds()
         local previous = state[throttleKey] or 0
         if (now - previous) < throttleSeconds then
             return false
@@ -444,6 +441,7 @@ local function PlaySoundCue(controller, soundPath, throttleKey, throttleSeconds)
         state[throttleKey] = now
     end
 
+    state.lastAnySoundAt = now
     PlayConfiguredSound(soundPath)
     return true
 end
@@ -637,7 +635,7 @@ local function BuildAmbushMessageSetForLocale(locale)
         AddAmbushToken(tokenSet, token)
     end
 
-    local spellName = type(GetSpellInfo) == "function" and GetSpellInfo(ROGUE_AMBUSH_SPELL_ID) or nil
+    local spellName = ns.Util.GetLocalizedSpellName(ROGUE_AMBUSH_SPELL_ID)
     if type(spellName) == "string" and spellName ~= "" then
         AddAmbushToken(tokenSet, spellName .. "!")
         AddAmbushToken(tokenSet, "¡" .. spellName .. "!")
@@ -653,7 +651,7 @@ local function GetAmbushMessageSet()
         locale = "enUS"
     end
 
-    local spellName = type(GetSpellInfo) == "function" and GetSpellInfo(ROGUE_AMBUSH_SPELL_ID) or ""
+    local spellName = ns.Util.GetLocalizedSpellName(ROGUE_AMBUSH_SPELL_ID) or ""
     if type(spellName) ~= "string" then
         spellName = ""
     end
@@ -928,17 +926,53 @@ function Preybreaker:PickSoundVariantPath(variantKey, regularVariants, bonusVari
     end
 
     local state = self:GetSoundState()
-    local index = GetRandomIndex(#variants)
-    local previousPath = state.lastPlayedVariantByKey and state.lastPlayedVariantByKey[variantKey] or nil
-    if #variants > 1 and variants[index] == previousPath then
-        index = (index % #variants) + 1
-    end
-
-    local pickedPath = variants[index]
     if type(state.lastPlayedVariantByKey) ~= "table" then
         state.lastPlayedVariantByKey = {}
     end
+
+    local count = #variants
+    if count == 1 then
+        state.lastPlayedVariantByKey[variantKey] = variants[1]
+        return variants[1]
+    end
+
+    -- Build a set of recently played paths to avoid (per-key + global last).
+    local recentlyPlayed = {}
+    local prevForKey = state.lastPlayedVariantByKey[variantKey]
+    if prevForKey then
+        recentlyPlayed[prevForKey] = true
+    end
+    local globalPrev = state.lastPlayedSoundPath
+    if globalPrev then
+        recentlyPlayed[globalPrev] = true
+    end
+
+    -- Collect candidates that haven't been played recently.
+    local candidates = {}
+    for i = 1, count do
+        if not recentlyPlayed[variants[i]] then
+            candidates[#candidates + 1] = i
+        end
+    end
+
+    -- If all variants were recently played, allow any except the per-key last.
+    if #candidates == 0 then
+        for i = 1, count do
+            if variants[i] ~= prevForKey then
+                candidates[#candidates + 1] = i
+            end
+        end
+    end
+
+    -- Final fallback: pick any.
+    if #candidates == 0 then
+        candidates[1] = GetRandomIndex(count)
+    end
+
+    local picked = candidates[GetRandomIndex(#candidates)]
+    local pickedPath = variants[picked]
     state.lastPlayedVariantByKey[variantKey] = pickedPath
+    state.lastPlayedSoundPath = pickedPath
     return pickedPath
 end
 
@@ -993,6 +1027,7 @@ function Preybreaker:GetResolvedSoundPaths()
         finalPhase = ResolveSoundPath(sounds, "FinalPhase"),
         progress = ResolveSoundPath(sounds, "Progress", "PhaseChange", "Interaction"),
         interaction = ResolveSoundPath(sounds, "Interaction", "PhaseChange"),
+        preyCombat = ResolveSoundPath(sounds, "Ambush", "ColdToWarm", "PhaseChange"),
         kill = ResolveSoundPath(sounds, "Kill"),
         death = ResolveSoundPath(sounds, "Death"),
     }
@@ -1000,9 +1035,14 @@ end
 
 function Preybreaker:RefreshSoundContext(snapshot)
     local state = self:GetSoundState()
+    local newQuestID = ResolveSessionQuestID(snapshot)
+    if newQuestID and newQuestID == state.cachedMatchQuestID then
+        return
+    end
     local matchSet, relevantQuestIDs = BuildQuestTitleMatchSet(snapshot)
     state.preyNameMatches = matchSet
     state.relevantQuestIDs = relevantQuestIDs
+    state.cachedMatchQuestID = newQuestID
 end
 
 function Preybreaker:IsRelevantQuestForSound(questID)
@@ -1110,10 +1150,20 @@ function Preybreaker:HandleNameplateUnitAddedForSounds(unitToken)
 
     self:RememberRecentHostileUnit(unitToken)
     self:RememberTrapContextFromUnit(unitToken)
-    self:PromoteUnitPreyCandidateIfLikely(unitToken)
+    local promoted = self:PromoteUnitPreyCandidateIfLikely(unitToken)
 
     if self:IsAmbushCandidateWindowActive() and IsUnitTargetOrMouseover(unitToken) then
         self:PromoteUnitPreyCandidateIfHostile(unitToken)
+    end
+
+    -- Fire prey_combat when a likely prey target is first spotted in WARM+ state.
+    if promoted then
+        local snapshot = self.lastSnapshot
+        local progressState = snapshot and snapshot.progressState or nil
+        if type(progressState) == "number" and progressState >= PREY_STATE_WARM then
+            local sounds = self:GetResolvedSoundPaths()
+            PlayResolvedSoundCue(self, "prey_combat", sounds.ambush, "lastPreyCombatAt", 8)
+        end
     end
 end
 
@@ -1169,7 +1219,11 @@ function Preybreaker:HandlePlayerTargetChangedForSounds()
         return
     end
 
-    self:PromoteUnitPreyCandidateIfLikely("target")
+    local promoted = self:PromoteUnitPreyCandidateIfLikely("target")
+    if promoted then
+        local sounds = self:GetResolvedSoundPaths()
+        PlayResolvedSoundCue(self, "prey_combat", sounds.ambush, "lastPreyCombatAt", 8)
+    end
 end
 
 function Preybreaker:HandleMouseoverChangedForSounds()
@@ -1230,6 +1284,11 @@ function Preybreaker:HandleSnapshotSoundTransitions(previousSnapshot, snapshot)
     end
 
     if previousSessionActive and not newSessionActive then
+        -- Fire hunt_end if the previous quest was turned in (completion-flagged).
+        local prevQuestID = ResolveSessionQuestID(previousSnapshot)
+        if prevQuestID and IsQuestCompletionFlagged(prevQuestID) then
+            PlayResolvedSoundCue(self, "hunt_end", sounds.huntEnd, "lastHuntEndAt", 0.75)
+        end
         self:ResetPreyCombatCandidates()
         return
     end

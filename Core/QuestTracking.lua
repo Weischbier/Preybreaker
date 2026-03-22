@@ -149,20 +149,7 @@ local function SafeGetQuestRewardCurrencyInfo(questInfoType, index)
     return Util.SafeCall(C_QuestOffer.GetQuestRewardCurrencyInfo, questInfoType, index)
 end
 
-local function TextContainsAny(text, patterns)
-    if type(text) ~= "string" then
-        return false
-    end
-
-    local lower = text:lower()
-    for _, pattern in ipairs(patterns or {}) do
-        if lower:find(pattern:lower(), 1, true) then
-            return true
-        end
-    end
-
-    return false
-end
+local TextContainsAny = Util.TextContainsAny
 
 local function GetChoiceLabel(choice)
     if not choice then
@@ -657,6 +644,13 @@ function ns.QuestTracking:TryResolvePendingRewardSelection(reason)
         return false
     end
 
+    local retryCount = state.pendingRewardRetryCount or 0
+    if retryCount >= 10 then
+        LogTracking("autoSelect:abandon", questID, "retryLimitReached")
+        ClearCompletionState(state)
+        return false
+    end
+
     local numChoices = GetQuestRewardChoiceCount()
     local choices = self:BuildQuestRewardChoices("choice", numChoices)
     local rewardIndex = self:ResolvePreferredRewardChoice(choices, settings:GetPreferredHuntReward(), settings:GetFallbackHuntReward())
@@ -671,7 +665,7 @@ function ns.QuestTracking:TryResolvePendingRewardSelection(reason)
     end
 
     state.pendingRewardQuestID = questID
-    state.pendingRewardRetryCount = (state.pendingRewardRetryCount or 0) + 1
+    state.pendingRewardRetryCount = retryCount + 1
     LogTracking("autoSelect:pending", questID, reason or "questComplete")
     return false
 end

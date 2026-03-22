@@ -24,23 +24,13 @@ local function LogHunt(action, detail, extra)
     )
 end
 
-local function GetNpcIDFromGUID(guid)
-    if type(guid) ~= "string" then
-        return nil
-    end
-
-    -- Creature-subType-serverID-instanceID-zoneUID-npcID-spawnUID
-    local _, _, _, _, _, npcID = strsplit("-", guid)
-    return tonumber(npcID)
-end
-
 local function IsTargetAstalor()
     if type(UnitGUID) ~= "function" then
         return false
     end
 
     local guid = UnitGUID("npc")
-    return GetNpcIDFromGUID(guid) == ns.Constants.Hunt.AstalorNpcID
+    return Util.ExtractNPCIDFromGUID(guid) == ns.Constants.Hunt.AstalorNpcID
 end
 
 local function GetRemnantQuantity()
@@ -62,23 +52,7 @@ local function CanAffordHunt()
     return GetRemnantQuantity() >= (threshold + ns.Constants.Hunt.Cost)
 end
 
-local function TextContainsAny(text, patterns)
-    if type(text) ~= "string" then
-        return false
-    end
-
-    local lower = text:lower()
-    for _, pattern in ipairs(patterns or {}) do
-        if text:find(pattern, 1, true) then
-            return true
-        end
-        if lower:find(pattern:lower(), 1, true) then
-            return true
-        end
-    end
-
-    return false
-end
+local TextContainsAny = Util.TextContainsAny
 
 local function GetQuestInfoText(info)
     if type(info) ~= "table" then

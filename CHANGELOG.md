@@ -2,6 +2,52 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.2.0] - 2026-03-22
+
+### Added
+
+- Added an original, clean-room Hunt Operations surface for prey routing and reward intake.
+- Added a compact tactical panel mode that docks beside the Adventure Map plus a standalone mode with draggable placement memory.
+- Added a dynamic hunt stream with per-row difficulty accents, reward slots, status chips, and direct quest-open actions.
+- Added an async reward-sync pipeline that stages quest choice data in the background and recovers from transient empty reads.
+- Added a pin-stability sampler on map open so hunt snapshots settle before display.
+- Added persistent hunt filters (All, Nightmare, Hard, Normal) with immediate refresh behavior.
+- Added live summary telemetry for filter state, active hunts, ready hunts, and current Anguish currency.
+- Added contextual loading overlays for both panel and map contexts during scan/warmup operations.
+- Added event-driven refresh hooks for quest, zone, currency, and mission-frame transitions.
+
+### Changed
+
+- Shifted the hunt panel direction away from the previous board-style prototype to a new compact tactical-console presentation.
+- Simplified the interaction model around fast scan, filter, and open workflows for hunt sessions.
+- Added motion polish to the new panel flow: entry fades, filter feedback flashes, active-hunt pulse treatment, and loading-bar shimmer during sync operations.
+
+## [v1.1.6] - 2026-03-22
+
+### Added
+
+- Added `prey_combat` sound cue that plays when a likely prey target is first spotted or targeted during Warm or higher hunt stages, using dedicated prey_combat sound files from Pokemon and Predator themes with fallback to ambush sounds.
+- Added hunt-end sound on snapshot session-end when the previous quest was completion-flagged, not only on explicit quest turn-in.
+
+### Changed
+
+- Added a 0.4-second global sound cooldown to prevent multiple cues from stacking on the same gameplay moment (e.g., simultaneous ambush + progress + prey_combat during Cold→Warm transition).
+- Rewrote sound variant selection to track both per-key and global last-played paths, preventing the same sound file from repeating across consecutive plays even when accessed through different alias chains.
+- Consolidated duplicate helper functions (`TextContainsAny`, `ExtractNPCIDFromGUID`) into shared `Util` module.
+- Added `GetLocalizedSpellName` compatibility wrapper that prefers `C_Spell.GetSpellName` with `GetSpellInfo` fallback.
+- Refactored `SafeCall` to fixed-arity return to avoid temporary table allocation.
+- Cached quest match set in `RefreshSoundContext` to skip rebuilding when the active quest ID has not changed.
+
+### Fixed
+
+- Fixed double-play sound bug where different cue types could all fire simultaneously for the same gameplay event due to independent per-key throttling.
+- Fixed sound variant selection repeating the same file multiple times in a row by excluding both per-key and globally last-played paths from candidates.
+- Capped reward auto-selection retry count at 10 to prevent unbounded retries if the quest UI never settles.
+- Removed duplicate locale key for "Outline" in base locale table.
+- Consolidated sound-state field initialization so all throttle keys and session fields are explicitly set in `GetSoundState`, preventing nil-access edge cases.
+- Fixed global sound cooldown (`lastAnySoundAt`) persisting across hunt session resets, which could block `hunt_start` after rapid session transitions.
+- Fixed `lastPreyCombatAt` and `lastDeathCueAt` throttle keys not being cleared on hunt session reset, causing stale cooldowns to carry over.
+
 ## [v1.1.5] - 2026-03-21
 
 ### Changed

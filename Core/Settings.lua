@@ -1,5 +1,8 @@
 -- SPDX-License-Identifier: GPL-3.0-only
 -- Copyright (C) 2026 Danny Patten
+--
+-- NOTE: Sanitizer functions reference ns.Util which loads after this file.
+-- They are never called at load time; only from Initialize() onwards.
 
 local _, ns = ...
 

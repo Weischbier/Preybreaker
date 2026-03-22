@@ -17,40 +17,38 @@ local BACKDROP_TEMPLATE = BackdropTemplateMixin and "BackdropTemplate" or nil
 local PANEL_NAME = "PreybreakerHuntPanel"
 local MAP_OVERLAY_NAME = "PreybreakerHuntMapOverlay"
 local LOADING_FRAME_NAME = "PreybreakerHuntLoadingFrame"
-local ROW_HEIGHT = 102
-local ROW_SPACING = 10
-local PANEL_WIDTH = 756
-local PANEL_HEIGHT = 610
-local ATTACHED_WIDTH = 388
-local HEADER_HEIGHT = 70
-local SIDE_WIDTH = 170
-local ATTACHED_SIDE_WIDTH = 124
-local FILTER_BUTTON_HEIGHT = 30
-local REWARD_ICON_SIZE = 18
+local ROW_HEIGHT = 78
+local ROW_SPACING = 8
+local PANEL_WIDTH = 396
+local PANEL_HEIGHT = 574
+local ATTACHED_WIDTH = 316
+local HEADER_HEIGHT = 64
+local FILTER_BUTTON_HEIGHT = 24
+local REWARD_ICON_SIZE = 17
 local MAX_REWARD_ICONS = 5
 local missionHooksApplied = false
 
 local DIFF_COLORS = {
-    All = { 0.42, 0.76, 0.90 },
-    Nightmare = { 0.95, 0.34, 0.44 },
-    Hard = { 0.97, 0.67, 0.27 },
-    Normal = { 0.44, 0.84, 0.62 },
+    All = { 0.45, 0.88, 0.80 },
+    Nightmare = { 0.95, 0.42, 0.40 },
+    Hard = { 0.95, 0.72, 0.31 },
+    Normal = { 0.49, 0.85, 0.54 },
 }
 
 local THEME = {
-    panelBackground = { 0.02, 0.03, 0.05, 0.98 },
-    panelBorder = { 0.16, 0.61, 0.71, 0.96 },
-    headerBackground = { 0.05, 0.07, 0.10, 0.98 },
-    sidebarBackground = { 0.04, 0.06, 0.08, 0.98 },
-    sidebarBorder = { 0.20, 0.44, 0.51, 0.92 },
-    boardBackground = { 0.05, 0.07, 0.10, 0.98 },
-    boardBorder = { 0.20, 0.24, 0.29, 0.94 },
-    rowBackground = { 0.06, 0.08, 0.11, 0.97 },
-    rowBorder = { 0.18, 0.29, 0.35, 0.90 },
-    cardBackground = { 0.05, 0.08, 0.11, 0.96 },
-    cardBorder = { 0.22, 0.57, 0.62, 0.90 },
-    mutedText = { 0.68, 0.79, 0.83 },
-    accentText = { 0.84, 0.96, 0.98 },
+    panelBackground = { 0.02, 0.04, 0.03, 0.98 },
+    panelBorder = { 0.30, 0.63, 0.49, 0.96 },
+    headerBackground = { 0.06, 0.10, 0.08, 0.98 },
+    bodyBackground = { 0.04, 0.07, 0.06, 0.98 },
+    bodyBorder = { 0.17, 0.28, 0.23, 0.94 },
+    rowBackground = { 0.07, 0.11, 0.09, 0.96 },
+    rowBorder = { 0.19, 0.30, 0.25, 0.92 },
+    chipBackground = { 0.10, 0.16, 0.13, 0.96 },
+    chipBorder = { 0.27, 0.42, 0.35, 0.95 },
+    cardBackground = { 0.06, 0.10, 0.08, 0.96 },
+    cardBorder = { 0.28, 0.56, 0.45, 0.90 },
+    mutedText = { 0.72, 0.81, 0.76 },
+    accentText = { 0.88, 0.97, 0.93 },
 }
 
 local function SafeCall(func, ...)
@@ -82,6 +80,131 @@ local function ApplyBackdrop(frame, background, border)
     })
     frame:SetBackdropColor(background[1], background[2], background[3], background[4] or 1)
     frame:SetBackdropBorderColor(border[1], border[2], border[3], border[4] or 1)
+end
+
+local function EnsurePulseAlpha(target, key, fromAlpha, toAlpha, duration)
+    if not target then
+        return nil
+    end
+
+    local pulseKey = key or "_pulseAnim"
+    if target[pulseKey] then
+        return target[pulseKey]
+    end
+
+    local group = target:CreateAnimationGroup()
+    group:SetLooping("BOUNCE")
+
+    local alpha = group:CreateAnimation("Alpha")
+    alpha:SetFromAlpha(fromAlpha or 0)
+    alpha:SetToAlpha(toAlpha or 1)
+    alpha:SetDuration(duration or 0.85)
+
+    target[pulseKey] = group
+    return group
+end
+
+local function EnsureIntroAnim(frame)
+    if not frame then
+        return nil
+    end
+
+    if frame._introAnim then
+        return frame._introAnim
+    end
+
+    local group = frame:CreateAnimationGroup()
+    local alpha = group:CreateAnimation("Alpha")
+    alpha:SetFromAlpha(0)
+    alpha:SetToAlpha(1)
+    alpha:SetDuration(0.17)
+    frame._introAnim = group
+    return group
+end
+
+local function PlayIntro(frame)
+    local intro = EnsureIntroAnim(frame)
+    if not intro then
+        return
+    end
+
+    frame:SetAlpha(0)
+    intro:Stop()
+    intro:Play()
+end
+
+local function EnsureFlashAnim(frame)
+    if not frame then
+        return nil
+    end
+
+    if frame._flashAnim then
+        return frame._flashAnim
+    end
+
+    local group = frame:CreateAnimationGroup()
+    local out = group:CreateAnimation("Alpha")
+    out:SetFromAlpha(1)
+    out:SetToAlpha(0.3)
+    out:SetDuration(0.07)
+
+    local inn = group:CreateAnimation("Alpha")
+    inn:SetFromAlpha(0.3)
+    inn:SetToAlpha(1)
+    inn:SetDuration(0.11)
+    inn:SetOrder(2)
+
+    frame._flashAnim = group
+    return group
+end
+
+local function FlashFrame(frame)
+    local flash = EnsureFlashAnim(frame)
+    if not flash then
+        return
+    end
+
+    flash:Stop()
+    flash:Play()
+end
+
+local function EnsureProgressShimmer(card)
+    if not card or not card.ProgressFill then
+        return nil
+    end
+
+    if card._progressShimmer then
+        return card._progressShimmer
+    end
+
+    local group = card.ProgressFill:CreateAnimationGroup()
+    group:SetLooping("BOUNCE")
+
+    local alpha = group:CreateAnimation("Alpha")
+    alpha:SetFromAlpha(0.55)
+    alpha:SetToAlpha(1)
+    alpha:SetDuration(0.72)
+
+    card._progressShimmer = group
+    return group
+end
+
+local function SetProgressShimmer(card, enabled)
+    local shimmer = EnsureProgressShimmer(card)
+    if not shimmer then
+        return
+    end
+
+    if enabled then
+        if not shimmer:IsPlaying() then
+            shimmer:Play()
+        end
+    else
+        shimmer:Stop()
+        if card.ProgressFill then
+            card.ProgressFill:SetAlpha(1)
+        end
+    end
 end
 
 local function GetRemnantQuantity()
@@ -187,19 +310,19 @@ end
 local function CreateFilterButton(parent, value, label)
     local button = CreateFrame("Button", nil, parent, BACKDROP_TEMPLATE)
     button:SetHeight(FILTER_BUTTON_HEIGHT)
-    ApplyBackdrop(button, { 0.05, 0.08, 0.10, 0.94 }, { 0.18, 0.28, 0.32, 0.90 })
+    ApplyBackdrop(button, THEME.chipBackground, THEME.chipBorder)
 
-    button.Bar = button:CreateTexture(nil, "ARTWORK")
-    button.Bar:SetPoint("TOPLEFT", button, "TOPLEFT", 8, -6)
-    button.Bar:SetPoint("BOTTOMLEFT", button, "BOTTOMLEFT", 8, 6)
-    button.Bar:SetWidth(4)
-    button.Bar:SetColorTexture(0.34, 0.82, 0.86, 0.56)
-
-    button.Label = CreateText(button, "OVERLAY", "GameFontHighlightSmall", "LEFT", 20, 0)
-    button.Label:SetPoint("RIGHT", button, "RIGHT", -10, 0)
+    button.Label = CreateText(button, "OVERLAY", "GameFontHighlightSmall", "CENTER", 0, 0)
     button.Label:SetJustifyH("LEFT")
     button.Label:SetText(label)
     button.value = value
+
+    button.Underscore = button:CreateTexture(nil, "ARTWORK")
+    button.Underscore:SetHeight(2)
+    button.Underscore:SetPoint("BOTTOMLEFT", button, "BOTTOMLEFT", 4, 2)
+    button.Underscore:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -4, 2)
+    button.Underscore:SetColorTexture(0.38, 0.76, 0.66, 0)
+
     button:SetScript("OnClick", function()
         if HuntList then
             HuntList:SetDifficultyFilter(value)
@@ -213,76 +336,19 @@ end
 local function UpdateFilterButton(button, selected)
     local color = DIFF_COLORS[button.value] or DIFF_COLORS.All
     if selected then
-        ApplyBackdrop(button, { color[1] * 0.16, color[2] * 0.16, color[3] * 0.16, 0.96 }, { color[1], color[2], color[3], 0.98 })
+        ApplyBackdrop(button, { color[1] * 0.22, color[2] * 0.22, color[3] * 0.22, 0.97 }, { color[1], color[2], color[3], 0.98 })
         SetTextColor(button.Label, { 1, 1, 1 })
-        if button.Bar then
-            button.Bar:SetColorTexture(color[1], color[2], color[3], 1)
+        if button.Underscore then
+            button.Underscore:SetColorTexture(color[1], color[2], color[3], 0.95)
         end
+        FlashFrame(button)
         return
     end
 
-    ApplyBackdrop(button, { 0.05, 0.08, 0.10, 0.94 }, { 0.18, 0.28, 0.32, 0.90 })
+    ApplyBackdrop(button, THEME.chipBackground, THEME.chipBorder)
     SetTextColor(button.Label, THEME.mutedText)
-    if button.Bar then
-        button.Bar:SetColorTexture(0.34, 0.82, 0.86, 0.56)
-    end
-end
-
-local function CreateMetricCard(parent, label)
-    local card = CreateFrame("Frame", nil, parent, BACKDROP_TEMPLATE)
-    ApplyBackdrop(card, THEME.cardBackground, THEME.cardBorder)
-
-    card.Label = CreateText(card, "OVERLAY", "GameFontDisableSmall", "TOPLEFT", 10, -8)
-    card.Label:SetText(label)
-    SetTextColor(card.Label, THEME.mutedText)
-
-    card.Value = CreateText(card, "OVERLAY", "GameFontHighlightSmall", "BOTTOMLEFT", 10, 8)
-    card.Value:SetJustifyH("LEFT")
-    SetTextColor(card.Value, THEME.accentText)
-
-    return card
-end
-
-local function LayoutMetricCards(frame)
-    local cards = frame and frame.MetricCards
-    if not cards or not frame.BoardHeader then
-        return
-    end
-
-    local boardWidth = frame.BoardHeader:GetWidth() or 0
-    local singleRow = boardWidth >= 360
-    local padding = 8
-    local gap = 6
-
-    if singleRow then
-        local width = math.floor((boardWidth - (padding * 2) - (gap * 3)) / 4)
-        width = math.max(64, width)
-        for index, card in ipairs(cards) do
-            card:ClearAllPoints()
-            card:SetSize(width, 34)
-            if index == 1 then
-                card:SetPoint("TOPLEFT", frame.BoardHeader, "TOPLEFT", padding, -34)
-            else
-                card:SetPoint("TOPLEFT", cards[index - 1], "TOPRIGHT", gap, 0)
-            end
-        end
-        return
-    end
-
-    local width = math.floor((boardWidth - (padding * 2) - gap) / 2)
-    width = math.max(72, width)
-    for index, card in ipairs(cards) do
-        card:ClearAllPoints()
-        card:SetSize(width, 34)
-        if index == 1 then
-            card:SetPoint("TOPLEFT", frame.BoardHeader, "TOPLEFT", padding, -34)
-        elseif index == 2 then
-            card:SetPoint("TOPLEFT", cards[1], "BOTTOMLEFT", 0, -gap)
-        elseif index == 3 then
-            card:SetPoint("TOPLEFT", frame.BoardHeader, "TOPLEFT", padding + width + gap, -34)
-        elseif index == 4 then
-            card:SetPoint("TOPLEFT", cards[3], "BOTTOMLEFT", 0, -gap)
-        end
+    if button.Underscore then
+        button.Underscore:SetColorTexture(0.38, 0.76, 0.66, 0)
     end
 end
 
@@ -354,66 +420,74 @@ end
 
 local function CreateHuntRow(parent)
     local row = CreateFrame("Button", nil, parent, BACKDROP_TEMPLATE)
-    row:SetSize(PANEL_WIDTH - 42, ROW_HEIGHT)
+    row:SetSize(PANEL_WIDTH - 34, ROW_HEIGHT)
     row:SetFrameLevel(parent:GetFrameLevel() + 1)
     ApplyBackdrop(row, THEME.rowBackground, THEME.rowBorder)
 
+    row.Pulse = row:CreateTexture(nil, "BACKGROUND")
+    row.Pulse:SetAllPoints()
+    row.Pulse:SetColorTexture(0.42, 0.84, 0.74, 0)
+    row.Pulse:SetAlpha(0)
+    EnsurePulseAlpha(row.Pulse, "_activePulseAnim", 0.05, 0.15, 0.85)
+
     row.Highlight = row:CreateTexture(nil, "HIGHLIGHT")
     row.Highlight:SetAllPoints()
-    row.Highlight:SetColorTexture(0.34, 0.82, 0.86, 0.08)
+    row.Highlight:SetColorTexture(0.52, 0.90, 0.72, 0.08)
 
     row.SideBand = row:CreateTexture(nil, "ARTWORK")
     row.SideBand:SetPoint("TOPLEFT", row, "TOPLEFT", 0, 0)
     row.SideBand:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 0, 0)
-    row.SideBand:SetWidth(6)
-    row.SideBand:SetColorTexture(0.34, 0.82, 0.86, 0.80)
+    row.SideBand:SetWidth(4)
+    row.SideBand:SetColorTexture(0.38, 0.76, 0.66, 0.88)
 
-    row.TopRule = row:CreateTexture(nil, "ARTWORK")
-    row.TopRule:SetHeight(1)
-    row.TopRule:SetPoint("TOPLEFT", row, "TOPLEFT", 10, -8)
-    row.TopRule:SetPoint("TOPRIGHT", row, "TOPRIGHT", -10, -8)
-    row.TopRule:SetColorTexture(0.34, 0.46, 0.50, 0.30)
+    row.Scanline = row:CreateTexture(nil, "ARTWORK")
+    row.Scanline:SetHeight(1)
+    row.Scanline:SetPoint("TOPLEFT", row, "TOPLEFT", 8, -7)
+    row.Scanline:SetPoint("TOPRIGHT", row, "TOPRIGHT", -8, -7)
+    row.Scanline:SetColorTexture(0.24, 0.40, 0.33, 0.55)
 
     row.DifficultyPill = CreateFrame("Frame", nil, row, BACKDROP_TEMPLATE)
-    row.DifficultyPill:SetSize(92, 20)
-    row.DifficultyPill:SetPoint("TOPLEFT", row, "TOPLEFT", 12, -12)
-    ApplyBackdrop(row.DifficultyPill, { 0.10, 0.13, 0.15, 0.94 }, { 0.28, 0.34, 0.38, 0.92 })
+    row.DifficultyPill:SetSize(78, 16)
+    row.DifficultyPill:SetPoint("TOPLEFT", row, "TOPLEFT", 10, -10)
+    ApplyBackdrop(row.DifficultyPill, { 0.10, 0.13, 0.15, 0.94 }, { 0.28, 0.34, 0.38, 0.90 })
 
     row.Difficulty = CreateText(row.DifficultyPill, "OVERLAY", "GameFontHighlightSmall", "CENTER", 0, 0)
     row.Difficulty:SetJustifyH("CENTER")
 
     row.StatusFrame = CreateFrame("Frame", nil, row, BACKDROP_TEMPLATE)
-    row.StatusFrame:SetSize(108, 20)
-    row.StatusFrame:SetPoint("TOPRIGHT", row, "TOPRIGHT", -12, -12)
-    ApplyBackdrop(row.StatusFrame, { 0.07, 0.10, 0.13, 0.92 }, { 0.24, 0.30, 0.34, 0.92 })
+    row.StatusFrame:SetSize(96, 16)
+    row.StatusFrame:SetPoint("TOPRIGHT", row, "TOPRIGHT", -8, -10)
+    ApplyBackdrop(row.StatusFrame, { 0.09, 0.12, 0.10, 0.92 }, { 0.24, 0.30, 0.27, 0.92 })
 
     row.Status = CreateText(row.StatusFrame, "OVERLAY", "GameFontNormalSmall", "CENTER", 0, 0)
     row.Status:SetJustifyH("CENTER")
 
-    row.Title = CreateText(row, "OVERLAY", "GameFontHighlight", "TOPLEFT", 12, -36)
-    row.Title:SetPoint("TOPRIGHT", row.StatusFrame, "BOTTOMLEFT", -8, -4)
+    row.Title = CreateText(row, "OVERLAY", "GameFontHighlight", "TOPLEFT", 10, -30)
+    row.Title:SetPoint("TOPRIGHT", row, "TOPRIGHT", -70, -30)
     row.Title:SetJustifyH("LEFT")
+    row.Title:SetWordWrap(false)
 
     row.Zone = CreateText(row, "OVERLAY", "GameFontDisableSmall")
-    row.Zone:SetPoint("TOPLEFT", row.Title, "BOTTOMLEFT", 0, -2)
-    row.Zone:SetPoint("TOPRIGHT", row.StatusFrame, "BOTTOMLEFT", -8, -18)
+    row.Zone:SetPoint("TOPLEFT", row.Title, "BOTTOMLEFT", 0, -1)
+    row.Zone:SetPoint("TOPRIGHT", row, "TOPRIGHT", -70, -42)
     row.Zone:SetJustifyH("LEFT")
+    row.Zone:SetWordWrap(false)
 
     row.FooterRule = row:CreateTexture(nil, "ARTWORK")
     row.FooterRule:SetHeight(1)
-    row.FooterRule:SetPoint("LEFT", row, "LEFT", 12, 0)
-    row.FooterRule:SetPoint("RIGHT", row, "RIGHT", -12, 0)
-    row.FooterRule:SetPoint("BOTTOM", row, "BOTTOM", 0, 28)
-    row.FooterRule:SetColorTexture(0.18, 0.26, 0.30, 0.44)
+    row.FooterRule:SetPoint("LEFT", row, "LEFT", 8, 0)
+    row.FooterRule:SetPoint("RIGHT", row, "RIGHT", -8, 0)
+    row.FooterRule:SetPoint("BOTTOM", row, "BOTTOM", 0, 22)
+    row.FooterRule:SetColorTexture(0.22, 0.34, 0.2, 0.50)
 
     row.RewardLabel = CreateText(row, "OVERLAY", "GameFontDisableSmall")
-    row.RewardLabel:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 12, 8)
-    row.RewardLabel:SetWidth(164)
+    row.RewardLabel:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 10, 6)
+    row.RewardLabel:SetWidth(132)
     row.RewardLabel:SetJustifyH("LEFT")
 
     row.RewardShelf = CreateFrame("Frame", nil, row)
-    row.RewardShelf:SetSize(114, 20)
-    row.RewardShelf:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 104, 8)
+    row.RewardShelf:SetSize(106, 18)
+    row.RewardShelf:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 104, 6)
 
     row.Rewards = {}
     for i = 1, MAX_REWARD_ICONS do
@@ -424,8 +498,8 @@ local function CreateHuntRow(parent)
     end
 
     row.AcceptButton = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
-    row.AcceptButton:SetSize(54, 18)
-    row.AcceptButton:SetPoint("TOPRIGHT", row, "TOPRIGHT", -12, -36)
+    row.AcceptButton:SetSize(58, 18)
+    row.AcceptButton:SetPoint("RIGHT", row, "RIGHT", -8, -7)
     row.AcceptButton:SetText("Open")
     row.AcceptButton:SetScript("OnClick", function()
         if row.hunt then
@@ -439,10 +513,10 @@ local function CreateHuntRow(parent)
         end
     end)
     row:SetScript("OnEnter", function(self)
-        self.Highlight:SetColorTexture(0.34, 0.82, 0.86, 0.14)
+        self.Highlight:SetColorTexture(0.52, 0.90, 0.72, 0.16)
     end)
     row:SetScript("OnLeave", function(self)
-        self.Highlight:SetColorTexture(0.34, 0.82, 0.86, 0.08)
+        self.Highlight:SetColorTexture(0.52, 0.90, 0.72, 0.08)
     end)
 
     return row
@@ -453,24 +527,28 @@ local function LayoutHuntRow(row, width)
         return
     end
 
-    local compact = type(width) == "number" and width < 260
-    local statusWidth = compact and 82 or 108
+    local compact = type(width) == "number" and width < 290
+    local statusWidth = compact and 86 or 96
     local iconSize = compact and 16 or REWARD_ICON_SIZE
-    local gap = compact and 3 or 4
+    local gap = compact and 2 or 3
     local shelfWidth = (iconSize * MAX_REWARD_ICONS) + (gap * (MAX_REWARD_ICONS - 1))
 
     row.StatusFrame:ClearAllPoints()
-    row.StatusFrame:SetSize(statusWidth, 20)
-    row.StatusFrame:SetPoint("TOPRIGHT", row, "TOPRIGHT", -12, -12)
+    row.StatusFrame:SetSize(statusWidth, 16)
+    row.StatusFrame:SetPoint("TOPRIGHT", row, "TOPRIGHT", -8, -10)
 
     row.AcceptButton:ClearAllPoints()
-    row.AcceptButton:SetPoint("TOPRIGHT", row, "TOPRIGHT", -12, -36)
+    row.AcceptButton:SetPoint("RIGHT", row, "RIGHT", -8, -7)
 
     row.RewardShelf:ClearAllPoints()
     row.RewardShelf:SetSize(shelfWidth, iconSize)
-    row.RewardShelf:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 12, 8)
+    row.RewardShelf:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 104, 6)
 
-    row.RewardLabel:SetWidth(math.max(48, math.floor((width or 0) - shelfWidth - 28)))
+    row.RewardLabel:SetWidth(math.max(52, math.floor((width or 0) - shelfWidth - 176)))
+
+    local rightPad = compact and 66 or 74
+    row.Title:SetPoint("TOPRIGHT", row, "TOPRIGHT", -rightPad, -30)
+    row.Zone:SetPoint("TOPRIGHT", row, "TOPRIGHT", -rightPad, -42)
 
     for index = 1, MAX_REWARD_ICONS do
         local reward = row.Rewards[index]
@@ -501,7 +579,7 @@ local function GetRewardSummaryText(hunt)
     end
 
     if hunt.rewardState == "retrying" then
-        return "Reward cache retrying"
+        return "Syncing rewards"
     end
 
     if hunt.rewardState == "empty" then
@@ -536,9 +614,11 @@ local function UpdateLoadingCard(frame, done, total, text)
         local fraction = math.max(0, math.min(1, done / total))
         fill:SetWidth(math.max(1, math.floor(width * fraction)))
         frame.ProgressText:SetText(string.format("%d / %d", done, total))
+        SetProgressShimmer(frame, true)
     else
         fill:SetWidth(1)
         frame.ProgressText:SetText("")
+        SetProgressShimmer(frame, false)
     end
 
     frame.StatusText:SetText(text or "")
@@ -546,22 +626,22 @@ end
 
 local function CreateLoadingCard(parent, name)
     local frame = CreateFrame("Frame", name, parent, BACKDROP_TEMPLATE)
-    frame:SetSize(318, 104)
+    frame:SetSize(286, 96)
     ApplyBackdrop(frame, THEME.cardBackground, THEME.cardBorder)
 
     frame.Title = CreateText(frame, "OVERLAY", "GameFontHighlight")
     frame.Title:SetPoint("TOPLEFT", frame, "TOPLEFT", 12, -10)
-    frame.Title:SetText("Signal Deck")
+    frame.Title:SetText("Hunt Sync")
     SetTextColor(frame.Title, THEME.accentText)
 
     frame.StatusText = CreateText(frame, "OVERLAY", "GameFontNormalSmall")
     frame.StatusText:SetPoint("TOPLEFT", frame.Title, "BOTTOMLEFT", 0, -8)
-    frame.StatusText:SetWidth(286)
+    frame.StatusText:SetWidth(262)
     frame.StatusText:SetJustifyH("LEFT")
     SetTextColor(frame.StatusText, THEME.mutedText)
 
     frame.ProgressTrack = frame:CreateTexture(nil, "ARTWORK")
-    frame.ProgressTrack:SetSize(286, 8)
+    frame.ProgressTrack:SetSize(262, 8)
     frame.ProgressTrack:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 12, 14)
     frame.ProgressTrack:SetColorTexture(0.07, 0.10, 0.12, 1)
 
@@ -616,120 +696,52 @@ local function AnchorMapOverlay()
     overlay:Hide()
 end
 
-local function GetSideWidthForMode(mode)
-    if mode == "attached" then
-        return ATTACHED_SIDE_WIDTH
-    end
-
-    return SIDE_WIDTH
-end
-
 local function LayoutFilterButtons(frame)
-    local sideBar = frame and frame.SideBar
+    local bar = frame and frame.FilterBar
     local buttons = frame and frame.FilterButtons
-    if not sideBar or not buttons then
+    if not bar or not buttons then
         return
     end
 
-    local sideWidth = sideBar:GetWidth() or SIDE_WIDTH
-    local innerWidth = math.max(1, sideWidth - 24)
-    local useGrid = innerWidth >= 120
-    local gap = 6
-
-    if useGrid then
-        local buttonWidth = math.max(50, math.floor((innerWidth - gap) / 2))
-        local buttonHeight = FILTER_BUTTON_HEIGHT
-        for index, button in ipairs(buttons) do
-            button:ClearAllPoints()
-            button:SetSize(buttonWidth, buttonHeight)
-            if index == 1 then
-                button:SetPoint("TOPLEFT", frame.FilterHeader, "BOTTOMLEFT", 0, -8)
-            elseif index == 2 then
-                button:SetPoint("TOPLEFT", buttons[1], "TOPRIGHT", gap, 0)
-            elseif index == 3 then
-                button:SetPoint("TOPLEFT", buttons[1], "BOTTOMLEFT", 0, -gap)
-            elseif index == 4 then
-                button:SetPoint("TOPLEFT", buttons[3], "TOPRIGHT", gap, 0)
-            end
-        end
-        return
-    end
-
-    local buttonWidth = innerWidth
+    local width = bar:GetWidth() or (frame:GetWidth() - 20)
+    local gap = 4
+    local buttonWidth = math.max(56, math.floor((width - (gap * 3)) / 4))
     for index, button in ipairs(buttons) do
         button:ClearAllPoints()
         button:SetSize(buttonWidth, FILTER_BUTTON_HEIGHT)
         if index == 1 then
-            button:SetPoint("TOPLEFT", frame.FilterHeader, "BOTTOMLEFT", 0, -8)
+            button:SetPoint("TOPLEFT", bar, "TOPLEFT", 0, 0)
         else
-            button:SetPoint("TOPLEFT", buttons[index - 1], "BOTTOMLEFT", 0, -gap)
-        end
-    end
-end
-
-local function UpdateMetricCard(card, label, value, color)
-    if not card then
-        return
-    end
-
-    if card.Label then
-        card.Label:SetText(label or "")
-    end
-    if card.Value then
-        card.Value:SetText(value or "")
-        if color then
-            SetTextColor(card.Value, color)
+            button:SetPoint("LEFT", buttons[index - 1], "RIGHT", gap, 0)
         end
     end
 end
 
 local function LayoutPanelGeometry(frame)
-    if not frame or not frame.SideBar or not frame.Board then
+    if not frame or not frame.Body then
         return
     end
 
-    local sideWidth = GetSideWidthForMode(frame.mode)
     local width = frame:GetWidth() or PANEL_WIDTH
-    local height = frame:GetHeight() or PANEL_HEIGHT
-    local boardWidth = math.max(1, width - sideWidth - 36)
-    local boardHeaderTwoRows = boardWidth < 360
-    local boardHeaderHeight = boardHeaderTwoRows and 122 or 84
+    frame.Body:SetPoint("TOPLEFT", frame, "TOPLEFT", 8, -(HEADER_HEIGHT + 4))
+    frame.Body:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -8, 8)
 
-    frame.SideBar:SetWidth(sideWidth)
-    frame.SideBar:SetPoint("TOPLEFT", frame, "TOPLEFT", 12, -HEADER_HEIGHT)
-    frame.SideBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 12, 12)
+    frame.FilterBar:SetPoint("TOPLEFT", frame.Body, "TOPLEFT", 8, -8)
+    frame.FilterBar:SetPoint("TOPRIGHT", frame.Body, "TOPRIGHT", -8, -8)
+    frame.FilterBar:SetHeight(FILTER_BUTTON_HEIGHT)
 
-    frame.SideBarHeader:SetHeight(54)
-    frame.FilterHeader:SetWidth(math.max(1, sideWidth - 20))
-    frame.FilterHint:SetWidth(math.max(1, sideWidth - 20))
+    frame.Summary:SetPoint("TOPLEFT", frame.FilterBar, "BOTTOMLEFT", 0, -7)
+    frame.Summary:SetPoint("TOPRIGHT", frame.FilterBar, "BOTTOMRIGHT", 0, -7)
 
-    frame.SideFooter:SetPoint("BOTTOMLEFT", frame.SideBar, "BOTTOMLEFT", 10, 10)
-    frame.SideFooter:SetPoint("BOTTOMRIGHT", frame.SideBar, "BOTTOMRIGHT", -10, 10)
-    frame.SideFooter:SetHeight(64)
-    frame.Summary:SetWidth(math.max(1, sideWidth - 20))
+    frame.ScrollFrame:SetPoint("TOPLEFT", frame.Summary, "BOTTOMLEFT", 0, -8)
+    frame.ScrollFrame:SetPoint("BOTTOMRIGHT", frame.Body, "BOTTOMRIGHT", -8, 8)
 
-    frame.Board:SetPoint("TOPLEFT", frame.SideBar, "TOPRIGHT", 12, 0)
-    frame.Board:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -12, 12)
-
-    frame.BoardHeader:SetHeight(boardHeaderHeight)
-    frame.BoardHeader:SetPoint("TOPLEFT", frame.Board, "TOPLEFT", 12, -12)
-    frame.BoardHeader:SetPoint("TOPRIGHT", frame.Board, "TOPRIGHT", -12, -12)
-    frame.BoardHeaderTitle:SetWidth(math.max(1, boardWidth - 24))
-    frame.BoardHeaderSubtitle:SetWidth(math.max(1, boardWidth - 24))
-
-    frame.BoardHeaderTitle:SetPoint("TOPLEFT", frame.BoardHeader, "TOPLEFT", 10, -10)
-    frame.BoardHeaderSubtitle:SetPoint("TOPLEFT", frame.BoardHeaderTitle, "BOTTOMLEFT", 0, -4)
-
-    frame.ScrollFrame:SetPoint("TOPLEFT", frame.BoardHeader, "BOTTOMLEFT", 0, -10)
-    frame.ScrollFrame:SetPoint("BOTTOMRIGHT", frame.Board, "BOTTOMRIGHT", -12, 12)
-
-    local scrollWidth = math.max(1, boardWidth - 34)
+    local scrollWidth = math.max(1, width - 44)
     if frame.ScrollChild then
         frame.ScrollChild:SetSize(scrollWidth, 1)
     end
 
     LayoutFilterButtons(frame)
-    LayoutMetricCards(frame)
 end
 
 local function CreatePanelFrame()
@@ -753,11 +765,16 @@ local function CreatePanelFrame()
     frame.HeaderBand:SetHeight(HEADER_HEIGHT)
     frame.HeaderBand:SetColorTexture(THEME.headerBackground[1], THEME.headerBackground[2], THEME.headerBackground[3], THEME.headerBackground[4])
 
+    frame.HeaderGlow = frame:CreateTexture(nil, "ARTWORK", nil, -1)
+    frame.HeaderGlow:SetPoint("TOPLEFT", frame.HeaderBand, "TOPLEFT", 0, 0)
+    frame.HeaderGlow:SetPoint("BOTTOMRIGHT", frame.HeaderBand, "BOTTOMRIGHT", 0, 0)
+    frame.HeaderGlow:SetColorTexture(0.15, 0.33, 0.25, 0.28)
+
     frame.HeaderLine = frame:CreateTexture(nil, "ARTWORK")
     frame.HeaderLine:SetPoint("TOPLEFT", frame.HeaderBand, "BOTTOMLEFT", 0, -1)
     frame.HeaderLine:SetPoint("TOPRIGHT", frame.HeaderBand, "BOTTOMRIGHT", 0, -1)
     frame.HeaderLine:SetHeight(1)
-    frame.HeaderLine:SetColorTexture(0.34, 0.82, 0.86, 0.72)
+    frame.HeaderLine:SetColorTexture(0.44, 0.88, 0.72, 0.74)
 
     frame:SetScript("OnDragStart", function()
         if HuntPanel.mode ~= "standalone" then
@@ -772,13 +789,17 @@ local function CreatePanelFrame()
 
     frame.Title = CreateText(frame, "OVERLAY", "GameFontNormalLarge")
     frame.Title:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -12)
-    frame.Title:SetText("HUNT OPERATIONS")
+    frame.Title:SetText("TACTICAL HUNT CONSOLE")
     SetTextColor(frame.Title, THEME.accentText)
 
     frame.Subtitle = CreateText(frame, "OVERLAY", "GameFontDisableSmall")
     frame.Subtitle:SetPoint("TOPLEFT", frame.Title, "BOTTOMLEFT", 0, -4)
-    frame.Subtitle:SetText("Command deck for hunt intake, reward routing, and map-linked access")
+    frame.Subtitle:SetText("Live prey routing, reward telemetry, and one-click quest access")
     SetTextColor(frame.Subtitle, THEME.mutedText)
+
+    frame.AnguishText = CreateText(frame, "OVERLAY", "GameFontHighlightSmall")
+    frame.AnguishText:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -116, -15)
+    SetTextColor(frame.AnguishText, THEME.accentText)
 
     frame.CloseButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
     frame.CloseButton:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -4, -4)
@@ -787,84 +808,45 @@ local function CreatePanelFrame()
     end)
 
     frame.ModeButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    frame.ModeButton:SetSize(92, 20)
+    frame.ModeButton:SetSize(94, 20)
     frame.ModeButton:SetPoint("TOPRIGHT", frame.CloseButton, "TOPLEFT", -8, -1)
-    frame.ModeButton:SetText("Popout")
+    frame.ModeButton:SetText("Detach")
     frame.ModeButton:SetScript("OnClick", function()
         HuntPanel:ToggleStandalone()
     end)
 
-    frame.SideBar = CreateFrame("Frame", nil, frame, BACKDROP_TEMPLATE)
-    ApplyBackdrop(frame.SideBar, THEME.sidebarBackground, THEME.sidebarBorder)
+    frame.Body = CreateFrame("Frame", nil, frame, BACKDROP_TEMPLATE)
+    ApplyBackdrop(frame.Body, THEME.bodyBackground, THEME.bodyBorder)
 
-    frame.SideBarHeader = CreateFrame("Frame", nil, frame.SideBar)
-    frame.SideBarHeader:SetPoint("TOPLEFT", frame.SideBar, "TOPLEFT", 10, -10)
-    frame.SideBarHeader:SetPoint("TOPRIGHT", frame.SideBar, "TOPRIGHT", -10, -10)
-
-    frame.FilterHeader = CreateText(frame.SideBarHeader, "OVERLAY", "GameFontHighlightSmall", "TOPLEFT", 0, 0)
-    frame.FilterHeader:SetText("ROUTE DECK")
-    SetTextColor(frame.FilterHeader, THEME.accentText)
-
-    frame.FilterHint = CreateText(frame.SideBarHeader, "OVERLAY", "GameFontDisableSmall", "TOPLEFT", 0, -16)
-    frame.FilterHint:SetText("Choose a signal band")
-    SetTextColor(frame.FilterHint, THEME.mutedText)
+    frame.FilterBar = CreateFrame("Frame", nil, frame.Body)
 
     frame.FilterButtons = {}
     local filterOrder = { "All", "Nightmare", "Hard", "Normal" }
     for _, filter in ipairs(filterOrder) do
-        local button = CreateFilterButton(frame.SideBar, filter, filter)
+        local button = CreateFilterButton(frame.FilterBar, filter, filter)
         frame.FilterButtons[#frame.FilterButtons + 1] = button
     end
 
-    frame.SideFooter = CreateFrame("Frame", nil, frame.SideBar)
-    frame.SideFooter:SetPoint("BOTTOMLEFT", frame.SideBar, "BOTTOMLEFT", 10, 10)
-    frame.SideFooter:SetPoint("BOTTOMRIGHT", frame.SideBar, "BOTTOMRIGHT", -10, 10)
-    frame.SideFooter:SetHeight(64)
-
-    frame.Summary = CreateText(frame.SideFooter, "OVERLAY", "GameFontHighlightSmall")
-    frame.Summary:SetPoint("TOPLEFT", frame.SideFooter, "TOPLEFT", 0, 0)
-    frame.Summary:SetPoint("TOPRIGHT", frame.SideFooter, "TOPRIGHT", 0, 0)
+    frame.Summary = CreateText(frame.Body, "OVERLAY", "GameFontHighlightSmall")
     frame.Summary:SetJustifyH("LEFT")
     SetTextColor(frame.Summary, THEME.accentText)
 
-    frame.Board = CreateFrame("Frame", nil, frame, BACKDROP_TEMPLATE)
-    ApplyBackdrop(frame.Board, THEME.boardBackground, THEME.boardBorder)
-
-    frame.BoardHeader = CreateFrame("Frame", nil, frame.Board, BACKDROP_TEMPLATE)
-    ApplyBackdrop(frame.BoardHeader, THEME.cardBackground, THEME.cardBorder)
-
-    frame.BoardHeaderTopLine = frame.BoardHeader:CreateTexture(nil, "ARTWORK")
-    frame.BoardHeaderTopLine:SetPoint("TOPLEFT", frame.BoardHeader, "TOPLEFT", 10, -8)
-    frame.BoardHeaderTopLine:SetPoint("TOPRIGHT", frame.BoardHeader, "TOPRIGHT", -10, -8)
-    frame.BoardHeaderTopLine:SetHeight(1)
-    frame.BoardHeaderTopLine:SetColorTexture(0.34, 0.82, 0.86, 0.26)
-
-    frame.BoardHeaderTitle = CreateText(frame.BoardHeader, "OVERLAY", "GameFontHighlight")
-    frame.BoardHeaderTitle:SetText("HUNT BOARD")
-    SetTextColor(frame.BoardHeaderTitle, THEME.accentText)
-
-    frame.BoardHeaderSubtitle = CreateText(frame.BoardHeader, "OVERLAY", "GameFontDisableSmall")
-    frame.BoardHeaderSubtitle:SetText("Live prey routes and reward intake")
-    SetTextColor(frame.BoardHeaderSubtitle, THEME.mutedText)
-
-    frame.MetricCards = {
-        CreateMetricCard(frame.BoardHeader, "Filter"),
-        CreateMetricCard(frame.BoardHeader, "Active"),
-        CreateMetricCard(frame.BoardHeader, "Ready"),
-        CreateMetricCard(frame.BoardHeader, "Anguish"),
-    }
-
-    frame.ScrollFrame = CreateFrame("ScrollFrame", nil, frame.Board, "UIPanelScrollFrameTemplate")
-    frame.ScrollFrame:SetPoint("TOPLEFT", frame.BoardHeader, "BOTTOMLEFT", 0, -10)
-    frame.ScrollFrame:SetPoint("BOTTOMRIGHT", frame.Board, "BOTTOMRIGHT", -12, 12)
+    frame.ScrollFrame = CreateFrame("ScrollFrame", nil, frame.Body, "UIPanelScrollFrameTemplate")
 
     frame.ScrollChild = CreateFrame("Frame", nil, frame.ScrollFrame)
-    frame.ScrollChild:SetSize(PANEL_WIDTH - SIDE_WIDTH - 72, 1)
+    frame.ScrollChild:SetSize(PANEL_WIDTH - 44, 1)
     frame.ScrollFrame:SetScrollChild(frame.ScrollChild)
 
+    frame.EmptyIcon = frame.ScrollChild:CreateTexture(nil, "ARTWORK")
+    frame.EmptyIcon:SetSize(42, 42)
+    frame.EmptyIcon:SetPoint("CENTER", frame.ScrollChild, "CENTER", 0, -16)
+    frame.EmptyIcon:SetTexture("Interface\\Icons\\Ability_Hunter_BeastSoothe")
+    frame.EmptyIcon:SetAlpha(0.45)
+    frame.EmptyIcon:Hide()
+
     frame.EmptyState = CreateText(frame.ScrollChild, "OVERLAY", "GameFontDisableLarge")
-    frame.EmptyState:SetPoint("CENTER", frame.ScrollChild, "CENTER", 0, 0)
-    frame.EmptyState:SetText("No hunts available right now.")
+    frame.EmptyState:SetPoint("TOP", frame.EmptyIcon, "BOTTOM", 0, -8)
+    frame.EmptyState:SetText("No hunt signals detected.")
     SetTextColor(frame.EmptyState, THEME.mutedText)
     frame.EmptyState:Hide()
 
@@ -873,7 +855,7 @@ local function CreatePanelFrame()
     frame.LoadingOverlay:Hide()
     frame.LoadingOverlay.Background = frame.LoadingOverlay:CreateTexture(nil, "BACKGROUND")
     frame.LoadingOverlay.Background:SetAllPoints()
-    frame.LoadingOverlay.Background:SetColorTexture(0.01, 0.03, 0.05, 0.72)
+    frame.LoadingOverlay.Background:SetColorTexture(0.01, 0.03, 0.02, 0.74)
     frame.LoadingOverlay.Card = CreateLoadingCard(frame.LoadingOverlay, LOADING_FRAME_NAME)
     frame.LoadingOverlay.Card:SetPoint("CENTER", frame.LoadingOverlay, "CENTER", 0, 0)
 
@@ -962,24 +944,44 @@ local function UpdateRowState(row, hunt)
 
     local statusText
     if hunt.inProgress then
-        statusText = "In progress"
+        statusText = "Tracking"
     elseif hunt.rewardState == "retrying" then
-        statusText = "Syncing rewards"
+        statusText = "Syncing"
     elseif hunt.rewardState == "ready" then
         statusText = GetRewardSummaryText(hunt)
     else
-        statusText = "Loading rewards"
+        statusText = "Loading"
     end
     row.Status:SetText(statusText)
     if hunt.inProgress then
-        SetTextColor(row.Status, { 0.62, 0.82, 1.0 })
-        ApplyBackdrop(row.StatusFrame, { 0.08, 0.12, 0.18, 0.96 }, { 0.32, 0.55, 0.74, 0.96 })
+        SetTextColor(row.Status, { 0.74, 0.92, 0.82 })
+        ApplyBackdrop(row.StatusFrame, { 0.08, 0.16, 0.12, 0.96 }, { 0.34, 0.62, 0.49, 0.96 })
+        if row.Pulse then
+            row.Pulse:SetColorTexture(color[1], color[2], color[3], 0.10)
+            if row.Pulse._activePulseAnim and not row.Pulse._activePulseAnim:IsPlaying() then
+                row.Pulse._activePulseAnim:Play()
+            end
+        end
     elseif hunt.available then
-        SetTextColor(row.Status, { 0.64, 0.92, 0.70 })
-        ApplyBackdrop(row.StatusFrame, { 0.08, 0.14, 0.10, 0.96 }, { 0.30, 0.56, 0.38, 0.96 })
+        SetTextColor(row.Status, { 0.78, 0.94, 0.80 })
+        ApplyBackdrop(row.StatusFrame, { 0.09, 0.14, 0.10, 0.96 }, { 0.34, 0.58, 0.38, 0.96 })
+        if row.Pulse then
+            row.Pulse:SetColorTexture(color[1], color[2], color[3], 0.02)
+            if row.Pulse._activePulseAnim then
+                row.Pulse._activePulseAnim:Stop()
+            end
+            row.Pulse:SetAlpha(1)
+        end
     else
         SetTextColor(row.Status, THEME.mutedText)
-        ApplyBackdrop(row.StatusFrame, { 0.07, 0.10, 0.13, 0.92 }, { 0.24, 0.30, 0.34, 0.92 })
+        ApplyBackdrop(row.StatusFrame, { 0.09, 0.12, 0.10, 0.92 }, { 0.24, 0.30, 0.27, 0.92 })
+        if row.Pulse then
+            row.Pulse:SetColorTexture(color[1], color[2], color[3], 0.01)
+            if row.Pulse._activePulseAnim then
+                row.Pulse._activePulseAnim:Stop()
+            end
+            row.Pulse:SetAlpha(1)
+        end
     end
     if hunt.rewardState == "ready" and hunt.rewards and #hunt.rewards > 0 then
         row.RewardShelf:Show()
@@ -1013,8 +1015,8 @@ end
 local function LayoutRows(frame, hunts)
     local scrollChild = frame.ScrollChild
     if scrollChild and frame then
-        local boardWidth = frame.Board and frame.Board:GetWidth() or frame:GetWidth()
-        scrollChild:SetWidth(math.max(1, (boardWidth or frame:GetWidth() or PANEL_WIDTH) - 34))
+        local bodyWidth = frame.Body and frame.Body:GetWidth() or frame:GetWidth()
+        scrollChild:SetWidth(math.max(1, (bodyWidth or frame:GetWidth() or PANEL_WIDTH) - 24))
     end
 
     local rows = AcquireRows(scrollChild, math.max(1, #hunts))
@@ -1030,6 +1032,19 @@ local function LayoutRows(frame, hunts)
         LayoutHuntRow(row, scrollChild:GetWidth())
         UpdateRowState(row, hunt)
         row:Show()
+
+        if row._displayQuestID ~= hunt.questID then
+            row._displayQuestID = hunt.questID
+            if type(C_Timer) == "table" and type(C_Timer.After) == "function" then
+                row:SetAlpha(0)
+                C_Timer.After((index - 1) * 0.016, function()
+                    if row:IsShown() then
+                        PlayIntro(row)
+                    end
+                end)
+            end
+        end
+
         y = y + ROW_HEIGHT + ROW_SPACING
     end
 
@@ -1039,7 +1054,20 @@ local function LayoutRows(frame, hunts)
     end
 
     scrollChild:SetHeight(math.max(1, y))
-    frame.EmptyState:SetShown(#hunts == 0)
+    local showEmpty = #hunts == 0
+    frame.EmptyState:SetShown(showEmpty)
+    if frame.EmptyIcon then
+        frame.EmptyIcon:SetShown(showEmpty)
+        if showEmpty then
+            local pulse = EnsurePulseAlpha(frame.EmptyIcon, "_emptyPulseAnim", 0.32, 0.58, 1.1)
+            if pulse and not pulse:IsPlaying() then
+                pulse:Play()
+            end
+        elseif frame.EmptyIcon._emptyPulseAnim then
+            frame.EmptyIcon._emptyPulseAnim:Stop()
+            frame.EmptyIcon:SetAlpha(0.45)
+        end
+    end
 end
 
 function HuntPanel:Ensure()
@@ -1055,7 +1083,7 @@ function HuntPanel:Anchor()
 
     if self.mode == "attached" and _G.CovenantMissionFrame and _G.CovenantMissionFrame:IsShown() then
         frame:SetSize(ATTACHED_WIDTH, _G.CovenantMissionFrame:GetHeight() or PANEL_HEIGHT)
-        frame:SetPoint("TOPRIGHT", _G.CovenantMissionFrame, "TOPLEFT", -10, 0)
+        frame:SetPoint("TOPRIGHT", _G.CovenantMissionFrame, "TOPLEFT", -8, 0)
     else
         frame:SetSize(PANEL_WIDTH, PANEL_HEIGHT)
         local offsetX = ns.Settings and ns.Settings.GetHuntPanelOffsetX and ns.Settings:GetHuntPanelOffsetX() or 0
@@ -1082,13 +1110,9 @@ function HuntPanel:UpdateSummary()
     local inProgress, available = GetRowCountHint(hunts)
     local filter = HuntList and HuntList:GetDifficultyFilter() or "All"
     local anguishText = GetAnguishText()
-    frame.Summary:SetText(string.format("Route: %s  |  Active: %d  |  Ready: %d  |  %s", filter, inProgress, available, anguishText))
-
-    if frame.MetricCards then
-        UpdateMetricCard(frame.MetricCards[1], "Filter", filter, THEME.accentText)
-        UpdateMetricCard(frame.MetricCards[2], "Active", tostring(inProgress), { 0.62, 0.82, 1.0 })
-        UpdateMetricCard(frame.MetricCards[3], "Ready", tostring(available), { 0.64, 0.92, 0.70 })
-        UpdateMetricCard(frame.MetricCards[4], "Anguish", anguishText, THEME.accentText)
+    frame.Summary:SetText(string.format("Band %s  |  Active %d  |  Ready %d", filter, inProgress, available))
+    if frame.AnguishText then
+        frame.AnguishText:SetText(anguishText)
     end
 end
 
@@ -1114,7 +1138,7 @@ function HuntPanel:UpdateLoading(done, total, text)
         if overlay then
             if showProgress then
                 overlay.Card:Show()
-                UpdateLoadingCard(overlay.Card, done, total, text or (HuntList:IsWarmupActive() and "Synchronizing hunt deck" or "Stabilizing board signals"))
+                UpdateLoadingCard(overlay.Card, done, total, text or (HuntList:IsWarmupActive() and "Synchronizing hunt deck" or "Stabilizing hunt signals"))
                 overlay:Show()
             else
                 overlay:Hide()
@@ -1124,7 +1148,7 @@ function HuntPanel:UpdateLoading(done, total, text)
 
     if showProgress then
         frame.LoadingOverlay:Show()
-        UpdateLoadingCard(frame.LoadingOverlay.Card, done, total, text or (HuntList:IsWarmupActive() and "Synchronizing hunt deck" or "Stabilizing board signals"))
+        UpdateLoadingCard(frame.LoadingOverlay.Card, done, total, text or (HuntList:IsWarmupActive() and "Synchronizing hunt deck" or "Stabilizing hunt signals"))
     else
         frame.LoadingOverlay:Hide()
     end
@@ -1194,7 +1218,7 @@ function HuntPanel:Refresh()
     local hunts = HuntList and HuntList:GetFilteredSortedHunts() or {}
     LayoutRows(frame, hunts)
     UpdateFilterButtons(frame)
-    frame.ModeButton:SetText(self.mode == "attached" and "Docked" or "Standalone")
+    frame.ModeButton:SetText(self.mode == "attached" and "Detach" or "Dock")
     self:UpdateSummary()
     self:UpdateLoading(nil, nil, nil)
 
@@ -1222,6 +1246,7 @@ function HuntPanel:ShowAttached()
     local frame = self:Ensure()
     self:Anchor()
     frame:Show()
+    PlayIntro(frame)
     if HuntList then
         HuntList:BeginStabilizedScan(function()
             if HuntPanel.frame and HuntPanel.frame:IsShown() then
@@ -1252,6 +1277,7 @@ function HuntPanel:ShowStandalone()
     local frame = self:Ensure()
     self:Anchor()
     frame:Show()
+    PlayIntro(frame)
     if HuntList then
         HuntList:BeginStabilizedScan(function()
             if HuntPanel.frame and HuntPanel.frame:IsShown() then
