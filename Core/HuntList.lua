@@ -81,7 +81,13 @@ local function NormalizeFilter(filterValue)
     return DB_TO_FILTER[strlower(filterValue)] or FILTER_ALL
 end
 
+local _cachedZoneOrderLookup = nil
+
 local function BuildZoneOrderLookup()
+    if _cachedZoneOrderLookup then
+        return _cachedZoneOrderLookup
+    end
+
     local lookup = {}
     local zones = Constants and Constants.Hunt and Constants.Hunt.Zones or nil
     if type(zones) ~= "table" then
@@ -92,6 +98,7 @@ local function BuildZoneOrderLookup()
         lookup[zoneName] = index
     end
 
+    _cachedZoneOrderLookup = lookup
     return lookup
 end
 

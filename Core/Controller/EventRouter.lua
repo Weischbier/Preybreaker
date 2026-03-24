@@ -152,21 +152,25 @@ Preybreaker:SetScript("OnEvent", function(self, event, arg1, ...)
     end
 
     if event == "UPDATE_UI_WIDGET" and not self:ShouldRefreshFromWidgetUpdate(arg1) then
-        ns.Debug:Log(
-            "event",
-            ns.Debug:KV("event", event),
-            ns.Debug:KV("widgetID", self:GetWidgetUpdateID(arg1)),
-            ns.Debug:KV("activeWidgetID", self.activeWidgetID),
-            "refresh=skipped"
-        )
+        if ns.Debug:IsEnabled() then
+            ns.Debug:Log(
+                "event",
+                ns.Debug:KV("event", event),
+                ns.Debug:KV("widgetID", self:GetWidgetUpdateID(arg1)),
+                ns.Debug:KV("activeWidgetID", self.activeWidgetID),
+                "refresh=skipped"
+            )
+        end
         return
     end
 
-    ns.Debug:Log(
-        "event",
-        ns.Debug:KV("event", event),
-        ns.Debug:KV("widgetID", self:GetWidgetUpdateID(arg1))
-    )
+    if ns.Debug:IsEnabled() then
+        ns.Debug:Log(
+            "event",
+            ns.Debug:KV("event", event),
+            ns.Debug:KV("widgetID", self:GetWidgetUpdateID(arg1))
+        )
+    end
 
     self:Refresh(event, arg1, ...)
 end)

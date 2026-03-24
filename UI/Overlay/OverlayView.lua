@@ -139,7 +139,11 @@ local function UpdateActiveProgress(progressFrame, displayMode, snapshot, color)
     progressFrame:SetPercentage(snapshot.progress)
 end
 
-local function ApplyOverlayTextStyles(view)
+local function ApplyOverlayTextStyles(view, force)
+    if not force and not view._textStyleDirty then
+        return
+    end
+
     local textStyle = ns.TextStyle
     if not textStyle then
         return
@@ -160,6 +164,8 @@ local function ApplyOverlayTextStyles(view)
     if view.textDisplay then
         textStyle:ApplyValue(view.textDisplay)
     end
+
+    view._textStyleDirty = false
 end
 
 local function ResetInactiveVisuals(view)
@@ -237,10 +243,14 @@ function ns.OverlayView:Create()
     self.stageBadge = stageBadge
     self.stageText = stageText
 
-    ApplyOverlayTextStyles(self)
+    ApplyOverlayTextStyles(self, true)
 
     self:Anchor()
     return overlay
+end
+
+function ns.OverlayView:MarkTextStyleDirty()
+    self._textStyleDirty = true
 end
 
 function ns.OverlayView:GetActiveProgress()
@@ -402,7 +412,7 @@ function ns.OverlayView:RenderTextOnly(snapshot)
         textFrame:SetPoint("CENTER")
         textFrame:SetJustifyH("CENTER")
         self.textDisplay = textFrame
-        ApplyOverlayTextStyles(self)
+        ApplyOverlayTextStyles(self, true)
     end
 
     local displayParts = {}

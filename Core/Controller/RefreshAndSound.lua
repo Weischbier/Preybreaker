@@ -899,6 +899,10 @@ function Preybreaker:GetSoundVariantPools()
     return state.soundVariantPools
 end
 
+-- Reusable scratch tables for PickSoundVariantPath to avoid per-call allocations.
+local _recentlyPlayed = {}
+local _candidates = {}
+
 function Preybreaker:PickSoundVariantPath(variantKey, regularVariants, bonusVariants)
     local regularCount = type(regularVariants) == "table" and #regularVariants or 0
     local bonusCount = type(bonusVariants) == "table" and #bonusVariants or 0
@@ -941,39 +945,39 @@ function Preybreaker:PickSoundVariantPath(variantKey, regularVariants, bonusVari
     end
 
     -- Build a set of recently played paths to avoid (per-key + global last).
-    local recentlyPlayed = {}
+    wipe(_recentlyPlayed)
     local prevForKey = state.lastPlayedVariantByKey[variantKey]
     if prevForKey then
-        recentlyPlayed[prevForKey] = true
+        _recentlyPlayed[prevForKey] = true
     end
     local globalPrev = state.lastPlayedSoundPath
     if globalPrev then
-        recentlyPlayed[globalPrev] = true
+        _recentlyPlayed[globalPrev] = true
     end
 
     -- Collect candidates that haven't been played recently.
-    local candidates = {}
+    wipe(_candidates)
     for i = 1, count do
-        if not recentlyPlayed[variants[i]] then
-            candidates[#candidates + 1] = i
+        if not _recentlyPlayed[variants[i]] then
+            _candidates[#_candidates + 1] = i
         end
     end
 
     -- If all variants were recently played, allow any except the per-key last.
-    if #candidates == 0 then
+    if #_candidates == 0 then
         for i = 1, count do
             if variants[i] ~= prevForKey then
-                candidates[#candidates + 1] = i
+                _candidates[#_candidates + 1] = i
             end
         end
     end
 
     -- Final fallback: pick any.
-    if #candidates == 0 then
-        candidates[1] = GetRandomIndex(count)
+    if #_candidates == 0 then
+        _candidates[1] = GetRandomIndex(count)
     end
 
-    local picked = candidates[GetRandomIndex(#candidates)]
+    local picked = _candidates[GetRandomIndex(#_candidates)]
     local pickedPath = variants[picked]
     state.lastPlayedVariantByKey[variantKey] = pickedPath
     state.lastPlayedSoundPath = pickedPath
@@ -1022,8 +1026,13 @@ local function PlayResolvedSoundCue(controller, soundKey, fallbackPath, throttle
 end
 
 function Preybreaker:GetResolvedSoundPaths()
+    local state = self:GetSoundState()
+    if state.cachedResolvedPaths then
+        return state.cachedResolvedPaths
+    end
+
     local sounds = ns.Constants and ns.Constants.Media and ns.Constants.Media.Sounds
-    return {
+    local paths = {
         huntStart = ResolveSoundPath(sounds, "HuntStart"),
         huntEnd = ResolveSoundPath(sounds, "HuntEnd"),
         ambush = ResolveSoundPath(sounds, "Ambush", "ColdToWarm", "PhaseChange"),
@@ -1035,6 +1044,8 @@ function Preybreaker:GetResolvedSoundPaths()
         kill = ResolveSoundPath(sounds, "Kill"),
         death = ResolveSoundPath(sounds, "Death"),
     }
+    state.cachedResolvedPaths = paths
+    return paths
 end
 
 function Preybreaker:RefreshSoundContext(snapshot)
@@ -1504,6 +1515,13 @@ function Preybreaker:Refresh(reason, ...)
         ns.Util.InvalidatePreyQuestContextCache()
     end
 
+    -- Mark overlay text styles dirty when triggered by a settings change.
+    if reason and type(reason) == "string" and reason:sub(1, 8) == "settings" then
+        if ns.OverlayView and ns.OverlayView.MarkTextStyleDirty then
+            ns.OverlayView:MarkTextStyleDirty()
+        end
+    end
+
     local enabled = not ns.Settings or ns.Settings:IsEnabled()
     local snapshot = enabled and ns.DataSource.BuildSnapshot() or self:BuildInactiveSnapshot()
 
@@ -1521,17 +1539,19 @@ function Preybreaker:Refresh(reason, ...)
     self:RefreshSoundContext(snapshot)
     self.lastSnapshot = snapshot
 
-    ns.Debug:Log(
-        "refresh",
-        ns.Debug:KV("reason", reason or "manual"),
-        ns.Debug:KV("enabled", enabled),
-        ns.Debug:KV("active", snapshot.active),
-        ns.Debug:KV("widgetID", snapshot.widgetID),
-        ns.Debug:KV("progressState", snapshot.progressState),
-        ns.Debug:KV("percent", snapshot.percent),
-        ns.Debug:KV("preservedWhileDead", snapshot.preservedWhileDead == true),
-        ns.Debug:KV("bootstrap", self:GetBootstrapSummary())
-    )
+    if ns.Debug:IsEnabled() then
+        ns.Debug:Log(
+            "refresh",
+            ns.Debug:KV("reason", reason or "manual"),
+            ns.Debug:KV("enabled", enabled),
+            ns.Debug:KV("active", snapshot.active),
+            ns.Debug:KV("widgetID", snapshot.widgetID),
+            ns.Debug:KV("progressState", snapshot.progressState),
+            ns.Debug:KV("percent", snapshot.percent),
+            ns.Debug:KV("preservedWhileDead", snapshot.preservedWhileDead == true),
+            ns.Debug:KV("bootstrap", self:GetBootstrapSummary())
+        )
+    end
 
     if ns.QuestTracking then
         ns.QuestTracking:Sync(snapshot, reason)
@@ -1543,14 +1563,20 @@ function Preybreaker:Refresh(reason, ...)
         ns.SettingsPanel:RefreshPreview(snapshot)
     end
     if ns.HuntPanel and ns.HuntPanel.frame and ns.HuntPanel.frame:IsShown() then
-        ns.Debug:Log("hunts", ns.Debug:KV("action", "controllerRefresh"), ns.Debug:KV("detail", "panelRefresh"), ns.Debug:KV("extra", nil))
+        if ns.Debug:IsEnabled() then
+            ns.Debug:Log("hunts", ns.Debug:KV("action", "controllerRefresh"), ns.Debug:KV("detail", "panelRefresh"), ns.Debug:KV("extra", nil))
+        end
         ns.HuntPanel:Refresh()
     elseif ns.HuntPanel and _G[MISSION_FRAME_NAME] and _G[MISSION_FRAME_NAME]:IsShown() then
         -- Mission frame is open but hunt panel isn't shown (hook may have missed).
-        ns.Debug:Log("hunts", ns.Debug:KV("action", "controllerRefresh"), ns.Debug:KV("detail", "showAttachedFallback"), ns.Debug:KV("extra", string.format("panelFrame=%s,panelShown=%s", tostring(ns.HuntPanel.frame ~= nil), tostring(ns.HuntPanel.frame and ns.HuntPanel.frame:IsShown()))))
+        if ns.Debug:IsEnabled() then
+            ns.Debug:Log("hunts", ns.Debug:KV("action", "controllerRefresh"), ns.Debug:KV("detail", "showAttachedFallback"), ns.Debug:KV("extra", string.format("panelFrame=%s,panelShown=%s", tostring(ns.HuntPanel.frame ~= nil), tostring(ns.HuntPanel.frame and ns.HuntPanel.frame:IsShown()))))
+        end
         ns.HuntPanel:ShowAttached()
     else
-        ns.Debug:Log("hunts", ns.Debug:KV("action", "controllerRefresh"), ns.Debug:KV("detail", "skip"), ns.Debug:KV("extra", string.format("huntPanel=%s,panelFrame=%s,missionFrame=%s,missionShown=%s", tostring(ns.HuntPanel ~= nil), tostring(ns.HuntPanel and ns.HuntPanel.frame ~= nil), tostring(_G[MISSION_FRAME_NAME] ~= nil), tostring(_G[MISSION_FRAME_NAME] and _G[MISSION_FRAME_NAME]:IsShown()))))
+        if ns.Debug:IsEnabled() then
+            ns.Debug:Log("hunts", ns.Debug:KV("action", "controllerRefresh"), ns.Debug:KV("detail", "skip"), ns.Debug:KV("extra", string.format("huntPanel=%s,panelFrame=%s,missionFrame=%s,missionShown=%s", tostring(ns.HuntPanel ~= nil), tostring(ns.HuntPanel and ns.HuntPanel.frame ~= nil), tostring(_G[MISSION_FRAME_NAME] ~= nil), tostring(_G[MISSION_FRAME_NAME] and _G[MISSION_FRAME_NAME]:IsShown()))))
+        end
     end
 end
 

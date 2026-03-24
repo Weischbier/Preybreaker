@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 - `PLAYER_REGEN_ENABLED` listener that defers pending widget-hide operations until combat ends.
 - `InCombatLockdown()` guard on the Bootstrap prey-icon post-hook, overlay map-click handler, `GetQuestChoiceDialog` `LoadAddOn` calls (HuntList and HuntPanel), and `OpenQuestChoice` dialog manipulation.
 - Combat-lockdown guard on the widget-visibility retry timer to avoid taint from deferred `C_Timer.After` callbacks.
-- Frame-reference compatibility wrappers (`ns.FrameRef`) in Constants.lua, abstracting `CovenantMissionFrame`, `AdventureMapQuestChoiceDialog`, and `Blizzard_AdventureMap` behind a single resolution layer for forward compatibility.
+- Frame-reference compatibility wrappers (`ns.Constants.FrameRef`) in Constants.lua, abstracting `CovenantMissionFrame`, `AdventureMapQuestChoiceDialog`, and `Blizzard_AdventureMap` behind a single resolution layer for forward compatibility.
 - Settings and migration regression tests: sanitizer boundary validation, v1-to-v5 offset migration, v2-to-v5 per-mode flattening, profile seeding, and reset-to-defaults coverage.
 - Per-dispatch prey quest context cache (`ns.Util.GetCachedPreyQuestContext` / `InvalidatePreyQuestContextCache`) to eliminate redundant `BuildPreyQuestContext` round-trips within a single event cycle.
 - Dirty-flag mechanism for overlay text styles (`_textStyleDirty`) so `ApplyOverlayTextStyles` skips redundant font introspection when settings haven't changed.

@@ -45,6 +45,25 @@ local function newNamespace()
             IsQuestActive = function() return true end,
             IsTaskQuestActive = function() return false end,
             BuildPreyQuestContext = function() return { trackedQuestID = nil } end,
+            InvalidatePreyQuestContextCache = function() end,
+            TextContainsAny = function(text, patterns)
+                if type(text) ~= "string" then return false end
+                local lower = text:lower()
+                for _, pattern in ipairs(patterns or {}) do
+                    if text:find(pattern, 1, true) then return true end
+                    if lower:find(pattern:lower(), 1, true) then return true end
+                end
+                return false
+            end,
+            ExtractNPCIDFromGUID = function(guid)
+                if type(guid) ~= "string" then return nil end
+                local npcID = guid:match("Creature%-.-%-.-%-.-%-.-%-(%d+)%-")
+                return npcID and tonumber(npcID) or nil
+            end,
+            GetLocalizedSpellName = function(spellID)
+                if type(_G.GetSpellInfo) == "function" then return _G.GetSpellInfo(spellID) end
+                return nil
+            end,
         },
         Debug = {
             Log = function() end,
@@ -993,12 +1012,129 @@ local function runRefreshAndSoundRoutingTests()
     math.random = previousGlobals.MathRandom
 end
 
+local function runSettingsAndMigrationTests()
+    local ns = newNamespace()
+    -- Settings references ns.TextStyle for font sanitization.
+    ns.TextStyle = {
+        GetDefaultFontValue = function() return "builtin:standard" end,
+        SanitizeFontValue = function(_, value)
+            if type(value) == "string" and value ~= "" then return value end
+            return "builtin:standard"
+        end,
+    }
+
+    -- Settings sanitizers call ns.Util.RoundNearest; load Util first.
+    _G.C_QuestLog = _G.C_QuestLog or {}
+    _G.C_TaskQuest = _G.C_TaskQuest or {}
+    _G.C_Map = _G.C_Map or {}
+    loadModule("Core/Util.lua", ns)
+    loadModule("Core/Settings.lua", ns)
+    local Settings = ns.Settings
+    expectNotNil("settings module", Settings)
+
+    -- Test v1 -> v5 migration: legacy offsets + orb seeding.
+    _G.PreybreakerDB = {
+        schemaVersion = 1,
+        offsetX = 42,
+        offsetY = -17,
+    }
+    _G.PreybreakerCharDB = {}
+
+    Settings:Initialize()
+    local db = Settings:GetDB()
+    expectEqual("v1 radialOffsetX migrated", db.radialOffsetX, 42)
+    expectEqual("v1 radialOffsetY migrated", db.radialOffsetY, -17)
+    expectEqual("v1 barOffsetX migrated", db.barOffsetX, 42)
+    expectEqual("v1 barOffsetY migrated", db.barOffsetY, -17)
+    expectEqual("v1 orbOffsetX seeded from radial", db.orbOffsetX, 42)
+    expectEqual("v1 orbOffsetY seeded from radial", db.orbOffsetY, -17)
+    expectNil("v1 legacy offsetX removed", db.offsetX)
+    expectNil("v1 legacy offsetY removed", db.offsetY)
+    expectEqual("schema version upgraded", db.schemaVersion, 5)
+
+    -- Test v2 -> v5 migration: per-mode flattening.
+    _G.PreybreakerDB = {
+        schemaVersion = 2,
+        displayMode = "bar",
+        barHideBlizzardWidget = true,
+        barShowValueText = false,
+    }
+    _G.PreybreakerCharDB = {}
+
+    Settings:Initialize()
+    db = Settings:GetDB()
+    expectEqual("v2 flattened hideBlizzardWidget from bar", db.hideBlizzardWidget, true)
+    expectEqual("v2 flattened showValueText from bar", db.showValueText, false)
+
+    -- Test sanitizer clamping: scale out of range.
+    _G.PreybreakerDB = {
+        schemaVersion = 5,
+        scale = 999,
+    }
+    _G.PreybreakerCharDB = {}
+
+    Settings:Initialize()
+    db = Settings:GetDB()
+    expectEqual("scale clamped to max", db.scale, 2)
+
+    -- Test sanitizer clamping: offset out of range.
+    _G.PreybreakerDB = {
+        schemaVersion = 5,
+        radialOffsetX = -500,
+    }
+    _G.PreybreakerCharDB = {}
+
+    Settings:Initialize()
+    db = Settings:GetDB()
+    expectEqual("offset clamped to min", db.radialOffsetX, -200)
+
+    -- Test sanitizer: invalid type coercion.
+    _G.PreybreakerDB = {
+        schemaVersion = 5,
+        enabled = "yes",
+        displayMode = 42,
+    }
+    _G.PreybreakerCharDB = {}
+
+    Settings:Initialize()
+    db = Settings:GetDB()
+    expectEqual("boolean sanitizer coerces string to default", db.enabled, true)
+    expectEqual("displayMode sanitizer coerces number to default", db.displayMode, "radial")
+
+    -- Test profile seeding: account -> char.
+    _G.PreybreakerDB = {
+        schemaVersion = 5,
+        scale = 1.5,
+        displayMode = "bar",
+    }
+    _G.PreybreakerCharDB = {
+        schemaVersion = 5,
+        useCharacterProfile = true,
+    }
+
+    Settings:Initialize()
+    local charDB = Settings.charDB
+    -- Character profile should have its own defaults, independent of account.
+    expectEqual("char profile gets schema version", charDB.schemaVersion, 5)
+
+    -- Test reset-to-defaults preserves schema.
+    _G.PreybreakerDB = { schemaVersion = 5 }
+    _G.PreybreakerCharDB = {}
+    Settings:Initialize()
+    db = Settings:GetDB()
+    expectEqual("fresh db gets correct defaults for enabled", db.enabled, true)
+    expectEqual("fresh db gets correct defaults for displayMode", db.displayMode, "radial")
+    expectEqual("fresh db gets correct defaults for showValueText", db.showValueText, true)
+    expectEqual("fresh db gets correct defaults for showStageBadge", db.showStageBadge, true)
+end
+
 runQuestTrackingResolverTests()
 runHuntPurchaseStateMachineTests()
 runHuntListDedupeSortFilterTests()
 runLocalePatternDifficultyTests()
 runHuntListQuickEvaluateTests()
 runRefreshAndSoundRoutingTests()
+runSettingsAndMigrationTests()
 
 if #failures > 0 then
     io.stderr:write("Deterministic tests failed:\n")

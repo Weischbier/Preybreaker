@@ -12,6 +12,11 @@ local DISPLAY_MODE_RADIAL = "radial"
 local DISPLAY_MODE_ORBS = "orbs"
 local DISPLAY_MODE_BAR = "bar"
 local DISPLAY_MODE_TEXT = "text"
+-- Schema version history:
+-- v1: original layout with offsetX/offsetY
+-- v2: per-mode offsets, MigrateLegacyOffsets
+-- v3: flattened per-mode settings, MigrateV2PerModeSettings
+-- v4, v5: additive only — new defaults, no migration needed
 local SCHEMA_VERSION = 5
 local DEFAULT_SCALE = 1
 local DEFAULT_TEXT_FONT_VALUE = (ns.TextStyle and ns.TextStyle:GetDefaultFontValue()) or "builtin:standard"
@@ -283,6 +288,14 @@ local function MigrateLegacyOffsets(db)
         db.barOffsetY = legacyOffsetY
     end
 
+    -- Seed orb offsets from the newly migrated radial offsets.
+    if db.orbOffsetX == nil and db.radialOffsetX ~= nil then
+        db.orbOffsetX = SanitizeOffset(db.radialOffsetX)
+    end
+    if db.orbOffsetY == nil and db.radialOffsetY ~= nil then
+        db.orbOffsetY = SanitizeOffset(db.radialOffsetY)
+    end
+
     db.offsetX = nil
     db.offsetY = nil
 end
@@ -345,12 +358,6 @@ local function ApplyDefaults(db)
 
     if existingVersion < 2 then
         MigrateLegacyOffsets(db)
-        if db.orbOffsetX == nil and db.radialOffsetX ~= nil then
-            db.orbOffsetX = SanitizeOffset(db.radialOffsetX)
-        end
-        if db.orbOffsetY == nil and db.radialOffsetY ~= nil then
-            db.orbOffsetY = SanitizeOffset(db.radialOffsetY)
-        end
     end
 
     if existingVersion < 3 then
