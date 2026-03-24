@@ -163,7 +163,7 @@
                     </Anchors>
                 </Texture>
             </Layer>
-            <Layer level="ARTWORK" textSubLevel="1">
+            <Layer level="ARTWORK" textureSubLevel="1">
                 <Texture parentKey="ProgressFill">
                     <Size x="1" y="8"/>
                     <Anchors>
