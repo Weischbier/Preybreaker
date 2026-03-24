@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.3.0] - 2026-03-24
+
+### Added
+
+- Combat lockdown guards across all widget hiding, overlay click, LoadAddOn, and quest dialog paths to prevent `ADDON_ACTION_FORBIDDEN` errors during combat.
+- `PLAYER_REGEN_ENABLED` listener that defers pending widget-hide operations until combat ends.
+- `InCombatLockdown()` guard on the Bootstrap prey-icon post-hook, overlay map-click handler, `GetQuestChoiceDialog` `LoadAddOn` calls (HuntList and HuntPanel), and `OpenQuestChoice` dialog manipulation.
+- Combat-lockdown guard on the widget-visibility retry timer to avoid taint from deferred `C_Timer.After` callbacks.
+- Frame-reference compatibility wrappers (`ns.FrameRef`) in Constants.lua, abstracting `CovenantMissionFrame`, `AdventureMapQuestChoiceDialog`, and `Blizzard_AdventureMap` behind a single resolution layer for forward compatibility.
+- Settings and migration regression tests: sanitizer boundary validation, v1-to-v5 offset migration, v2-to-v5 per-mode flattening, profile seeding, and reset-to-defaults coverage.
+- Per-dispatch prey quest context cache (`ns.Util.GetCachedPreyQuestContext` / `InvalidatePreyQuestContextCache`) to eliminate redundant `BuildPreyQuestContext` round-trips within a single event cycle.
+- Dirty-flag mechanism for overlay text styles (`_textStyleDirty`) so `ApplyOverlayTextStyles` skips redundant font introspection when settings haven't changed.
+- Cached `GetResolvedSoundPaths` result on `soundState` invalidated only on theme change, eliminating per-cue table allocation.
+- Reusable tables in `PickSoundVariantPath` to avoid throwaway `candidates` and `recentlyPlayed` allocations.
+- Stable `BuildZoneOrderLookup` cache in HuntList, rebuilt only when zone data changes.
+
+### Changed
+
+- Consolidated HuntPanel's independent event frame: the controller now notifies the panel on all relevant events, eliminating the second event-processing pathway and preventing redundant refreshes.
+- Wrapped `UISpecialFrames` insertion in `pcall` to isolate taint propagation from the global table.
+- Moved inline orb-offset seeding (Settings.lua L350-354) into `MigrateLegacyOffsets` for consistency.
+
+### Fixed
+
+- Fixed potential `ADDON_ACTION_FORBIDDEN` from widget `Hide()`/`SetAlpha(0)` calls during combat lockdown (critical audit finding C-1).
+- Fixed overlay left-click (`OpenWorldMap` via `ShowUIPanel`) causing taint errors when clicked during combat.
+- Fixed `C_AddOns.LoadAddOn("Blizzard_AdventureMap")` calls risking taint when triggered during combat via gossip or warmup paths.
+- Fixed `AdventureMapQuestChoiceDialog` manipulation (`SetParent`, `SetFrameStrata`, `ShowWithQuest`) causing potential taint when invoked during combat.
+
 ## [v1.2.0] - 2026-03-22
 
 ### Added

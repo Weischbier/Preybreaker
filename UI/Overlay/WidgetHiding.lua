@@ -67,6 +67,10 @@ local function ShouldHideBlizzardWidget()
     return settings and settings:ShouldHideBlizzardWidget() or false
 end
 
+local function IsInCombatLockdown()
+    return type(InCombatLockdown) == "function" and InCombatLockdown() == true
+end
+
 local function IsFrameUsable(frame)
     return frame
         and type(frame.GetObjectType) == "function"
@@ -90,6 +94,11 @@ end
 
 local function HideFrame(self, frame)
     if not frame or type(frame.SetAlpha) ~= "function" then
+        return
+    end
+
+    if IsInCombatLockdown() then
+        self._pendingHideAfterCombat = true
         return
     end
 
@@ -158,6 +167,11 @@ function ns.OverlayView:ScheduleWidgetVisibilityRetry(reason, resolution)
     C_Timer.After(0.20, function()
         self.visibilityRetryPending = nil
 
+        if IsInCombatLockdown() then
+            self._pendingHideAfterCombat = true
+            return
+        end
+
         local activeController = ns.Controller
         local activeSnapshot = activeController and activeController.lastSnapshot or nil
         if not activeController
@@ -174,7 +188,23 @@ function ns.OverlayView:ScheduleWidgetVisibilityRetry(reason, resolution)
     end)
 end
 
+function ns.OverlayView:HandleCombatEnd()
+    if not self._pendingHideAfterCombat then
+        return
+    end
+    self._pendingHideAfterCombat = nil
+
+    local controller = ns.Controller
+    if controller and type(controller.Refresh) == "function" then
+        controller:Refresh("combatEndWidgetHide")
+    end
+end
+
 function ns.OverlayView:RestoreHiddenWidgets(restoreVisibility)
+    if IsInCombatLockdown() then
+        return
+    end
+
     local store = self._hiddenFrames
     if store then
         for frame, state in pairs(store) do

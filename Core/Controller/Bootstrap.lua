@@ -14,6 +14,13 @@ local function HookPreyHuntIconFrame()
         ns.OverlayView.preyHuntIconFrame = self
         -- Blizzard's Setup calls AnimIn -> ResetAnimState -> SetAlpha(1) + Show().
         -- We must re-hide AFTER that sequence completes, which is here in the post-hook.
+        -- Guard: defer hiding to PLAYER_REGEN_ENABLED when in combat lockdown.
+        if type(InCombatLockdown) == "function" and InCombatLockdown() then
+            if ns.OverlayView then
+                ns.OverlayView._pendingHideAfterCombat = true
+            end
+            return
+        end
         if ns.Settings and ns.Settings:ShouldHideBlizzardWidget() and ns.Settings:IsEnabled() then
             if ns.OverlayView and type(ns.OverlayView.HideStandaloneWidgetFrame) == "function" then
                 ns.OverlayView:HideStandaloneWidgetFrame(self)

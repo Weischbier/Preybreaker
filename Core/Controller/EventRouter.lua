@@ -18,6 +18,11 @@ Preybreaker:SetScript("OnEvent", function(self, event, arg1, ...)
         return
     end
 
+    if event == "PLAYER_REGEN_ENABLED" then
+        ns.OverlayView:HandleCombatEnd()
+        return
+    end
+
     if event == "PLAYER_DEAD" then
         self:HandlePlayerDeathForSounds()
         return
@@ -68,10 +73,16 @@ Preybreaker:SetScript("OnEvent", function(self, event, arg1, ...)
 
     if event == "QUEST_TURNED_IN" then
         self:HandleQuestTurnedInSound(arg1)
+        if ns.HuntList and ns.HuntList.GetHuntByQuestID and ns.HuntList:GetHuntByQuestID(arg1) then
+            ns.HuntList:RemoveByQuestID(arg1)
+        end
     end
 
     if event == "QUEST_REMOVED" then
         self:HandleQuestRemovedForSounds(arg1)
+        if ns.HuntList and ns.HuntList.GetHuntByQuestID and ns.HuntList:GetHuntByQuestID(arg1) then
+            ns.HuntList:RemoveByQuestID(arg1)
+        end
     end
 
     if event == "QUEST_AUTOCOMPLETE" then
@@ -162,6 +173,7 @@ end)
 
 Preybreaker:RegisterEvent("ADDON_LOADED")
 Preybreaker:RegisterEvent("PLAYER_ENTERING_WORLD")
+Preybreaker:RegisterEvent("PLAYER_REGEN_ENABLED")
 Preybreaker:RegisterEvent("PLAYER_DEAD")
 Preybreaker:RegisterEvent("PLAYER_ALIVE")
 Preybreaker:RegisterEvent("PLAYER_UNGHOST")
@@ -196,3 +208,4 @@ Preybreaker:RegisterEvent("GOSSIP_CLOSED")
 Preybreaker:RegisterEvent("GOSSIP_CONFIRM")
 Preybreaker:RegisterEvent("QUEST_FINISHED")
 Preybreaker:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
+Preybreaker:RegisterEvent("ADVENTURE_MAP_QUEST_UPDATE")

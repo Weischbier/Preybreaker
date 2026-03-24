@@ -16,6 +16,12 @@ ns.HuntList = ns.HuntList or {}
 
 local HuntList = ns.HuntList
 
+-- Frame reference compat aliases (see Constants.FrameRef).
+local FR = Constants and Constants.FrameRef or {}
+local MISSION_FRAME_NAME = FR.MissionFrame or "CovenantMissionFrame"
+local QUEST_CHOICE_DIALOG_NAME = FR.QuestChoiceDialog or "AdventureMapQuestChoiceDialog"
+local ADVENTURE_MAP_ADDON = FR.AdventureMapAddon or "Blizzard_AdventureMap"
+
 local PIN_POOL_NAME = "AdventureMap_QuestOfferPinTemplate"
 local FILTER_ALL = "All"
 local FILTER_NIGHTMARE = "Nightmare"
@@ -90,19 +96,23 @@ local function BuildZoneOrderLookup()
 end
 
 local function GetQuestChoiceDialog()
-    if _G.AdventureMapQuestChoiceDialog then
-        return _G.AdventureMapQuestChoiceDialog
+    if _G[QUEST_CHOICE_DIALOG_NAME] then
+        return _G[QUEST_CHOICE_DIALOG_NAME]
+    end
+
+    if type(InCombatLockdown) == "function" and InCombatLockdown() then
+        return nil
     end
 
     if type(C_AddOns) == "table" and type(C_AddOns.LoadAddOn) == "function" then
-        Util.SafeCall(C_AddOns.LoadAddOn, "Blizzard_AdventureMap")
+        Util.SafeCall(C_AddOns.LoadAddOn, ADVENTURE_MAP_ADDON)
     end
 
-    return _G.AdventureMapQuestChoiceDialog
+    return _G[QUEST_CHOICE_DIALOG_NAME]
 end
 
 local function GetPinPool()
-    local missionFrame = _G.CovenantMissionFrame
+    local missionFrame = _G[MISSION_FRAME_NAME]
     local mapTab = missionFrame and missionFrame.MapTab or nil
     return mapTab and mapTab.pinPools and mapTab.pinPools[PIN_POOL_NAME] or nil
 end
@@ -425,7 +435,7 @@ function HuntList:QuickEvaluateAvailability()
         return true, #self:GetState().hunts, "cached"
     end
 
-    local missionFrame = _G.CovenantMissionFrame
+    local missionFrame = _G[MISSION_FRAME_NAME]
     if not (missionFrame and missionFrame:IsShown()) then
         return nil, 0, "mapHidden"
     end
@@ -553,7 +563,7 @@ function HuntList:BeginStabilizedScan(onReady)
         return
     end
 
-    local missionFrame = _G.CovenantMissionFrame
+    local missionFrame = _G[MISSION_FRAME_NAME]
     if not (missionFrame and missionFrame:IsShown()) then
         local cacheWarm, huntCount = self:ApplyRefreshedHunts(
             DedupeHuntsByDifficultyAndZone(BuildRawHuntsFromPins()),
@@ -735,7 +745,7 @@ function HuntList:WarmRewardCacheAsync(onProgress, onDone, questIDs)
         LogHunts("warmupQuest", hunt.questID, "showWithQuest")
         dialog:SetAlpha(0)
         dialog:Hide()
-        dialog:ShowWithQuest(_G.CovenantMissionFrame or UIParent, pin, hunt.questID)
+        dialog:ShowWithQuest(_G[MISSION_FRAME_NAME] or UIParent, pin, hunt.questID)
 
         ticker = C_Timer.NewTicker(WARMUP_POLL_SECONDS, function()
             if cancelled then return end

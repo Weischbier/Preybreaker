@@ -418,6 +418,14 @@ ns.Constants = {
         -- Zone order for display sorting.
         Zones = { "Eversong Woods", "Zul'Aman", "Harandar", "Voidstorm" },
     },
+
+    -- Centralised frame-reference names for forward-compatibility.
+    -- If Blizzard renames these frames, update only this table.
+    FrameRef = {
+        MissionFrame = "CovenantMissionFrame",
+        QuestChoiceDialog = "AdventureMapQuestChoiceDialog",
+        AdventureMapAddon = "Blizzard_AdventureMap",
+    },
 }
 
 do

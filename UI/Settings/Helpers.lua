@@ -85,7 +85,8 @@ function SP.AddSpecialFrame(frameName)
         end
     end
 
-    table.insert(UISpecialFrames, frameName)
+    -- pcall insertion to isolate taint propagation from the global table.
+    pcall(table.insert, UISpecialFrames, frameName)
 end
 
 function SP.ApplyAccentLineColor(line, alpha)

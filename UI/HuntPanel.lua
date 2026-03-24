@@ -16,6 +16,12 @@ local HuntPanel = ns.HuntPanel
 local BACKDROP_TEMPLATE = BackdropTemplateMixin and "BackdropTemplate" or nil
 local missionHooksApplied = false
 
+-- Frame reference compat aliases (see Constants.FrameRef).
+local FR = Constants and Constants.FrameRef or {}
+local MISSION_FRAME_NAME = FR.MissionFrame or "CovenantMissionFrame"
+local QUEST_CHOICE_DIALOG_NAME = FR.QuestChoiceDialog or "AdventureMapQuestChoiceDialog"
+local ADVENTURE_MAP_ADDON = FR.AdventureMapAddon or "Blizzard_AdventureMap"
+
 -- Layout metrics from Constants; fallback to safe defaults.
 local HP = Constants and Constants.HuntPanel or {}
 local PANEL_WIDTH = HP.PanelWidth or 396
@@ -225,13 +231,16 @@ local function GetRemnantIconID()
 end
 
 local function GetQuestChoiceDialog()
-    if _G.AdventureMapQuestChoiceDialog then
-        return _G.AdventureMapQuestChoiceDialog
+    if _G[QUEST_CHOICE_DIALOG_NAME] then
+        return _G[QUEST_CHOICE_DIALOG_NAME]
+    end
+    if type(InCombatLockdown) == "function" and InCombatLockdown() then
+        return nil
     end
     if type(C_AddOns) == "table" and type(C_AddOns.LoadAddOn) == "function" then
-        SafeCall(C_AddOns.LoadAddOn, "Blizzard_AdventureMap")
+        SafeCall(C_AddOns.LoadAddOn, ADVENTURE_MAP_ADDON)
     end
-    return _G.AdventureMapQuestChoiceDialog
+    return _G[QUEST_CHOICE_DIALOG_NAME]
 end
 
 local function EnsureHiddenAnchor()
@@ -257,10 +266,11 @@ end
 
 local function OpenQuestChoice(hunt, anchorRegion, autoAccept)
     if not hunt then return false end
+    if type(InCombatLockdown) == "function" and InCombatLockdown() then return false end
     local dialog = GetQuestChoiceDialog()
     if not dialog or type(dialog.ShowWithQuest) ~= "function" then return false end
 
-    local parent = _G.CovenantMissionFrame or UIParent
+    local parent = _G[MISSION_FRAME_NAME] or UIParent
     local livePin = hunt.pin or (HuntList and HuntList.FindPin and HuntList:FindPin(hunt.questID)) or nil
     if not livePin then return false end
 
@@ -595,7 +605,7 @@ end
 local function AnchorMapOverlay()
     local overlay = HuntPanel.mapOverlay
     if not overlay then return end
-    local missionFrame = _G.CovenantMissionFrame
+    local missionFrame = _G[MISSION_FRAME_NAME]
     if missionFrame and missionFrame:IsShown() then
         overlay:SetParent(UIParent)
         overlay:ClearAllPoints()
@@ -821,52 +831,9 @@ local function SetupPanelFrame()
     return frame
 end
 
----------------------------------------------------------------------------
--- Event frame
----------------------------------------------------------------------------
-local function EnsureEventFrame()
-    if HuntPanel.eventFrame then return HuntPanel.eventFrame end
-
-    local eventFrame = CreateFrame("Frame")
-    eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-    eventFrame:RegisterEvent("ZONE_CHANGED_NEW_AREA")
-    eventFrame:RegisterEvent("QUEST_LOG_UPDATE")
-    eventFrame:RegisterEvent("QUEST_WATCH_LIST_CHANGED")
-    eventFrame:RegisterEvent("QUEST_ACCEPTED")
-    eventFrame:RegisterEvent("QUEST_REMOVED")
-    eventFrame:RegisterEvent("QUEST_FINISHED")
-    eventFrame:RegisterEvent("ADVENTURE_MAP_QUEST_UPDATE")
-    eventFrame:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
-    eventFrame:RegisterEvent("GOSSIP_SHOW")
-    eventFrame:RegisterEvent("GOSSIP_CLOSED")
-    eventFrame:RegisterEvent("QUEST_TURNED_IN")
-    eventFrame:SetScript("OnEvent", function(_, event, questID)
-        if not HuntPanel.frame or not HuntPanel.frame:IsShown() then return end
-        if event == "CURRENCY_DISPLAY_UPDATE" then
-            HuntPanel:UpdateSummary()
-            return
-        end
-        -- Quest completed or turned in: remove from list directly, skip re-scan.
-        if (event == "QUEST_TURNED_IN" or event == "QUEST_REMOVED") and questID then
-            if HuntList and HuntList:GetHuntByQuestID(questID) then
-                HuntList:RemoveByQuestID(questID)
-                HuntPanel:Refresh()
-                return
-            end
-        end
-        -- During warmup, ShowWithQuest triggers QUEST_LOG_UPDATE on each quest.
-        -- Doing a full Refresh here would clear the progress bar every time.
-        -- Just update summary/rows without resetting progress state.
-        if event == "QUEST_LOG_UPDATE" and HuntList and HuntList:IsWarmupActive() then
-            HuntPanel:UpdateSummary()
-            return
-        end
-        HuntPanel:Refresh()
-    end)
-
-    HuntPanel.eventFrame = eventFrame
-    return eventFrame
-end
+-- Event handling is consolidated in the controller's EventRouter.
+-- ADVENTURE_MAP_QUEST_UPDATE, QUEST_TURNED_IN removal, and warmup
+-- suppression are handled through the controller → HuntPanel:Refresh() path.
 
 ---------------------------------------------------------------------------
 -- Mission frame hooks
@@ -875,8 +842,8 @@ local function ApplyMissionFrameHooks()
     if missionHooksApplied then return end
 
     hooksecurefunc("ShowUIPanel", function(frame)
-        if not frame or frame:GetName() ~= "CovenantMissionFrame" then return end
-        LogHuntPanel("hook:ShowUIPanel", "CovenantMissionFrame", string.format(
+        if not frame or frame:GetName() ~= MISSION_FRAME_NAME then return end
+        LogHuntPanel("hook:ShowUIPanel", MISSION_FRAME_NAME, string.format(
             "panelExists=%s,panelShown=%s,mode=%s",
             tostring(HuntPanel.frame ~= nil),
             tostring(HuntPanel.frame and HuntPanel.frame:IsShown()),
@@ -890,7 +857,7 @@ local function ApplyMissionFrameHooks()
     end)
 
     hooksecurefunc("HideUIPanel", function(frame)
-        if not frame or frame:GetName() ~= "CovenantMissionFrame" then return end
+        if not frame or frame:GetName() ~= MISSION_FRAME_NAME then return end
         HuntPanel:HideAttached()
     end)
 
@@ -1104,7 +1071,6 @@ end
 ---------------------------------------------------------------------------
 function HuntPanel:Ensure()
     CreateMapOverlay()
-    EnsureEventFrame()
     ApplyMissionFrameHooks()
     return SetupPanelFrame()
 end
@@ -1113,9 +1079,9 @@ function HuntPanel:Anchor()
     local frame = self:Ensure()
     frame:ClearAllPoints()
 
-    if self.mode == "attached" and _G.CovenantMissionFrame and _G.CovenantMissionFrame:IsShown() then
-        frame:SetSize(ATTACHED_WIDTH, _G.CovenantMissionFrame:GetHeight() or PANEL_HEIGHT)
-        frame:SetPoint("TOPRIGHT", _G.CovenantMissionFrame, "TOPLEFT", -X_OFFSET, 0)
+    if self.mode == "attached" and _G[MISSION_FRAME_NAME] and _G[MISSION_FRAME_NAME]:IsShown() then
+        frame:SetSize(ATTACHED_WIDTH, _G[MISSION_FRAME_NAME]:GetHeight() or PANEL_HEIGHT)
+        frame:SetPoint("TOPRIGHT", _G[MISSION_FRAME_NAME], "TOPLEFT", -X_OFFSET, 0)
     else
         frame:SetSize(PANEL_WIDTH, PANEL_HEIGHT)
         local offsetX = ns.Settings and ns.Settings.GetHuntPanelOffsetX and ns.Settings:GetHuntPanelOffsetX() or 0
@@ -1161,7 +1127,7 @@ function HuntPanel:UpdateLoading(done, total, text)
         return
     end
 
-    local isAttached = self.mode == "attached" and _G.CovenantMissionFrame and _G.CovenantMissionFrame:IsShown()
+    local isAttached = self.mode == "attached" and _G[MISSION_FRAME_NAME] and _G[MISSION_FRAME_NAME]:IsShown()
     local showProgress = HuntList and (HuntList:IsWarmupActive() or HuntList:IsScanActive())
 
     -- Preserve last known progress when called with nil during active warmup
@@ -1274,6 +1240,14 @@ function HuntPanel:Refresh()
     local frame = self:Ensure()
     if not frame:IsShown() then
         LogHuntPanel("refresh", "skip", "frameNotShown")
+        return
+    end
+
+    -- During warmup, ShowWithQuest triggers QUEST_LOG_UPDATE on each quest.
+    -- Avoid full refresh; the warmup progress callback handles row/summary updates.
+    if HuntList and HuntList.IsWarmupActive and HuntList:IsWarmupActive() then
+        self:UpdateSummary()
+        LogHuntPanel("refresh", "skip", "warmupActive")
         return
     end
     LogHuntPanel("refresh", "begin", string.format("mode=%s", tostring(self.mode)))
@@ -1399,7 +1373,7 @@ function HuntPanel:ToggleStandalone()
         -- Dock back: if the mission frame is open, re-attach; otherwise just hide.
         self:Hide()
         self.mode = "attached"
-        if _G.CovenantMissionFrame and _G.CovenantMissionFrame:IsShown() then
+        if _G[MISSION_FRAME_NAME] and _G[MISSION_FRAME_NAME]:IsShown() then
             self:ShowAttached(true) -- skipScan: data is still fresh
         end
         return false

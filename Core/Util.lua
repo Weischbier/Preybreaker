@@ -173,15 +173,23 @@ local function FindPreyWorldQuestOnMap(mapID)
     return fallbackQuestID
 end
 
+-- Cached per-dispatch quest context. Invalidated by InvalidatePreyQuestContextCache().
+local _cachedPreyQuestContext = nil
+
 function ns.Util.BuildPreyQuestContext()
+    if _cachedPreyQuestContext then
+        return _cachedPreyQuestContext
+    end
+
     local activeQuestID = ns.Util.GetActivePreyQuestID()
     if not activeQuestID then
-        return {
+        _cachedPreyQuestContext = {
             activeQuestID = nil,
             worldQuestID = nil,
             trackedQuestID = nil,
             mapID = nil,
         }
+        return _cachedPreyQuestContext
     end
 
     local mapID = ns.Util.GetQuestMapID(activeQuestID)
@@ -195,12 +203,17 @@ function ns.Util.BuildPreyQuestContext()
         trackedQuestID = activeQuestID
     end
 
-    return {
+    _cachedPreyQuestContext = {
         activeQuestID = activeQuestID,
         worldQuestID = worldQuestID,
         trackedQuestID = trackedQuestID,
         mapID = mapID,
     }
+    return _cachedPreyQuestContext
+end
+
+function ns.Util.InvalidatePreyQuestContextCache()
+    _cachedPreyQuestContext = nil
 end
 
 function ns.Util.IsRelevantPreyQuest(questID)

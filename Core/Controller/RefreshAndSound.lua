@@ -4,6 +4,10 @@
 local _, ns = ...
 local Preybreaker = ns.Controller
 
+-- Frame reference compat alias (see Constants.FrameRef).
+local FR = ns.Constants and ns.Constants.FrameRef or {}
+local MISSION_FRAME_NAME = FR.MissionFrame or "CovenantMissionFrame"
+
 local function ShouldPlayHuntSounds()
     return ns.Settings
         and ns.Settings:ShouldPlaySoundOnPhaseChange()
@@ -1495,6 +1499,11 @@ function Preybreaker:BuildDeathPreservedSnapshot(previousSnapshot, snapshot)
 end
 
 function Preybreaker:Refresh(reason, ...)
+    -- Invalidate per-dispatch caches.
+    if ns.Util and ns.Util.InvalidatePreyQuestContextCache then
+        ns.Util.InvalidatePreyQuestContextCache()
+    end
+
     local enabled = not ns.Settings or ns.Settings:IsEnabled()
     local snapshot = enabled and ns.DataSource.BuildSnapshot() or self:BuildInactiveSnapshot()
 
@@ -1536,12 +1545,12 @@ function Preybreaker:Refresh(reason, ...)
     if ns.HuntPanel and ns.HuntPanel.frame and ns.HuntPanel.frame:IsShown() then
         ns.Debug:Log("hunts", ns.Debug:KV("action", "controllerRefresh"), ns.Debug:KV("detail", "panelRefresh"), ns.Debug:KV("extra", nil))
         ns.HuntPanel:Refresh()
-    elseif ns.HuntPanel and _G.CovenantMissionFrame and _G.CovenantMissionFrame:IsShown() then
+    elseif ns.HuntPanel and _G[MISSION_FRAME_NAME] and _G[MISSION_FRAME_NAME]:IsShown() then
         -- Mission frame is open but hunt panel isn't shown (hook may have missed).
         ns.Debug:Log("hunts", ns.Debug:KV("action", "controllerRefresh"), ns.Debug:KV("detail", "showAttachedFallback"), ns.Debug:KV("extra", string.format("panelFrame=%s,panelShown=%s", tostring(ns.HuntPanel.frame ~= nil), tostring(ns.HuntPanel.frame and ns.HuntPanel.frame:IsShown()))))
         ns.HuntPanel:ShowAttached()
     else
-        ns.Debug:Log("hunts", ns.Debug:KV("action", "controllerRefresh"), ns.Debug:KV("detail", "skip"), ns.Debug:KV("extra", string.format("huntPanel=%s,panelFrame=%s,missionFrame=%s,missionShown=%s", tostring(ns.HuntPanel ~= nil), tostring(ns.HuntPanel and ns.HuntPanel.frame ~= nil), tostring(_G.CovenantMissionFrame ~= nil), tostring(_G.CovenantMissionFrame and _G.CovenantMissionFrame:IsShown()))))
+        ns.Debug:Log("hunts", ns.Debug:KV("action", "controllerRefresh"), ns.Debug:KV("detail", "skip"), ns.Debug:KV("extra", string.format("huntPanel=%s,panelFrame=%s,missionFrame=%s,missionShown=%s", tostring(ns.HuntPanel ~= nil), tostring(ns.HuntPanel and ns.HuntPanel.frame ~= nil), tostring(_G[MISSION_FRAME_NAME] ~= nil), tostring(_G[MISSION_FRAME_NAME] and _G[MISSION_FRAME_NAME]:IsShown()))))
     end
 end
 

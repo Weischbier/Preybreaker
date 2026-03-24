@@ -285,6 +285,10 @@ function ns.OverlayView:HandleMouseUp(button)
         return
     end
 
+    if type(InCombatLockdown) == "function" and InCombatLockdown() then
+        return
+    end
+
     OpenPreyQuestMap()
 end
 
