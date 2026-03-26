@@ -1275,6 +1275,10 @@ end
 
 function HuntPanel:ShowAttached(skipScan)
     LogHuntPanel("showAttached", "enter", nil)
+    if ns.Settings and not ns.Settings:IsHuntPanelEnabled() then
+        LogHuntPanel("showAttached", "blocked", "huntPanelDisabled")
+        return false
+    end
     if not self:QuickEvaluateBeforeOpen() then
         LogHuntPanel("showAttached", "blocked", "quickEvalFailed")
         if ns.Settings and ns.Settings.SetHuntPanelStandalone then
@@ -1309,6 +1313,10 @@ function HuntPanel:ShowAttached(skipScan)
 end
 
 function HuntPanel:ShowStandalone()
+    if ns.Settings and not ns.Settings:IsHuntPanelEnabled() then
+        LogHuntPanel("showStandalone", "blocked", "huntPanelDisabled")
+        return false
+    end
     if not self:QuickEvaluateBeforeOpen() then
         if ns.Settings and ns.Settings.SetHuntPanelStandalone then
             ns.Settings:SetHuntPanelStandalone(false)

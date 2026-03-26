@@ -1563,10 +1563,14 @@ function Preybreaker:Refresh(reason, ...)
         ns.SettingsPanel:RefreshPreview(snapshot)
     end
     if ns.HuntPanel and ns.HuntPanel.frame and ns.HuntPanel.frame:IsShown() then
-        if ns.Debug:IsEnabled() then
-            ns.Debug:Log("hunts", ns.Debug:KV("action", "controllerRefresh"), ns.Debug:KV("detail", "panelRefresh"), ns.Debug:KV("extra", nil))
+        if ns.Settings and not ns.Settings:IsHuntPanelEnabled() then
+            ns.HuntPanel:Hide()
+        else
+            if ns.Debug:IsEnabled() then
+                ns.Debug:Log("hunts", ns.Debug:KV("action", "controllerRefresh"), ns.Debug:KV("detail", "panelRefresh"), ns.Debug:KV("extra", nil))
+            end
+            ns.HuntPanel:Refresh()
         end
-        ns.HuntPanel:Refresh()
     elseif ns.HuntPanel and _G[MISSION_FRAME_NAME] and _G[MISSION_FRAME_NAME]:IsShown() then
         -- Mission frame is open but hunt panel isn't shown (hook may have missed).
         if ns.Debug:IsEnabled() then

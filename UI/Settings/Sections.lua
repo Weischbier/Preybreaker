@@ -736,6 +736,27 @@ function SP.CreateSections(parent)
             },
         },
         {
+            title = L["Hunt panel"],
+            description = L["Control the hunt list panel that docks beside the Adventure Map."],
+            fields = {
+                {
+                    type = "toggle",
+                    key = "enableHuntPanel",
+                    title = L["Enable hunt panel"],
+                    description = L["Show the hunt list panel when the Adventure Map is open and allow standalone use."],
+                    get = function()
+                        return Settings:IsHuntPanelEnabled()
+                    end,
+                    set = function(value)
+                        Settings:SetHuntPanelEnabled(value)
+                        if not value and ns.HuntPanel then
+                            ns.HuntPanel:Hide()
+                        end
+                    end,
+                },
+            },
+        },
+        {
             title = L["Random hunt"],
             description = L["Automate randomized hunt purchasing from Astalor Bloodsworn."],
             fields = {

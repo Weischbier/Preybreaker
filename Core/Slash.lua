@@ -73,6 +73,10 @@ SlashCmdList.PREYBREAKER = function(message)
     end
 
     if command == "hunts" or command == "hunt" or command == "panel" then
+        if ns.Settings and not ns.Settings:IsHuntPanelEnabled() then
+            ns.Util.Print(L["Hunt panel disabled."])
+            return
+        end
         if ns.HuntPanel then
             ns.HuntPanel:ShowStandalone()
         end

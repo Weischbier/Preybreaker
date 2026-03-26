@@ -48,6 +48,10 @@ function _G.Preybreaker_OnAddonCompartmentClick(addonName, buttonName)
 
     -- Shift + Right-click: open hunt panel standalone
     if buttonName == "RightButton" and IsShiftKeyDown() then
+        if ns.Settings and not ns.Settings:IsHuntPanelEnabled() then
+            ns.Util.Print(L["Hunt panel disabled."])
+            return
+        end
         if ns.HuntPanel then
             ns.HuntPanel:ShowStandalone()
         end

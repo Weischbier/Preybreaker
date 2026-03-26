@@ -164,6 +164,13 @@ ns._activeTranslation = {
     ["Ring view attached to the Blizzard prey icon."] = "블리자드 먹이 아이콘에 부착된 고리 보기.",
     ["Ring sample attached to the Blizzard prey icon."] = "블리자드 먹이 아이콘에 부착된 고리 샘플.",
 
+    -- Hunt panel settings
+    ["Hunt panel"] = "사냥 패널",
+    ["Control the hunt list panel that docks beside the Adventure Map."] = "모험 지도 옆에 도킹되는 사냥 목록 패널을 제어합니다.",
+    ["Enable hunt panel"] = "사냥 패널 활성화",
+    ["Show the hunt list panel when the Adventure Map is open and allow standalone use."] = "모험 지도가 열려 있을 때 사냥 목록 패널을 표시하고 독립 사용을 허용합니다.",
+    ["Hunt panel disabled."] = "사냥 패널이 비활성화되었습니다.",
+
     -- Random hunt settings
     ["Random hunt"] = "무작위 사냥",
     ["Automate randomized hunt purchasing from Astalor Bloodsworn."] = "아스탈로르 블러드스원에게서 무작위 사냥 구매를 자동화합니다.",

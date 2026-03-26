@@ -56,6 +56,7 @@ local DEFAULTS = {
     preferredHuntReward = "remnant",
     fallbackHuntReward = "gold",
     settingsTab = "settings",
+    enableHuntPanel = true,
     huntPanelStandalone = false,
     huntPanelFilter = "all",
     huntPanelOffsetX = 0,
@@ -240,6 +241,7 @@ local SANITIZERS = {
     settingsTab = function(value)
         return SanitizeChoice(value, { "settings", "changelog", "social", "roadmap" }, "settings")
     end,
+    enableHuntPanel = function(value) return SanitizeBoolean(value, true) end,
     huntPanelStandalone = function(value)
         return SanitizeBoolean(value, false)
     end,
@@ -694,6 +696,14 @@ end
 
 function ns.Settings:SetSettingsTab(value)
     return self:SetValue("settingsTab", value)
+end
+
+function ns.Settings:IsHuntPanelEnabled()
+    return self:GetValue("enableHuntPanel") ~= false
+end
+
+function ns.Settings:SetHuntPanelEnabled(enabled)
+    return self:SetValue("enableHuntPanel", enabled)
 end
 
 function ns.Settings:IsHuntPanelStandalone()

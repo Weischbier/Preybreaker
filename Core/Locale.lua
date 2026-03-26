@@ -171,6 +171,13 @@ local baseStrings = {
     ["Ring view attached to the Blizzard prey icon."] = "Ring view attached to the Blizzard prey icon.",
     ["Ring sample attached to the Blizzard prey icon."] = "Ring sample attached to the Blizzard prey icon.",
 
+    -- Hunt panel settings
+    ["Hunt panel"] = "Hunt panel",
+    ["Control the hunt list panel that docks beside the Adventure Map."] = "Control the hunt list panel that docks beside the Adventure Map.",
+    ["Enable hunt panel"] = "Enable hunt panel",
+    ["Show the hunt list panel when the Adventure Map is open and allow standalone use."] = "Show the hunt list panel when the Adventure Map is open and allow standalone use.",
+    ["Hunt panel disabled."] = "Hunt panel disabled.",
+
     -- Random hunt settings
     ["Random hunt"] = "Random hunt",
     ["Automate randomized hunt purchasing from Astalor Bloodsworn."] = "Automate randomized hunt purchasing from Astalor Bloodsworn.",

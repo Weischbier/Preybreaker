@@ -22,6 +22,33 @@ local FALLBACK_MARKDOWN = [[
 
 All notable changes to this project will be documented in this file.
 
+## [v1.2.1] - 2026-03-26
+
+### Added
+
+- New "Enable hunt panel" toggle in the settings UI under a dedicated "Hunt panel" section, allowing users to completely disable the hunt list panel.
+- Hunt panel gate checks in the Adventure Map hook, standalone panel, `/pb hunt` slash command, and compartment shift-right-click entry points.
+- Combat lockdown guards across all widget hiding, overlay click, LoadAddOn, and quest dialog paths to prevent `ADDON_ACTION_FORBIDDEN` errors during combat.
+- `PLAYER_REGEN_ENABLED` listener that defers pending widget-hide operations until combat ends.
+- Combat-lockdown guard on the widget-visibility retry timer to avoid taint from deferred `C_Timer.After` callbacks.
+- Frame-reference compatibility wrappers in Constants.lua for forward compatibility.
+- Per-dispatch prey quest context cache to eliminate redundant round-trips within a single event cycle.
+- Dirty-flag mechanism for overlay text styles to skip redundant font introspection.
+- Cached sound path resolution and reusable tables in sound variant selection.
+- Stable zone-order lookup cache in HuntList, rebuilt only when zone data changes.
+
+### Changed
+
+- Consolidated HuntPanel's independent event frame into the controller notification path.
+- Wrapped `UISpecialFrames` insertion in `pcall` to isolate taint propagation.
+- Moved inline orb-offset seeding into `MigrateLegacyOffsets` for consistency.
+
+### Fixed
+
+- Fixed potential `ADDON_ACTION_FORBIDDEN` from widget visibility changes during combat lockdown.
+- Fixed overlay left-click causing taint errors when clicked during combat.
+- Fixed `LoadAddOn` and quest dialog manipulation risking taint during combat.
+
 ## [v1.2.0] - 2026-03-22
 
 ### Added

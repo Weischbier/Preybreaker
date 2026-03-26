@@ -2,10 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [v1.3.0] - 2026-03-24
+## [v1.2.1] - 2026-03-26
 
 ### Added
 
+- New "Enable hunt panel" toggle in the settings UI under a dedicated "Hunt panel" section, allowing users to completely disable the hunt list panel.
+- Hunt panel gate checks in the Adventure Map hook, standalone panel, `/pb hunt` slash command, and compartment shift-right-click entry points.
 - Combat lockdown guards across all widget hiding, overlay click, LoadAddOn, and quest dialog paths to prevent `ADDON_ACTION_FORBIDDEN` errors during combat.
 - `PLAYER_REGEN_ENABLED` listener that defers pending widget-hide operations until combat ends.
 - `InCombatLockdown()` guard on the Bootstrap prey-icon post-hook, overlay map-click handler, `GetQuestChoiceDialog` `LoadAddOn` calls (HuntList and HuntPanel), and `OpenQuestChoice` dialog manipulation.

@@ -164,6 +164,13 @@ ns._activeTranslation = {
     ["Ring view attached to the Blizzard prey icon."] = "Вигляд кільця, прикріплений до іконки здобичі Blizzard.",
     ["Ring sample attached to the Blizzard prey icon."] = "Зразок кільця, прикріплений до іконки здобичі Blizzard.",
 
+    -- Hunt panel settings
+    ["Hunt panel"] = "Панель охоты",
+    ["Control the hunt list panel that docks beside the Adventure Map."] = "Управляет панелью списка охот, которая крепится рядом с Картой приключений.",
+    ["Enable hunt panel"] = "Включить панель охоты",
+    ["Show the hunt list panel when the Adventure Map is open and allow standalone use."] = "Показывать панель списка охот, когда открыта Карта приключений, и разрешить автономное использование.",
+    ["Hunt panel disabled."] = "Панель охоты отключена.",
+
     -- Random hunt settings
     ["Random hunt"] = "Випадкове полювання",
     ["Automate randomized hunt purchasing from Astalor Bloodsworn."] = "Автоматизувати покупку випадкових полювань у Асталора Кривавоклятого.",

@@ -164,6 +164,13 @@ ns._activeTranslation = {
     ["Ring view attached to the Blizzard prey icon."] = "Vue anneau attachée à l'icône de proie Blizzard.",
     ["Ring sample attached to the Blizzard prey icon."] = "Exemple anneau attaché à l'icône de proie Blizzard.",
 
+    -- Hunt panel settings
+    ["Hunt panel"] = "Panneau de chasse",
+    ["Control the hunt list panel that docks beside the Adventure Map."] = "Contrôle le panneau de liste de chasses qui s'ancre à côté de la Carte d'aventure.",
+    ["Enable hunt panel"] = "Activer le panneau de chasse",
+    ["Show the hunt list panel when the Adventure Map is open and allow standalone use."] = "Affiche le panneau de liste de chasses lorsque la Carte d'aventure est ouverte et permet une utilisation autonome.",
+    ["Hunt panel disabled."] = "Panneau de chasse désactivé.",
+
     -- Random hunt settings
     ["Random hunt"] = "Chasse aléatoire",
     ["Automate randomized hunt purchasing from Astalor Bloodsworn."] = "Automatiser l'achat de chasses aléatoires auprès d'Astalor Liédesang.",

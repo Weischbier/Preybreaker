@@ -164,6 +164,13 @@ ns._activeTranslation = {
     ["Ring view attached to the Blizzard prey icon."] = "Ringansicht am Blizzard-Beutesymbol angeheftet.",
     ["Ring sample attached to the Blizzard prey icon."] = "Ring-Beispiel am Blizzard-Beutesymbol angeheftet.",
 
+    -- Hunt panel settings
+    ["Hunt panel"] = "Jagdfenster",
+    ["Control the hunt list panel that docks beside the Adventure Map."] = "Steuere das Jagdlistenfenster, das neben der Abenteuerkarte andockt.",
+    ["Enable hunt panel"] = "Jagdfenster aktivieren",
+    ["Show the hunt list panel when the Adventure Map is open and allow standalone use."] = "Zeige das Jagdlistenfenster, wenn die Abenteuerkarte geöffnet ist, und erlaube eigenständige Nutzung.",
+    ["Hunt panel disabled."] = "Jagdfenster deaktiviert.",
+
     -- Random hunt settings
     ["Random hunt"] = "Zufällige Jagd",
     ["Automate randomized hunt purchasing from Astalor Bloodsworn."] = "Automatisiere den Kauf zufälliger Jagden bei Astalor Blutgeschworen.",

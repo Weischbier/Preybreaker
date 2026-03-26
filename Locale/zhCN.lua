@@ -164,6 +164,13 @@ ns._activeTranslation = {
     ["Ring view attached to the Blizzard prey icon."] = "附着于暴雪猎物图标的环形视图。",
     ["Ring sample attached to the Blizzard prey icon."] = "附着于暴雪猎物图标的环形示例。",
 
+    -- Hunt panel settings
+    ["Hunt panel"] = "狩猎面板",
+    ["Control the hunt list panel that docks beside the Adventure Map."] = "控制停靠在冒险地图旁边的狩猎列表面板。",
+    ["Enable hunt panel"] = "启用狩猎面板",
+    ["Show the hunt list panel when the Adventure Map is open and allow standalone use."] = "冒险地图打开时显示狩猎列表面板，并允许独立使用。",
+    ["Hunt panel disabled."] = "狩猎面板已禁用。",
+
     -- Random hunt settings
     ["Random hunt"] = "随机狩猎",
     ["Automate randomized hunt purchasing from Astalor Bloodsworn."] = "自动从阿斯塔洛血誓处购买随机狩猎。",
