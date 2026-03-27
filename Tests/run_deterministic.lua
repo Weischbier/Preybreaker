@@ -405,7 +405,7 @@ local function runLocalePatternDifficultyTests()
     ns.Constants.Hunt.DifficultyPatterns = {
         normal = { "normal" },
         hard = { "schwer" },
-        nightmare = { "albtraum" },
+        nightmare = { "Alptraum" },
     }
 
     _G.C_QuestLog = {
@@ -418,7 +418,7 @@ local function runLocalePatternDifficultyTests()
         MapTab = {
             pinPools = {
                 ["AdventureMap_QuestOfferPinTemplate"] = makePinPool({
-                    { questID = 11, title = "Jagd", description = "Albtraumjagd", normalizedX = 0.2, normalizedY = 0.2 },
+                    { questID = 11, title = "Jagd", description = "Alptraumjagd", normalizedX = 0.2, normalizedY = 0.2 },
                 }),
             },
         },

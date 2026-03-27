@@ -180,7 +180,7 @@ ns._activeTranslation = {
     ["Choose which difficulty to purchase when auto-buying a randomized hunt."] = "Wähle den Schwierigkeitsgrad beim automatischen Kauf einer zufälligen Jagd.",
     ["Normal"] = "Normal",
     ["Hard"] = "Schwer",
-    ["Nightmare"] = "Albtraum",
+    ["Nightmare"] = "Alptraum",
     ["Remnant reserve"] = "Überrestreserve",
     ["Only purchase a hunt when you have at least this many Remnants of Anguish plus the 50 purchase cost."] = "Kaufe eine Jagd nur, wenn du mindestens so viele Überreste der Qual plus die 50 Kaufkosten besitzt.",
 

@@ -331,7 +331,7 @@ ns.Constants = {
                 difficulty = {
                     normal = { "normal" },
                     hard = { "schwer" },
-                    nightmare = { "albtraum" },
+                    nightmare = { "Alptraum" },
                 },
                 random = { "zufall", "zufallig", "zufällig" },
             },
