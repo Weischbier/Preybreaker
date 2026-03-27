@@ -11,7 +11,7 @@ ns._activeTranslation = {
     ["Readout"] = "Indicador",
     ["Text style"] = "Estilo de texto",
     ["Quest help"] = "Ayuda de misión",
-    ["Audio & feedback"] = "Audio y respuesta",
+    ["Audio & feedback"] = "Audio y retroalimentación",
     ["Profile"] = "Perfil",
 
     -- Section descriptions
@@ -78,7 +78,7 @@ ns._activeTranslation = {
     ["Among Us"] = "Among Us",
     ["Generic"] = "Genérico",
     ["Jurassic Park"] = "Jurassic Park",
-    ["Pokemon"] = "Pokemon",
+    ["Pokemon"] = "Pokémon",
     ["Predator"] = "Predator",
     ["Stranger Things"] = "Stranger Things",
     ["Random"] = "Aleatorio",
@@ -103,7 +103,7 @@ ns._activeTranslation = {
     ["Quick actions"] = "Acciones rápidas",
     ["Style"] = "Estilo",
     ["Blizzard UI"] = "Interfaz de Blizzard",
-    ["Attached"] = "Adjunto",
+    ["Attached"] = "Anclado",
     ["Overlay only"] = "Solo superposición",
     ["Show both"] = "Mostrar ambos",
     ["Number on"] = "Número activado",
@@ -154,15 +154,15 @@ ns._activeTranslation = {
     -- Preview notes
     ["Preview stays available while the tracker is turned off."] = "La vista previa sigue disponible con el rastreador desactivado.",
     ["Text view without the Blizzard prey icon."] = "Vista de texto sin el ícono de presa de Blizzard.",
-    ["Text view attached to the Blizzard prey icon."] = "Vista de texto adjunta al ícono de presa de Blizzard.",
+    ["Text view attached to the Blizzard prey icon."] = "Vista de texto anclada al ícono de presa de Blizzard.",
     ["Bar view without the Blizzard prey icon."] = "Vista de barra sin el ícono de presa de Blizzard.",
     ["Bar view anchored below the Blizzard prey icon."] = "Vista de barra anclada debajo del ícono de presa de Blizzard.",
     ["Orb view without the Blizzard prey icon."] = "Vista de orbe sin el ícono de presa de Blizzard.",
-    ["Orb view attached to the Blizzard prey icon."] = "Vista de orbe adjunta al ícono de presa de Blizzard.",
+    ["Orb view attached to the Blizzard prey icon."] = "Vista de orbe anclada al ícono de presa de Blizzard.",
     ["Ring view without the Blizzard prey icon."] = "Vista de anillo sin el ícono de presa de Blizzard.",
     ["Ring sample without the Blizzard prey icon."] = "Ejemplo de anillo sin el ícono de presa de Blizzard.",
-    ["Ring view attached to the Blizzard prey icon."] = "Vista de anillo adjunta al ícono de presa de Blizzard.",
-    ["Ring sample attached to the Blizzard prey icon."] = "Ejemplo de anillo adjunto al ícono de presa de Blizzard.",
+    ["Ring view attached to the Blizzard prey icon."] = "Vista de anillo anclada al ícono de presa de Blizzard.",
+    ["Ring sample attached to the Blizzard prey icon."] = "Ejemplo de anillo anclado al ícono de presa de Blizzard.",
 
     -- Hunt panel settings
     ["Hunt panel"] = "Panel de cacerías",

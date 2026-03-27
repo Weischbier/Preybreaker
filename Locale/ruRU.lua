@@ -78,7 +78,7 @@ ns._activeTranslation = {
     ["Among Us"] = "Among Us",
     ["Generic"] = "Загальний",
     ["Jurassic Park"] = "Jurassic Park",
-    ["Pokemon"] = "Pokemon",
+    ["Pokemon"] = "Pokémon",
     ["Predator"] = "Predator",
     ["Stranger Things"] = "Stranger Things",
     ["Random"] = "Випадковий",
@@ -165,11 +165,11 @@ ns._activeTranslation = {
     ["Ring sample attached to the Blizzard prey icon."] = "Зразок кільця, прикріплений до іконки здобичі Blizzard.",
 
     -- Hunt panel settings
-    ["Hunt panel"] = "Панель охоты",
-    ["Control the hunt list panel that docks beside the Adventure Map."] = "Управляет панелью списка охот, которая крепится рядом с Картой приключений.",
-    ["Enable hunt panel"] = "Включить панель охоты",
-    ["Show the hunt list panel when the Adventure Map is open and allow standalone use."] = "Показывать панель списка охот, когда открыта Карта приключений, и разрешить автономное использование.",
-    ["Hunt panel disabled."] = "Панель охоты отключена.",
+    ["Hunt panel"] = "Панель полювання",
+    ["Control the hunt list panel that docks beside the Adventure Map."] = "Керуйте панеллю списку полювань, яка кріпиться поруч із Картою пригод.",
+    ["Enable hunt panel"] = "Увімкнути панель полювання",
+    ["Show the hunt list panel when the Adventure Map is open and allow standalone use."] = "Показувати панель списку полювань, коли відкрита Карта пригод, і дозволити автономне використання.",
+    ["Hunt panel disabled."] = "Панель полювання вимкнено.",
 
     -- Random hunt settings
     ["Random hunt"] = "Випадкове полювання",

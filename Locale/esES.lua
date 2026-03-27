@@ -11,7 +11,7 @@ ns._activeTranslation = {
     ["Readout"] = "Indicador",
     ["Text style"] = "Estilo de texto",
     ["Quest help"] = "Ayuda de misión",
-    ["Audio & feedback"] = "Audio y respuesta",
+    ["Audio & feedback"] = "Audio y retroalimentación",
     ["Profile"] = "Perfil",
 
     -- Section descriptions
@@ -51,7 +51,7 @@ ns._activeTranslation = {
     ["Make the current style bigger or smaller."] = "Haz el estilo actual más grande o más pequeño.",
     ["Show only Preybreaker while the prey hunt is active."] = "Mostrar solo Preybreaker mientras la cacería esté activa.",
     ["Show a simple number inside the tracker."] = "Mostrar un número simple dentro del rastreador.",
-    ["Display COLD, WARM, HOT, or FINAL below the tracker."] = "Mostrar FRÍO, TEMPLADO, CALIENTE o FINAL bajo el rastreador.",
+    ["Display COLD, WARM, HOT, or FINAL below the tracker."] = "Mostrar FRÍO, TIBIO, CALIENTE o FINAL bajo el rastreador.",
     ["Stage badges are available in ring and orb styles."] = "Los emblemas de fase están disponibles en estilos anillo y orbe.",
     ["Choose a Blizzard font by default, or pick a LibSharedMedia font when one is available."] = "Usar una fuente de Blizzard por defecto, o elegir una fuente de LibSharedMedia cuando esté disponible.",
     ["Override the text outline used by the tracker readouts."] = "Anular el contorno de texto utilizado por los indicadores del rastreador.",
@@ -78,14 +78,14 @@ ns._activeTranslation = {
     ["Among Us"] = "Among Us",
     ["Generic"] = "Genérico",
     ["Jurassic Park"] = "Jurassic Park",
-    ["Pokemon"] = "Pokemon",
+    ["Pokemon"] = "Pokémon",
     ["Predator"] = "Predator",
     ["Stranger Things"] = "Stranger Things",
     ["Random"] = "Aleatorio",
 
     -- Stage labels
     ["COLD"] = "FRÍO",
-    ["WARM"] = "TEMPLADO",
+    ["WARM"] = "TIBIO",
     ["HOT"] = "CALIENTE",
     ["FINAL"] = "FINAL",
 
@@ -103,7 +103,7 @@ ns._activeTranslation = {
     ["Quick actions"] = "Acciones rápidas",
     ["Style"] = "Estilo",
     ["Blizzard UI"] = "Interfaz de Blizzard",
-    ["Attached"] = "Adjunto",
+    ["Attached"] = "Anclado",
     ["Overlay only"] = "Solo superposición",
     ["Show both"] = "Mostrar ambos",
     ["Number on"] = "Número activado",
@@ -154,15 +154,15 @@ ns._activeTranslation = {
     -- Preview notes
     ["Preview stays available while the tracker is turned off."] = "La vista previa sigue disponible con el rastreador desactivado.",
     ["Text view without the Blizzard prey icon."] = "Vista de texto sin el icono de presa de Blizzard.",
-    ["Text view attached to the Blizzard prey icon."] = "Vista de texto adjunta al icono de presa de Blizzard.",
+    ["Text view attached to the Blizzard prey icon."] = "Vista de texto anclada al icono de presa de Blizzard.",
     ["Bar view without the Blizzard prey icon."] = "Vista de barra sin el icono de presa de Blizzard.",
     ["Bar view anchored below the Blizzard prey icon."] = "Vista de barra anclada bajo el icono de presa de Blizzard.",
     ["Orb view without the Blizzard prey icon."] = "Vista de orbe sin el icono de presa de Blizzard.",
-    ["Orb view attached to the Blizzard prey icon."] = "Vista de orbe adjunta al icono de presa de Blizzard.",
+    ["Orb view attached to the Blizzard prey icon."] = "Vista de orbe anclada al icono de presa de Blizzard.",
     ["Ring view without the Blizzard prey icon."] = "Vista de anillo sin el icono de presa de Blizzard.",
     ["Ring sample without the Blizzard prey icon."] = "Ejemplo de anillo sin el icono de presa de Blizzard.",
-    ["Ring view attached to the Blizzard prey icon."] = "Vista de anillo adjunta al icono de presa de Blizzard.",
-    ["Ring sample attached to the Blizzard prey icon."] = "Ejemplo de anillo adjunto al icono de presa de Blizzard.",
+    ["Ring view attached to the Blizzard prey icon."] = "Vista de anillo anclada al icono de presa de Blizzard.",
+    ["Ring sample attached to the Blizzard prey icon."] = "Ejemplo de anillo anclado al icono de presa de Blizzard.",
 
     -- Hunt panel settings
     ["Hunt panel"] = "Panel de cacerías",

@@ -78,7 +78,7 @@ ns._activeTranslation = {
     ["Among Us"] = "Among Us",
     ["Generic"] = "通用",
     ["Jurassic Park"] = "Jurassic Park",
-    ["Pokemon"] = "Pokemon",
+    ["Pokemon"] = "Pokémon",
     ["Predator"] = "Predator",
     ["Stranger Things"] = "Stranger Things",
     ["Random"] = "隨機",
@@ -129,7 +129,7 @@ ns._activeTranslation = {
     ["Standalone hunt panel hidden."] = "獨立狩獵面板已隱藏。",
 
     -- Compartment tooltip
-    ["Compact prey-hunt tracker anchored to the Blizzard widget."] = "錨定在暴雪元件上的精巧獵物狩獵追蹤器。",
+    ["Compact prey-hunt tracker anchored to the Blizzard widget."] = "錨定在暴雪元件上的緊湊型獵物狩獵追蹤器。",
     ["Status: disabled"] = "狀態：已停用",
     ["Status: idle"] = "狀態：閒置",
     ["Status: %s (%d%%)"] = "狀態：%s（%d%%）",
