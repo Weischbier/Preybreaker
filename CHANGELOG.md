@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.2.2] - 2026-03-27
+
+### Fixed
+
+- Fixed 5 Russian lines in ruRU locale Hunt panel section that were not translated.
+- Fixed German deDE locale: corrected imperative voice for Quest help section description, added missing comma after "es sei denn", changed idle status from "bereit" to "inaktiv", corrected Nightmare difficulty pattern casing.
+- Fixed esES and esMX locales: replaced incorrect "Adjunto" (email attachment) with "Anclado" (anchored) for the Attached label and all "adjunta/adjunto" preview note variants, replaced "Audio y respuesta" with "Audio y retroalimentación" for the feedback section title.
+- Fixed esES locale: replaced "TEMPLADO" with "TIBIO" for the WARM stage label and its description string.
+- Fixed frFR locale: replaced "Compléter" with "Rendre" for quest auto turn-in description to match standard WoW French terminology.
+- Fixed itIT locale: replaced "Disattivo" with "Inattivo" for the Off, Number off, and Badge off state labels.
+- Fixed koKR locale: corrected grammar from "않는 한" to "않은 한" in auto-complete quest description.
+- Fixed zhTW locale: replaced "精巧" (exquisite) with "緊湊型" (compact) in compartment tooltip description.
+- Corrected "Pokemon" display value to "Pokémon" across the English baseline and all 10 locale files.
+
 ## [v1.2.1] - 2026-03-26
 
 ### Added

@@ -22,6 +22,20 @@ local FALLBACK_MARKDOWN = [[
 
 All notable changes to this project will be documented in this file.
 
+## [v1.2.2] - 2026-03-27
+
+### Fixed
+
+- Fixed 5 Russian lines in ruRU locale Hunt panel section that were not translated.
+- Fixed German deDE locale: corrected imperative voice, added missing comma, changed idle status translation, corrected Nightmare difficulty pattern casing.
+- Fixed esES and esMX locales: replaced incorrect "Adjunto" with "Anclado" for Attached label and preview notes, replaced "Audio y respuesta" with "Audio y retroalimentación".
+- Fixed esES locale: replaced "TEMPLADO" with "TIBIO" for WARM stage label.
+- Fixed frFR locale: replaced "Compléter" with "Rendre" for quest auto turn-in to match WoW French terminology.
+- Fixed itIT locale: replaced "Disattivo" with "Inattivo" for Off, Number off, and Badge off labels.
+- Fixed koKR locale: corrected grammar in auto-complete quest description.
+- Fixed zhTW locale: replaced "精巧" with "緊湊型" (compact) in compartment tooltip.
+- Corrected "Pokemon" display value to "Pokémon" across the English baseline and all 10 locale files.
+
 ## [v1.2.1] - 2026-03-26
 
 ### Added
