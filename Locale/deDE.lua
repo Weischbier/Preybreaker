@@ -127,6 +127,17 @@ ns._activeTranslation = {
     ["Debug tracing disabled."] = "Debug-Protokollierung deaktiviert.",
     ["Standalone hunt panel shown."] = "Eigenständiges Jagdfenster angezeigt.",
     ["Standalone hunt panel hidden."] = "Eigenständiges Jagdfenster ausgeblendet.",
+    ["Commands: /pb, /pb settings, /pb toggle, /pb refresh, /pb hunts, /pb reset, /pb debug, /pb diag, /pb mapdump"] = "Befehle: /pb, /pb settings, /pb toggle, /pb refresh, /pb hunts, /pb reset, /pb debug, /pb diag, /pb mapdump",
+    ["=== Prey Hunt Badge Diagnostic ==="] = "=== Beutejagd-Abzeichen-Diagnose ===",
+    ["No active hunt pins found."] = "Keine aktiven Jagdmarkierungen gefunden.",
+    ["Unknown prey"] = "Unbekannte Beute",
+    ["Unknown difficulty"] = "Unbekannter Schwierigkeitsgrad",
+    ["Unknown zone"] = "Unbekanntes Gebiet",
+    ["show icon"] = "Symbol anzeigen",
+    ["hide icon"] = "Symbol ausblenden",
+    ["none"] = "keine",
+    ["Difficulty: %s"] = "Schwierigkeit: %s",
+    ["This Prey target is a requirement for an unearned achievement."] = "Dieses Beuteziel wird für einen noch nicht errungenen Erfolg benötigt.",
 
     -- Compartment tooltip
     ["Compact prey-hunt tracker anchored to the Blizzard widget."] = "Kompakter Beutejagd-Tracker am Blizzard-Widget verankert.",

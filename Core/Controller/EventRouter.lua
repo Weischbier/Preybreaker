@@ -53,6 +53,12 @@ Preybreaker:SetScript("OnEvent", function(self, event, arg1, ...)
         return
     end
 
+    if event == "CRITERIA_UPDATE" or event == "ACHIEVEMENT_EARNED" or event == "QUEST_LOG_CRITERIA_UPDATE" then
+        if ns.HuntData and type(ns.HuntData.InvalidateAchievementCache) == "function" then
+            ns.HuntData:InvalidateAchievementCache()
+        end
+    end
+
     if event == "UNIT_SPELLCAST_SUCCEEDED" then
         local spellID = select(2, ...)
         self:HandleUnitSpellcastSound(arg1, spellID)
@@ -73,6 +79,9 @@ Preybreaker:SetScript("OnEvent", function(self, event, arg1, ...)
 
     if event == "QUEST_TURNED_IN" then
         self:HandleQuestTurnedInSound(arg1)
+        if ns.HuntData and type(ns.HuntData.InvalidateAchievementCache) == "function" then
+            ns.HuntData:InvalidateAchievementCache()
+        end
         if ns.HuntList and ns.HuntList.GetHuntByQuestID and ns.HuntList:GetHuntByQuestID(arg1) then
             ns.HuntList:RemoveByQuestID(arg1)
         end
@@ -192,6 +201,8 @@ Preybreaker:RegisterEvent("NAME_PLATE_UNIT_ADDED")
 Preybreaker:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
 Preybreaker:RegisterEvent("PLAYER_TARGET_CHANGED")
 Preybreaker:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
+Preybreaker:RegisterEvent("CRITERIA_UPDATE")
+Preybreaker:RegisterEvent("ACHIEVEMENT_EARNED")
 Preybreaker:RegisterEvent("QUEST_ACCEPTED")
 Preybreaker:RegisterEvent("QUEST_TURNED_IN")
 Preybreaker:RegisterEvent("QUEST_REMOVED")

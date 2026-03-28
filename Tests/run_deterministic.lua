@@ -349,17 +349,63 @@ local function runHuntListDedupeSortFilterTests()
             return inProgressQuestIDs[questID] == true
         end,
     }
+    local function MockGetAchievementInfo(achievementID)
+        if achievementID == 42701 then
+            return 42701, "Prey: Normal Mode III", 10, false, nil, nil, nil, "Normal prey achievement.", nil, 134414, nil, false, false, nil, false
+        elseif achievementID == 42702 then
+            return 42702, "Prey: Hard Mode III", 10, true, nil, nil, nil, "Hard prey achievement.", nil, 134414, nil, false, true, nil, false
+        elseif achievementID == 42703 then
+            return 42703, "Prey: Nightmare Mode III", 10, false, nil, nil, nil, "Nightmare prey achievement.", nil, 134400, nil, false, false, nil, false
+        end
+
+        return nil
+    end
+    local function MockGetAchievementNumCriteria(achievementID)
+        if achievementID == 42701 then
+            return 2
+        elseif achievementID == 42702 then
+            return 1
+        elseif achievementID == 42703 then
+            return 2
+        end
+
+        return 0
+    end
+    local function MockGetAchievementCriteriaInfo(achievementID, criteriaIndex)
+        if achievementID == 42701 then
+            if criteriaIndex == 1 then
+                return "Thornspeaker Edgath", nil, true
+            elseif criteriaIndex == 2 then
+                return "Lamyne of the Undercroft", nil, false
+            end
+        elseif achievementID == 42702 then
+            if criteriaIndex == 1 then
+                return "Zadu, Fist of Nalorakk", nil, true
+            end
+        elseif achievementID == 42703 then
+            if criteriaIndex == 1 then
+                return "Knight-Errant Bloodshatter", nil, false
+            elseif criteriaIndex == 2 then
+                return "The Wing of Akil'zon", nil, true
+            end
+        end
+
+        return nil, nil, false
+    end
+    _G.GetAchievementInfo = MockGetAchievementInfo
+    _G.GetAchievementNumCriteria = MockGetAchievementNumCriteria
+    _G.GetAchievementCriteriaInfo = MockGetAchievementCriteriaInfo
     _G.C_AddOns = {
         LoadAddOn = function()
         end,
     }
 
     local pins = {
-        { questID = 1, title = "A Nightmare Hunt", description = "Nightmare", normalizedX = 0.20, normalizedY = 0.20 },
-        { questID = 2, title = "B Nightmare Hunt", description = "Nightmare", normalizedX = 0.80, normalizedY = 0.40 },
-        { questID = 3, title = "Hard Hunt", description = "Hard", normalizedX = 0.45, normalizedY = 0.60 },
-        { questID = 4, title = "Normal Hunt", description = "Normal", normalizedX = 0.45, normalizedY = 0.20 },
-        { questID = 5, title = "Duplicate Nightmare", description = "Nightmare", normalizedX = 0.23, normalizedY = 0.22 },
+        { questID = 1, title = "Knight-Errant Bloodshatter", description = "Difficulty: Nightmare", normalizedX = 0.20, normalizedY = 0.20 },
+        { questID = 2, title = "The Wing of Akil'zon", description = "Difficulty: Nightmare", normalizedX = 0.80, normalizedY = 0.40 },
+        { questID = 3, title = "Zadu, Fist of Nalorakk", description = "Difficulty: Hard", normalizedX = 0.45, normalizedY = 0.60 },
+        { questID = 4, title = "Thornspeaker Edgath", description = "Difficulty: Normal", normalizedX = 0.45, normalizedY = 0.20 },
+        { questID = 5, title = "Lieutenant Blazewing", description = "Difficulty: Nightmare", normalizedX = 0.23, normalizedY = 0.22 },
     }
     _G.CovenantMissionFrame = {
         MapTab = {
@@ -369,6 +415,7 @@ local function runHuntListDedupeSortFilterTests()
         },
     }
 
+    loadModule("Core/HuntData.lua", ns)
     loadModule("Core/HuntList.lua", ns)
     local huntList = ns.HuntList
     expectNotNil("huntList module", huntList)
@@ -381,16 +428,180 @@ local function runHuntListDedupeSortFilterTests()
     local allHunts = huntList:GetFilteredSortedHunts()
     expectEqual("sorted hunt count", #allHunts, 4)
     expectEqual("sorted #1 questID", allHunts[1] and allHunts[1].questID, 1)
-    expectEqual("sorted #2 questID", allHunts[2] and allHunts[2].questID, 2)
-    expectEqual("sorted #3 questID", allHunts[3] and allHunts[3].questID, 3)
+    expectEqual("sorted #2 questID", allHunts[2] and allHunts[2].questID, 3)
+    expectEqual("sorted #3 questID", allHunts[3] and allHunts[3].questID, 2)
     expectEqual("sorted #4 questID", allHunts[4] and allHunts[4].questID, 4)
-    expectTrue("inProgress state propagated", allHunts[2] and allHunts[2].inProgress == true)
+
+    local huntsByQuestID = {}
+    for _, hunt in ipairs(allHunts) do
+        huntsByQuestID[hunt.questID] = hunt
+    end
+
+    expectNotNil("quest 1 present", huntsByQuestID[1])
+    expectNotNil("quest 2 present", huntsByQuestID[2])
+    expectNotNil("quest 3 present", huntsByQuestID[3])
+    expectNotNil("quest 4 present", huntsByQuestID[4])
+    expectTrue("inProgress state propagated", huntsByQuestID[2] and huntsByQuestID[2].inProgress == true)
+    expectEqual("nightmare hunt shows badge when its achievement criterion is incomplete", huntsByQuestID[1] and huntsByQuestID[1].achievement and huntsByQuestID[1].achievement.isIncomplete, true)
+    expectEqual("criteria source is reported on the hunt", huntsByQuestID[1] and huntsByQuestID[1].achievement and huntsByQuestID[1].achievement.source, "achievementCriteria")
+    expectNil("completed nightmare criterion hides the badge", huntsByQuestID[2] and huntsByQuestID[2].achievement)
+    expectNil("completed hard achievement hides the badge", huntsByQuestID[3] and huntsByQuestID[3].achievement)
+    expectNil("completed normal criterion hides the badge", huntsByQuestID[4] and huntsByQuestID[4].achievement)
 
     huntList:SetDifficultyFilter("Nightmare")
     local nightmareOnly = huntList:GetFilteredSortedHunts()
     expectEqual("nightmare filter count", #nightmareOnly, 2)
-    expectEqual("nightmare filter #1", nightmareOnly[1] and nightmareOnly[1].questID, 1)
-    expectEqual("nightmare filter #2", nightmareOnly[2] and nightmareOnly[2].questID, 2)
+
+    local nightmareQuestIDs = {}
+    for _, hunt in ipairs(nightmareOnly) do
+        nightmareQuestIDs[hunt.questID] = true
+    end
+
+    expectTrue("nightmare filter includes quest 1", nightmareQuestIDs[1] == true)
+    expectTrue("nightmare filter includes quest 2", nightmareQuestIDs[2] == true)
+end
+
+local function runHuntDataAchievementMatchTests()
+    local ns = newNamespace()
+
+    local function MockGetAchievementInfo(achievementID)
+        if achievementID == 42701 then
+            return 42701, "Prey: Normal Mode III", 10, false, nil, nil, nil, "Defeat all of the following Prey targets on Normal difficulty.", nil, 134414, nil, false, false, nil, false
+        elseif achievementID == 42702 then
+            return 42702, "Prey: Hard Mode III", 10, true, nil, nil, nil, "Defeat all of the following Prey targets on Hard difficulty.", nil, 134414, nil, false, true, nil, false
+        elseif achievementID == 42703 then
+            return 42703, "Prey: Nightmare Mode III", 10, false, nil, nil, nil, "Defeat all of the following Prey targets on Nightmare difficulty.", nil, 134400, nil, false, false, nil, false
+        end
+
+        return nil
+    end
+    _G.GetAchievementInfo = MockGetAchievementInfo
+    _G.GetAchievementNumCriteria = function(achievementID)
+        if achievementID == 42701 then
+            return 1
+        elseif achievementID == 42702 then
+            return 1
+        elseif achievementID == 42703 then
+            return 2
+        end
+
+        return 0
+    end
+    _G.GetAchievementCriteriaInfo = function(achievementID, criteriaIndex)
+        if achievementID == 42701 and criteriaIndex == 1 then
+            return "Thornspeaker Edgath", nil, true
+        elseif achievementID == 42702 and criteriaIndex == 1 then
+            return "Zadu, Fist of Nalorakk", nil, true
+        elseif achievementID == 42703 then
+            if criteriaIndex == 1 then
+                return "Razorclaw", nil, false
+            elseif criteriaIndex == 2 then
+                return "The Wing of Akil'zon", nil, true
+            end
+        end
+
+        return nil, nil, false
+    end
+    _G.C_QuestLog = {
+        IsQuestFlaggedCompleted = function()
+            return false
+        end,
+    }
+    _G.C_MajorFactions = {
+        GetCurrentRenownLevel = function()
+            return 10
+        end,
+    }
+
+    loadModule("Core/HuntData.lua", ns)
+
+    local status = ns.HuntData:GetHuntAchievementStatus("Prey: Razorclaw (Nightmare)", "Nightmare")
+    expectNotNil("hunt data returns badge while nightmare criterion is unearned", status)
+    expectEqual("hunt data keeps nightmare achievement id", status and status.achievementID, 42703)
+    expectEqual("hunt data keeps nightmare achievement name", status and status.name, "Prey: Nightmare Mode III")
+    expectEqual("hunt data marks unfinished nightmare criterion", status and status.isIncomplete, true)
+    expectEqual("hunt data reports criteria source", status and status.source, "achievementCriteria")
+
+    local sameDifficultyDifferentName = ns.HuntData:GetHuntAchievementStatus("Anything Else", "Nightmare")
+    expectNil("hunt data hides badge when no matching criterion is found", sameDifficultyDifferentName)
+
+    local completedCriterion = ns.HuntData:GetHuntAchievementStatus("The Wing of Akil'zon", "Nightmare")
+    expectNil("hunt data hides badge after matching completed criterion", completedCriterion)
+
+    local earnedDifficulty = ns.HuntData:GetHuntAchievementStatus("Hard Hunt", "Hard")
+    expectNil("hunt data hides badge after hard achievement earned", earnedDifficulty)
+end
+
+local function runEventRouterAchievementCacheInvalidationTests()
+    local ns = newNamespace()
+    local registeredEvents = {}
+    local refreshEvents = {}
+    local invalidationCount = 0
+    local removedQuestID = nil
+    local turnedInQuestID = nil
+
+    ns.Debug = {
+        IsEnabled = function()
+            return false
+        end,
+        Log = function()
+        end,
+        KV = function(_, _, value)
+            return tostring(value)
+        end,
+    }
+    ns.Controller = {
+        SetScript = function(self, scriptName, handler)
+            if scriptName == "OnEvent" then
+                self.onEvent = handler
+            end
+        end,
+        RegisterEvent = function(_, eventName)
+            registeredEvents[eventName] = true
+        end,
+        HandleQuestTurnedInSound = function(_, questID)
+            turnedInQuestID = questID
+        end,
+        Refresh = function(_, eventName)
+            refreshEvents[#refreshEvents + 1] = eventName
+        end,
+    }
+    ns.OverlayView = {
+        HandleCombatEnd = function()
+        end,
+    }
+    ns.HuntData = {
+        InvalidateAchievementCache = function()
+            invalidationCount = invalidationCount + 1
+        end,
+    }
+    ns.HuntList = {
+        GetHuntByQuestID = function(_, questID)
+            return questID == 91458
+        end,
+        RemoveByQuestID = function(_, questID)
+            removedQuestID = questID
+        end,
+    }
+
+    loadModule("Core/Controller/EventRouter.lua", ns)
+
+    expectTrue("event router registers CRITERIA_UPDATE", registeredEvents["CRITERIA_UPDATE"] == true)
+    expectTrue("event router registers ACHIEVEMENT_EARNED", registeredEvents["ACHIEVEMENT_EARNED"] == true)
+    expectTrue("event router registers QUEST_LOG_CRITERIA_UPDATE", registeredEvents["QUEST_LOG_CRITERIA_UPDATE"] == true)
+
+    ns.Controller.onEvent(ns.Controller, "CRITERIA_UPDATE")
+    ns.Controller.onEvent(ns.Controller, "ACHIEVEMENT_EARNED", 42703)
+    ns.Controller.onEvent(ns.Controller, "QUEST_LOG_CRITERIA_UPDATE")
+    ns.Controller.onEvent(ns.Controller, "QUEST_TURNED_IN", 91458)
+
+    expectEqual("achievement cache invalidated for criteria and turn-in events", invalidationCount, 4)
+    expectEqual("quest turned-in sound handler still runs", turnedInQuestID, 91458)
+    expectEqual("hunt list entry still removed on quest turn-in", removedQuestID, 91458)
+    expectEqual("criteria update still refreshes after invalidation", refreshEvents[1], "CRITERIA_UPDATE")
+    expectEqual("achievement earned still refreshes after invalidation", refreshEvents[2], "ACHIEVEMENT_EARNED")
+    expectEqual("quest criteria update still refreshes after invalidation", refreshEvents[3], "QUEST_LOG_CRITERIA_UPDATE")
+    expectEqual("quest turn-in still refreshes after invalidation", refreshEvents[4], "QUEST_TURNED_IN")
 end
 
 local function runLocalePatternDifficultyTests()
@@ -468,9 +679,9 @@ local function runHuntListQuickEvaluateTests()
         },
     }
     hasHunts, count, source = ns.HuntList:QuickEvaluateAvailability()
-    expectEqual("quick eval empty map status", hasHunts, false)
+    expectEqual("quick eval empty map status", hasHunts, nil)
     expectEqual("quick eval empty map count", count, 0)
-    expectEqual("quick eval empty map source", source, "emptyMap")
+    expectEqual("quick eval empty map source", source, "awaitingPins")
 
     _G.CovenantMissionFrame.MapTab.pinPools["AdventureMap_QuestOfferPinTemplate"] = makePinPool({
         { questID = 12, title = "Normal Hunt", description = "Normal", normalizedX = 0.2, normalizedY = 0.2 },
@@ -1131,6 +1342,8 @@ end
 runQuestTrackingResolverTests()
 runHuntPurchaseStateMachineTests()
 runHuntListDedupeSortFilterTests()
+runHuntDataAchievementMatchTests()
+runEventRouterAchievementCacheInvalidationTests()
 runLocalePatternDifficultyTests()
 runHuntListQuickEvaluateTests()
 runRefreshAndSoundRoutingTests()

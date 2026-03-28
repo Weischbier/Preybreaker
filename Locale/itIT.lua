@@ -127,6 +127,17 @@ ns._activeTranslation = {
     ["Debug tracing disabled."] = "Tracciamento di debug disattivato.",
     ["Standalone hunt panel shown."] = "Pannello di caccia autonomo mostrato.",
     ["Standalone hunt panel hidden."] = "Pannello di caccia autonomo nascosto.",
+    ["Commands: /pb, /pb settings, /pb toggle, /pb refresh, /pb hunts, /pb reset, /pb debug, /pb diag, /pb mapdump"] = "Comandi: /pb, /pb settings, /pb toggle, /pb refresh, /pb hunts, /pb reset, /pb debug, /pb diag, /pb mapdump",
+    ["=== Prey Hunt Badge Diagnostic ==="] = "=== Diagnostica dell'emblema di caccia alla preda ===",
+    ["No active hunt pins found."] = "Nessun indicatore di caccia attivo trovato.",
+    ["Unknown prey"] = "Preda sconosciuta",
+    ["Unknown difficulty"] = "Difficoltà sconosciuta",
+    ["Unknown zone"] = "Zona sconosciuta",
+    ["show icon"] = "mostra icona",
+    ["hide icon"] = "nascondi icona",
+    ["none"] = "nessuno",
+    ["Difficulty: %s"] = "Difficoltà: %s",
+    ["This Prey target is a requirement for an unearned achievement."] = "Questo bersaglio preda è richiesto per un'impresa non ancora ottenuta.",
 
     -- Compartment tooltip
     ["Compact prey-hunt tracker anchored to the Blizzard widget."] = "Tracciatore di caccia compatto ancorato al widget Blizzard.",

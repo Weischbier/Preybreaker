@@ -36,6 +36,9 @@ local WARMUP_TIMEOUT_SECONDS = 4.0
 local WARMUP_MAX_EMPTY_ATTEMPTS = 3
 local WARMUP_PASS_COOLDOWN_SECONDS = 0.9
 
+local ParseDifficulty
+local ResolveZoneByCoords
+
 local FILTER_TO_DB = {
     [FILTER_ALL] = "all",
     [FILTER_NIGHTMARE] = "nightmare",
@@ -149,7 +152,154 @@ local function CollectActiveQuestPins()
     return pins
 end
 
-local function ParseDifficulty(descriptionText)
+local function SafePackCall(func, ...)
+    if type(func) ~= "function" then
+        return nil
+    end
+
+    local results = { pcall(func, ...) }
+    local ok = table.remove(results, 1)
+    if ok then
+        results.n = #results
+        return results
+    end
+
+    LogHunts("safePackCallError", tostring(func), tostring(results[1]))
+    return nil
+end
+
+local function FormatDumpValue(value)
+    local valueType = type(value)
+    if value == nil then
+        return "nil"
+    end
+
+    if valueType == "boolean" then
+        return value and "true" or "false"
+    end
+
+    if valueType == "number" then
+        if value == math.floor(value) then
+            return tostring(value)
+        end
+        return string.format("%.4f", value)
+    end
+
+    return tostring(value)
+end
+
+local function AppendPackedDump(lines, label, results)
+    if not results or type(results) ~= "table" or (results.n or 0) == 0 then
+        lines[#lines + 1] = string.format("%s: nil", label)
+        return
+    end
+
+    local parts = {}
+    for index = 1, results.n do
+        parts[#parts + 1] = string.format("[%d]=%s", index, FormatDumpValue(results[index]))
+    end
+
+    lines[#lines + 1] = string.format("%s: %s", label, table.concat(parts, ", "))
+end
+
+local function AppendPinScalarField(lines, label, value)
+    if value == nil then
+        return
+    end
+
+    local valueType = type(value)
+    if valueType == "function" or valueType == "table" or valueType == "userdata" then
+        return
+    end
+
+    lines[#lines + 1] = string.format("%s=%s", label, FormatDumpValue(value))
+end
+
+local function HasUnearnedAchievementMarker(descriptionText)
+    if type(descriptionText) ~= "string" or descriptionText == "" then
+        return false
+    end
+
+    local normalized = descriptionText:gsub("\r\n", "\n")
+    local firstLine, remainder = normalized:match("^([^\n]*)(.*)$")
+    if type(firstLine) ~= "string" then
+        return false
+    end
+
+    return type(remainder) == "string" and remainder:find("%S") ~= nil
+end
+
+function HuntList:GetMapQuestDumpLines()
+    local lines = {}
+    local missionFrame = _G[MISSION_FRAME_NAME]
+    local mapTab = missionFrame and missionFrame.MapTab or nil
+    local pins = CollectActiveQuestPins()
+
+    lines[#lines + 1] = "=== Prey Map Quest Dump ==="
+    lines[#lines + 1] = string.format("missionFrameShown=%s", FormatDumpValue(missionFrame and missionFrame:IsShown() or false))
+    lines[#lines + 1] = string.format("mapTabShown=%s", FormatDumpValue(mapTab and mapTab:IsShown() or false))
+    lines[#lines + 1] = string.format("pinPoolActiveCount=%s", FormatDumpValue(CountPins()))
+    lines[#lines + 1] = string.format("uniqueQuestPins=%s", FormatDumpValue(#pins))
+
+    if #pins == 0 then
+        lines[#lines + 1] = "No active quest pins found."
+        return lines
+    end
+
+    for index, pin in ipairs(pins) do
+        local questID = pin.questID
+        lines[#lines + 1] = string.format("-- Pin %d --", index)
+        lines[#lines + 1] = string.format("pinName=%s", FormatDumpValue(type(pin.GetName) == "function" and Util.SafeCall(pin.GetName, pin) or nil))
+        lines[#lines + 1] = string.format("objectType=%s", FormatDumpValue(type(pin.GetObjectType) == "function" and Util.SafeCall(pin.GetObjectType, pin) or nil))
+
+        AppendPinScalarField(lines, "pin.questID", pin.questID)
+        AppendPinScalarField(lines, "pin.title", pin.title)
+        AppendPinScalarField(lines, "pin.description", pin.description)
+        lines[#lines + 1] = string.format("pin.descriptionHasExtraText=%s", FormatDumpValue(HasUnearnedAchievementMarker(pin.description)))
+        AppendPinScalarField(lines, "pin.normalizedX", pin.normalizedX)
+        AppendPinScalarField(lines, "pin.normalizedY", pin.normalizedY)
+        AppendPinScalarField(lines, "pin.x", pin.x)
+        AppendPinScalarField(lines, "pin.y", pin.y)
+        AppendPinScalarField(lines, "pin.mapID", pin.mapID)
+        AppendPinScalarField(lines, "pin.uiMapID", pin.uiMapID)
+        AppendPinScalarField(lines, "pin.atlasName", pin.atlasName)
+        AppendPinScalarField(lines, "pin.tagName", pin.tagName)
+
+        if type(C_QuestLog) == "table" then
+            lines[#lines + 1] = string.format("C_QuestLog.GetTitleForQuestID=%s", FormatDumpValue(type(C_QuestLog.GetTitleForQuestID) == "function" and Util.SafeCall(C_QuestLog.GetTitleForQuestID, questID) or nil))
+            lines[#lines + 1] = string.format("C_QuestLog.IsOnQuest=%s", FormatDumpValue(type(C_QuestLog.IsOnQuest) == "function" and Util.SafeCall(C_QuestLog.IsOnQuest, questID) or nil))
+            lines[#lines + 1] = string.format("C_QuestLog.IsQuestFlaggedCompleted=%s", FormatDumpValue(type(C_QuestLog.IsQuestFlaggedCompleted) == "function" and Util.SafeCall(C_QuestLog.IsQuestFlaggedCompleted, questID) or nil))
+            AppendPackedDump(lines, "C_QuestLog.GetQuestAdditionalHighlights", type(C_QuestLog.GetQuestAdditionalHighlights) == "function" and SafePackCall(C_QuestLog.GetQuestAdditionalHighlights, questID) or nil)
+        end
+
+        if type(C_TaskQuest) == "table" then
+            AppendPackedDump(lines, "C_TaskQuest.GetQuestInfoByQuestID", type(C_TaskQuest.GetQuestInfoByQuestID) == "function" and SafePackCall(C_TaskQuest.GetQuestInfoByQuestID, questID) or nil)
+        end
+
+        if type(C_AdventureMap) == "table" then
+            AppendPackedDump(lines, "C_AdventureMap.GetQuestInfo", type(C_AdventureMap.GetQuestInfo) == "function" and SafePackCall(C_AdventureMap.GetQuestInfo, questID) or nil)
+        end
+
+        if ns.HuntData and type(ns.HuntData.GetHuntAchievementStatus) == "function" then
+            local huntAchievement = ns.HuntData:GetHuntAchievementStatus(pin.title, ParseDifficulty(pin.description))
+            if huntAchievement then
+                lines[#lines + 1] = string.format(
+                    "HuntData.GetHuntAchievementStatus=show (%s)",
+                    FormatDumpValue(huntAchievement.source)
+                )
+            else
+                lines[#lines + 1] = "HuntData.GetHuntAchievementStatus=hide"
+            end
+        end
+
+        lines[#lines + 1] = string.format("derivedDifficulty=%s", FormatDumpValue(ParseDifficulty(pin.description)))
+        lines[#lines + 1] = string.format("derivedZone=%s", FormatDumpValue(ResolveZoneByCoords(pin.normalizedX, pin.normalizedY)))
+    end
+
+    return lines
+end
+
+ParseDifficulty = function(descriptionText)
     local description = type(descriptionText) == "string" and descriptionText or ""
     local hunt = Constants and Constants.Hunt or nil
     local difficultyPatterns = hunt and hunt.DifficultyPatterns or nil
@@ -189,7 +339,7 @@ local function ParseDifficulty(descriptionText)
     return FILTER_NORMAL
 end
 
-local function ResolveZoneByCoords(normalizedX, normalizedY)
+ResolveZoneByCoords = function(normalizedX, normalizedY)
     if type(normalizedX) ~= "number" or type(normalizedY) ~= "number" then
         return nil
     end
@@ -381,6 +531,7 @@ local function BuildRawHuntsFromPins()
         hunts[#hunts + 1] = {
             questID = pin.questID,
             name = pin.title,
+            description = pin.description,
             difficulty = ParseDifficulty(pin.description),
             zone = ResolveZoneByCoords(pin.normalizedX, pin.normalizedY),
         }
@@ -472,9 +623,13 @@ function HuntList:GetFilteredSortedHunts()
         if state.filter == FILTER_ALL or hunt.difficulty == state.filter then
             local inProgress = IsQuestInProgress(hunt.questID)
             local rewards = state.rewardCache[hunt.questID]
+            local achievement = ns.HuntData and ns.HuntData.GetHuntAchievementStatus
+                and ns.HuntData:GetHuntAchievementStatus(hunt.name, hunt.difficulty)
+                or nil
             output[#output + 1] = {
                 questID = hunt.questID,
                 name = hunt.name,
+                description = hunt.description,
                 difficulty = hunt.difficulty,
                 zone = hunt.zone,
                 inProgress = inProgress,
@@ -482,6 +637,7 @@ function HuntList:GetFilteredSortedHunts()
                 rewardState = ResolveHuntRewardState(state, hunt.questID),
                 rewards = rewards,
                 pin = self:FindPin(hunt.questID),
+                achievement = achievement,
             }
         end
     end

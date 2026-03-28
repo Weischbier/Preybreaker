@@ -8,6 +8,7 @@ local ADDON_NAME, ns = ...
 
 local Constants = ns.Constants
 local HuntList = ns.HuntList
+local L = ns.L
 
 ns.HuntPanel = ns.HuntPanel or {}
 
@@ -35,6 +36,7 @@ local REWARD_ICON_SIZE = HP.RewardIconSize or 17
 local MAX_REWARD_ICONS = HP.MaxRewardIcons or 5
 local X_OFFSET = HP.XOffset or 8
 local SCROLL_STEP = ROW_HEIGHT + ROW_SPACING
+local ACHIEVEMENT_ICON_FALLBACK_ATLAS = "QuestPortraitIcon-SandboxQuest"
 
 -- Difficulty colors (functional, not theme).
 local DIFF_COLORS = {
@@ -413,6 +415,33 @@ local function UpdateRewardButton(button, reward)
     button:Show()
 end
 
+local function ShowAchievementTooltip(owner, hunt)
+    if not owner or not hunt or not hunt.achievement or not GameTooltip then
+        return
+    end
+
+    local achievement = hunt.achievement
+    GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
+    GameTooltip:SetText(hunt.name or L["Unknown prey"], 1, 1, 1)
+
+    if hunt.difficulty and hunt.difficulty ~= "" then
+        GameTooltip:AddLine(string.format(L["Difficulty: %s"], hunt.difficulty), 1, 0.82, 0.18)
+    end
+
+    GameTooltip:AddLine(" ")
+    GameTooltip:AddLine(achievement.markerText or L["This Prey target is a requirement for an unearned achievement."], 1, 0.82, 0.18, true)
+
+    if achievement.name and achievement.name ~= "" then
+        GameTooltip:AddLine(achievement.name, 1, 1, 1, true)
+    end
+
+    if achievement.description and achievement.description ~= "" then
+        GameTooltip:AddLine(achievement.description, 0.82, 0.90, 0.63, true)
+    end
+
+    GameTooltip:Show()
+end
+
 ---------------------------------------------------------------------------
 -- Hunt row (created from XML template)
 ---------------------------------------------------------------------------
@@ -439,6 +468,47 @@ local function CreateHuntRow(parent)
     row.Status = row.StatusFrame.Text
     ApplyInsetBackdrop(row.DifficultyPill)
     ApplyInsetBackdrop(row.StatusFrame)
+
+    if not row.AchievementIcon then
+        row.AchievementIcon = row:CreateTexture(nil, "OVERLAY")
+        row.AchievementIcon:SetSize(14, 14)
+    end
+    row.AchievementIcon:SetAtlas(ACHIEVEMENT_ICON_FALLBACK_ATLAS)
+    row.AchievementIcon:SetVertexColor(1, 1, 1, 1)
+    row.AchievementIcon:Hide()
+
+    if not row.AchievementTooltipHitbox then
+        local hitbox = CreateFrame("Frame", nil, row)
+        hitbox:SetSize(14, 14)
+        hitbox:SetFrameStrata(row:GetFrameStrata())
+        hitbox:SetFrameLevel(row:GetFrameLevel() + 8)
+        hitbox:EnableMouse(true)
+        hitbox:Hide()
+        hitbox:SetScript("OnEnter", function(self)
+            local parentRow = self:GetParent()
+            if not parentRow or not parentRow.hunt then
+                return
+            end
+            ShowAchievementTooltip(self, parentRow.hunt)
+        end)
+        hitbox:SetScript("OnLeave", function()
+            if GameTooltip then
+                GameTooltip:Hide()
+            end
+        end)
+        -- Preserve the normal row click behavior when clicking directly on the icon.
+        hitbox:SetScript("OnMouseUp", function(self, button)
+            local parentRow = self:GetParent()
+            if not parentRow then
+                return
+            end
+            local onClick = parentRow:GetScript("OnClick")
+            if onClick then
+                onClick(parentRow, button)
+            end
+        end)
+        row.AchievementTooltipHitbox = hitbox
+    end
 
     -- Accept button (modern accent style)
     ApplyAccentButtonStyle(row.AcceptButton, "Accept")
@@ -472,6 +542,7 @@ end
 
 local function LayoutHuntRow(row, width)
     if not row then return end
+    row._layoutWidth = width
     local compact = type(width) == "number" and width < 290
     local statusWidth = compact and 86 or 96
     local iconSize = compact and 16 or REWARD_ICON_SIZE
@@ -491,20 +562,34 @@ local function LayoutHuntRow(row, width)
 
     row.RewardLabel:SetWidth(math.max(52, math.floor((width or 0) - shelfWidth - 176)))
 
-    local rightPad = compact and 66 or 74
-    row.Title:ClearAllPoints()
-    row.Title:SetPoint("TOPLEFT", row, "TOPLEFT", 10, -30)
-    row.Title:SetPoint("TOPRIGHT", row, "TOPRIGHT", -rightPad, -30)
-    row.Zone:ClearAllPoints()
-    row.Zone:SetPoint("TOPLEFT", row.Title, "BOTTOMLEFT", 0, -1)
-    row.Zone:SetPoint("TOPRIGHT", row, "TOPRIGHT", -rightPad, 0)
-
     for index = 1, MAX_REWARD_ICONS do
         local reward = row.Rewards[index]
         reward:SetSize(iconSize, iconSize)
         reward:ClearAllPoints()
         reward:SetPoint("LEFT", row.RewardShelf, "LEFT", (index - 1) * (iconSize + gap), 0)
     end
+
+    local rightPad = compact and 66 or 74
+    row.Title:ClearAllPoints()
+    if row.AchievementIcon and row.AchievementIcon:IsShown() then
+        row.AchievementIcon:ClearAllPoints()
+        row.AchievementIcon:SetPoint("TOPLEFT", row, "TOPLEFT", 10, -30)
+        if row.AchievementTooltipHitbox then
+            row.AchievementTooltipHitbox:ClearAllPoints()
+            row.AchievementTooltipHitbox:SetPoint("TOPLEFT", row.AchievementIcon, "TOPLEFT", 0, 0)
+            row.AchievementTooltipHitbox:Show()
+        end
+        row.Title:SetPoint("TOPLEFT", row.AchievementIcon, "TOPRIGHT", 4, 0)
+    else
+        if row.AchievementTooltipHitbox then
+            row.AchievementTooltipHitbox:Hide()
+        end
+        row.Title:SetPoint("TOPLEFT", row, "TOPLEFT", 10, -30)
+    end
+    row.Title:SetPoint("TOPRIGHT", row, "TOPRIGHT", -rightPad, -30)
+    row.Zone:ClearAllPoints()
+    row.Zone:SetPoint("TOPLEFT", row.Title, "BOTTOMLEFT", 0, -1)
+    row.Zone:SetPoint("TOPRIGHT", row, "TOPRIGHT", -rightPad, 0)
 end
 
 ---------------------------------------------------------------------------
@@ -871,6 +956,8 @@ local function UpdateRowState(row, hunt)
     local p = SP()
     local color = DIFF_COLORS[hunt.difficulty] or DIFF_COLORS.All
     row.hunt = hunt
+    local hasAchievementProgress = hunt.achievement and hunt.achievement.isIncomplete == true
+    local hadAchievementProgress = row.AchievementIcon and row.AchievementIcon:IsShown() or false
 
     -- Difficulty pill
     ApplyBackdrop(row.DifficultyPill, { color[1], color[2], color[3], 0.22 }, { color[1], color[2], color[3], 0.95 })
@@ -881,8 +968,23 @@ local function UpdateRowState(row, hunt)
     row.Title:SetText(hunt.name or ("Quest " .. tostring(hunt.questID)))
     row.Difficulty:SetText(hunt.difficulty or "Normal")
     SetTextColor(row.Difficulty, p.TitleColor or { 0.94, 0.86, 0.72 })
-    row.Zone:SetText(hunt.zone or "Unknown zone")
+    row.Zone:SetText(hunt.zone or L["Unknown zone"])
     SetTextColor(row.Zone, p.MutedColor or { 0.58, 0.54, 0.49 })
+    if row.AchievementIcon then
+        if hasAchievementProgress and hunt.achievement.icon then
+            row.AchievementIcon:SetTexture(hunt.achievement.icon)
+            row.AchievementIcon:SetTexCoord(0, 1, 0, 1)
+            row.AchievementIcon:SetVertexColor(1, 1, 1, 1)
+        else
+            row.AchievementIcon:SetTexture(nil)
+            row.AchievementIcon:SetAtlas(ACHIEVEMENT_ICON_FALLBACK_ATLAS)
+            row.AchievementIcon:SetVertexColor(1, 1, 1, 1)
+        end
+        row.AchievementIcon:SetShown(hasAchievementProgress)
+    end
+    if hadAchievementProgress ~= hasAchievementProgress then
+        LayoutHuntRow(row, row._layoutWidth or row:GetWidth())
+    end
 
     -- Status
     local statusText

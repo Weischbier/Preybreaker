@@ -24,8 +24,8 @@
     </Button>
 
     <!-- PreybreakerHuntRowTemplate
-         A single hunt list row with difficulty pill, status frame, title,
-         zone, reward shelf, and accept button.
+         A single hunt list row with difficulty pill, optional achievement badge,
+         status frame, title, zone, reward shelf, and accept button.
          Lua owns: backdrop colors, text content, reward display, pulse/shimmer state. -->
     <Button name="PreybreakerHuntRowTemplate" inherits="BackdropTemplate" virtual="true">
         <Size x="362" y="78"/>
@@ -61,6 +61,12 @@
                 </Texture>
             </Layer>
             <Layer level="OVERLAY">
+                <Texture parentKey="AchievementIcon" hidden="true">
+                    <Size x="14" y="14"/>
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="10" y="-30"/>
+                    </Anchors>
+                </Texture>
                 <FontString parentKey="Title" inherits="GameFontHighlight" justifyH="LEFT" wordwrap="false">
                     <Anchors>
                         <Anchor point="TOPLEFT" x="10" y="-30"/>

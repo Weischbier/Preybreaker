@@ -134,6 +134,17 @@ local baseStrings = {
     ["Debug tracing disabled."] = "Debug tracing disabled.",
     ["Standalone hunt panel shown."] = "Standalone hunt panel shown.",
     ["Standalone hunt panel hidden."] = "Standalone hunt panel hidden.",
+    ["Commands: /pb, /pb settings, /pb toggle, /pb refresh, /pb hunts, /pb reset, /pb debug, /pb diag, /pb mapdump"] = "Commands: /pb, /pb settings, /pb toggle, /pb refresh, /pb hunts, /pb reset, /pb debug, /pb diag, /pb mapdump",
+    ["=== Prey Hunt Badge Diagnostic ==="] = "=== Prey Hunt Badge Diagnostic ===",
+    ["No active hunt pins found."] = "No active hunt pins found.",
+    ["Unknown prey"] = "Unknown prey",
+    ["Unknown difficulty"] = "Unknown difficulty",
+    ["Unknown zone"] = "Unknown zone",
+    ["show icon"] = "show icon",
+    ["hide icon"] = "hide icon",
+    ["none"] = "none",
+    ["Difficulty: %s"] = "Difficulty: %s",
+    ["This Prey target is a requirement for an unearned achievement."] = "This Prey target is a requirement for an unearned achievement.",
 
     -- Compartment tooltip
     ["Compact prey-hunt tracker anchored to the Blizzard widget."] = "Compact prey-hunt tracker anchored to the Blizzard widget.",

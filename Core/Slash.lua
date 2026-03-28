@@ -12,7 +12,7 @@ local function OpenSettings()
 end
 
 local function PrintHelp()
-    ns.Util.Print("Commands: /pb, /pb settings, /pb toggle, /pb refresh, /pb hunts, /pb reset, /pb debug")
+    ns.Util.Print(L["Commands: /pb, /pb settings, /pb toggle, /pb refresh, /pb hunts, /pb reset, /pb debug, /pb diag, /pb mapdump"])
 end
 
 SLASH_PREYBREAKER1 = "/preybreaker"
@@ -79,6 +79,51 @@ SlashCmdList.PREYBREAKER = function(message)
         end
         if ns.HuntPanel then
             ns.HuntPanel:ShowStandalone()
+        end
+        return
+    end
+
+    if command == "diagnostic" or command == "diag" then
+        if ns.HuntList then
+            ns.Util.Print(L["=== Prey Hunt Badge Diagnostic ==="])
+            ns.HuntList:RefreshFromPins()
+
+            local previousFilter = ns.HuntList.GetDifficultyFilter and ns.HuntList:GetDifficultyFilter() or nil
+            if ns.HuntList.SetDifficultyFilter then
+                ns.HuntList:SetDifficultyFilter("All")
+            end
+
+            local hunts = ns.HuntList:GetFilteredSortedHunts() or {}
+
+            if previousFilter and ns.HuntList.SetDifficultyFilter then
+                ns.HuntList:SetDifficultyFilter(previousFilter)
+            end
+
+            if #hunts == 0 then
+                ns.Util.Print(L["No active hunt pins found."])
+                return
+            end
+
+            for _, hunt in ipairs(hunts) do
+                ns.Util.Print(string.format(
+                    "%s [%s, %s]: %s (%s)",
+                    hunt.name or L["Unknown prey"],
+                    hunt.difficulty or L["Unknown difficulty"],
+                    hunt.zone or L["Unknown zone"],
+                    hunt.achievement and L["show icon"] or L["hide icon"],
+                    hunt.achievement and hunt.achievement.source or L["none"]
+                ))
+            end
+        end
+        return
+    end
+
+    if command == "mapdump" or command == "dump" then
+        if ns.HuntList and type(ns.HuntList.GetMapQuestDumpLines) == "function" then
+            local lines = ns.HuntList:GetMapQuestDumpLines()
+            for _, line in ipairs(lines or {}) do
+                ns.Util.Print(line)
+            end
         end
         return
     end

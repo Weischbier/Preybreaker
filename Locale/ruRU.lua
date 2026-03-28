@@ -127,6 +127,17 @@ ns._activeTranslation = {
     ["Debug tracing disabled."] = "Відстеження зневадження вимкнено.",
     ["Standalone hunt panel shown."] = "Окрему панель полювання показано.",
     ["Standalone hunt panel hidden."] = "Окрему панель полювання приховано.",
+    ["Commands: /pb, /pb settings, /pb toggle, /pb refresh, /pb hunts, /pb reset, /pb debug, /pb diag, /pb mapdump"] = "Команды: /pb, /pb settings, /pb toggle, /pb refresh, /pb hunts, /pb reset, /pb debug, /pb diag, /pb mapdump",
+    ["=== Prey Hunt Badge Diagnostic ==="] = "=== Диагностика значка охоты на добычу ===",
+    ["No active hunt pins found."] = "Активные метки охоты не найдены.",
+    ["Unknown prey"] = "Неизвестная добыча",
+    ["Unknown difficulty"] = "Неизвестная сложность",
+    ["Unknown zone"] = "Неизвестная зона",
+    ["show icon"] = "показать значок",
+    ["hide icon"] = "скрыть значок",
+    ["none"] = "нет",
+    ["Difficulty: %s"] = "Сложность: %s",
+    ["This Prey target is a requirement for an unearned achievement."] = "Эта цель добычи нужна для ещё не полученного достижения.",
 
     -- Compartment tooltip
     ["Compact prey-hunt tracker anchored to the Blizzard widget."] = "Компактний трекер полювання, прив'язаний до віджета Blizzard.",

@@ -127,6 +127,17 @@ ns._activeTranslation = {
     ["Debug tracing disabled."] = "Rastreo de depuración desactivado.",
     ["Standalone hunt panel shown."] = "Panel de cacería independiente mostrado.",
     ["Standalone hunt panel hidden."] = "Panel de cacería independiente oculto.",
+    ["Commands: /pb, /pb settings, /pb toggle, /pb refresh, /pb hunts, /pb reset, /pb debug, /pb diag, /pb mapdump"] = "Comandos: /pb, /pb settings, /pb toggle, /pb refresh, /pb hunts, /pb reset, /pb debug, /pb diag, /pb mapdump",
+    ["=== Prey Hunt Badge Diagnostic ==="] = "=== Diagnóstico del emblema de cacería de presa ===",
+    ["No active hunt pins found."] = "No se encontraron marcadores de cacería activos.",
+    ["Unknown prey"] = "Presa desconocida",
+    ["Unknown difficulty"] = "Dificultad desconocida",
+    ["Unknown zone"] = "Zona desconocida",
+    ["show icon"] = "mostrar icono",
+    ["hide icon"] = "ocultar icono",
+    ["none"] = "ninguno",
+    ["Difficulty: %s"] = "Dificultad: %s",
+    ["This Prey target is a requirement for an unearned achievement."] = "Este objetivo de presa es necesario para un logro que aún no has conseguido.",
 
     -- Compartment tooltip
     ["Compact prey-hunt tracker anchored to the Blizzard widget."] = "Rastreador compacto de cacería anclado al widget de Blizzard.",

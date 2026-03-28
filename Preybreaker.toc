@@ -2,7 +2,7 @@
 ## Title: Preybreaker
 ## Notes: Prey progress ring, orb, or bar with optional overlay-only mode, attached placement with per-style offsets, and optional prey quest tracking helpers.
 ## Author: Danny Patten
-## Version: v1.2.2.@project-abbreviated-hash@
+## Version: v1.2.3.@project-abbreviated-hash@
 ## SavedVariables: PreybreakerDB
 ## SavedVariablesPerCharacter: PreybreakerCharDB
 ## IconTexture: Interface\AddOns\Preybreaker\Media\Assets\Preybreaker-Icon

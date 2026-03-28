@@ -1,20 +1,39 @@
 -- SPDX-License-Identifier: GPL-3.0-only
 -- Copyright (C) 2026 Danny Patten
 --
--- Static prey-target quest flag IDs and bestiary helpers.
+-- Static prey-target quest flag IDs plus achievement helpers.
 -- Quest IDs sourced from the existing addon data set and the Plumber
 -- reference addon. They were not re-verified in-game in this environment.
 --
 -- API sources checked:
---   warcraft.wiki.gg  C_QuestLog.IsQuestFlaggedCompleted,
---                     C_QuestLog.GetTitleForQuestID,
+--   warcraft.wiki.gg  GetAchievementInfo,
+--                     GetAchievementNumCriteria,
+--                     GetAchievementCriteriaInfo,
+--                     C_QuestLog.IsQuestFlaggedCompleted,
 --                     C_MajorFactions.GetCurrentRenownLevel.
+--   BlizzardInterfaceCode APIDocumentationGenerated/QuestLogDocumentation.lua.
+--
+-- Full bestiary achievement IDs verified against live Retail sources:
+--   42701 Prey: Normal Mode III
+--   42702 Prey: Hard Mode III
+--   42703 Prey: Nightmare Mode III
 
 local _, ns = ...
 
 local Util = ns.Util
 
 ns.HuntData = {}
+
+local bestiaryAchievementStatus = nil
+local bestiaryAchievementStatusDirty = true
+local bestiaryCriteriaStatus = nil
+local bestiaryCriteriaStatusDirty = true
+
+local FullBestiaryAchievementIDs = {
+    Normal = 42701,
+    Hard = 42702,
+    Nightmare = 42703,
+}
 
 -- ---------------------------------------------------------------------------
 -- Prey target flag quest IDs by difficulty.
@@ -103,7 +122,7 @@ function ns.HuntData:IsDifficultyUnlocked(difficulty)
 end
 
 -- ---------------------------------------------------------------------------
--- Bestiary queries
+-- Bestiary and achievement queries
 -- ---------------------------------------------------------------------------
 local function IsQuestFlaggedCompleted(questID)
     if type(C_QuestLog) ~= "table" or type(C_QuestLog.IsQuestFlaggedCompleted) ~= "function" then
@@ -119,6 +138,142 @@ local function GetQuestName(questID)
     end
 
     return Util.SafeCall(C_QuestLog.GetTitleForQuestID, questID)
+end
+
+local function TrimText(text)
+    if type(text) ~= "string" then
+        return ""
+    end
+
+    return (text:gsub("^%s+", ""):gsub("%s+$", ""))
+end
+
+local function NormalizeAchievementTargetName(text)
+    if type(text) ~= "string" then
+        return nil
+    end
+
+    local normalized = strlower(text)
+    normalized = normalized:gsub("^%s*prey:%s*", "")
+    normalized = normalized:gsub("%s*%([^)]*%)%s*$", "")
+    normalized = normalized:gsub("[%c%p]", " ")
+    normalized = normalized:gsub("%s+", " ")
+    normalized = TrimText(normalized)
+
+    if normalized == "" then
+        return nil
+    end
+
+    return normalized
+end
+
+local function SafeCallMulti(func, ...)
+    if type(func) ~= "function" then
+        return nil
+    end
+
+    local ok, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15 = pcall(func, ...)
+    if ok then
+        return r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15
+    end
+
+    if ns.Debug and type(ns.Debug.Log) == "function" and type(ns.Debug.KV) == "function" then
+        ns.Debug:Log("error", ns.Debug:KV("source", "HuntData.SafeCallMulti"), ns.Debug:KV("err", tostring(r1)))
+    end
+
+    return nil
+end
+
+local function BuildBestiaryAchievementStatus()
+    if bestiaryAchievementStatus and not bestiaryAchievementStatusDirty then
+        return bestiaryAchievementStatus
+    end
+
+    local status = {}
+    for difficulty, achievementID in pairs(FullBestiaryAchievementIDs) do
+        local id, name, _, completed, _, _, _, description, _, icon, _, _, _, _, isStatistic = SafeCallMulti(GetAchievementInfo, achievementID)
+        if id and not isStatistic then
+            status[difficulty] = {
+                achievementID = id,
+                name = name,
+                description = description,
+                icon = icon,
+                completed = completed == true,
+            }
+        end
+    end
+
+    bestiaryAchievementStatus = status
+    bestiaryAchievementStatusDirty = false
+    return bestiaryAchievementStatus
+end
+
+local function BuildBestiaryCriteriaStatus()
+    if bestiaryCriteriaStatus and not bestiaryCriteriaStatusDirty then
+        return bestiaryCriteriaStatus
+    end
+
+    local status = {}
+    for difficulty, achievementID in pairs(FullBestiaryAchievementIDs) do
+        local criteriaByName = {}
+        local numCriteria = type(GetAchievementNumCriteria) == "function"
+            and Util.SafeCall(GetAchievementNumCriteria, achievementID)
+            or 0
+
+        if type(numCriteria) == "number" and numCriteria > 0 then
+            for criteriaIndex = 1, numCriteria do
+                local criteriaString, _, completed = SafeCallMulti(GetAchievementCriteriaInfo, achievementID, criteriaIndex)
+                local normalizedName = NormalizeAchievementTargetName(criteriaString)
+                if normalizedName then
+                    criteriaByName[normalizedName] = completed == true
+                end
+            end
+        end
+
+        status[difficulty] = criteriaByName
+    end
+
+    bestiaryCriteriaStatus = status
+    bestiaryCriteriaStatusDirty = false
+    return bestiaryCriteriaStatus
+end
+
+function ns.HuntData:InvalidateAchievementCache()
+    bestiaryAchievementStatus = nil
+    bestiaryAchievementStatusDirty = true
+    bestiaryCriteriaStatus = nil
+    bestiaryCriteriaStatusDirty = true
+end
+
+function ns.HuntData:GetHuntAchievementStatus(huntName, difficulty)
+    local achievement = difficulty and BuildBestiaryAchievementStatus()[difficulty] or nil
+    if not achievement or achievement.completed then
+        return nil
+    end
+
+    local normalizedName = NormalizeAchievementTargetName(huntName)
+    local criteriaByName = difficulty and BuildBestiaryCriteriaStatus()[difficulty] or nil
+    if not normalizedName or not criteriaByName then
+        return nil
+    end
+
+    local criteriaCompleted = criteriaByName[normalizedName]
+    if criteriaCompleted == nil then
+        return nil
+    end
+
+    if criteriaCompleted == true then
+        return nil
+    end
+
+    return {
+        achievementID = achievement.achievementID,
+        name = achievement.name,
+        icon = achievement.icon,
+        description = achievement.description,
+        isIncomplete = true,
+        source = "achievementCriteria",
+    }
 end
 
 function ns.HuntData:GetCompletionCount(difficulty)

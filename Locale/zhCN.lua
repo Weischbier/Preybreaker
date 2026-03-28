@@ -127,6 +127,17 @@ ns._activeTranslation = {
     ["Debug tracing disabled."] = "调试追踪已禁用。",
     ["Standalone hunt panel shown."] = "独立狩猎面板已显示。",
     ["Standalone hunt panel hidden."] = "独立狩猎面板已隐藏。",
+    ["Commands: /pb, /pb settings, /pb toggle, /pb refresh, /pb hunts, /pb reset, /pb debug, /pb diag, /pb mapdump"] = "命令：/pb, /pb settings, /pb toggle, /pb refresh, /pb hunts, /pb reset, /pb debug, /pb diag, /pb mapdump",
+    ["=== Prey Hunt Badge Diagnostic ==="] = "=== 猎物狩猎徽章诊断 ===",
+    ["No active hunt pins found."] = "未找到激活的狩猎标记。",
+    ["Unknown prey"] = "未知猎物",
+    ["Unknown difficulty"] = "未知难度",
+    ["Unknown zone"] = "未知区域",
+    ["show icon"] = "显示图标",
+    ["hide icon"] = "隐藏图标",
+    ["none"] = "无",
+    ["Difficulty: %s"] = "难度：%s",
+    ["This Prey target is a requirement for an unearned achievement."] = "该猎物目标是某项尚未获得的成就所需目标。",
 
     -- Compartment tooltip
     ["Compact prey-hunt tracker anchored to the Blizzard widget."] = "锚定在暴雪组件上的紧凑型猎物狩猎追踪器。",

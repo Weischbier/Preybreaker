@@ -127,6 +127,17 @@ ns._activeTranslation = {
     ["Debug tracing disabled."] = "디버그 추적이 비활성화되었습니다.",
     ["Standalone hunt panel shown."] = "독립형 사냥 패널이 표시되었습니다.",
     ["Standalone hunt panel hidden."] = "독립형 사냥 패널이 숨겨졌습니다.",
+    ["Commands: /pb, /pb settings, /pb toggle, /pb refresh, /pb hunts, /pb reset, /pb debug, /pb diag, /pb mapdump"] = "명령어: /pb, /pb settings, /pb toggle, /pb refresh, /pb hunts, /pb reset, /pb debug, /pb diag, /pb mapdump",
+    ["=== Prey Hunt Badge Diagnostic ==="] = "=== 먹이 사냥 배지 진단 ===",
+    ["No active hunt pins found."] = "활성 사냥 핀을 찾지 못했습니다.",
+    ["Unknown prey"] = "알 수 없는 먹이",
+    ["Unknown difficulty"] = "알 수 없는 난이도",
+    ["Unknown zone"] = "알 수 없는 지역",
+    ["show icon"] = "아이콘 표시",
+    ["hide icon"] = "아이콘 숨김",
+    ["none"] = "없음",
+    ["Difficulty: %s"] = "난이도: %s",
+    ["This Prey target is a requirement for an unearned achievement."] = "이 먹이 대상은 아직 획득하지 못한 업적에 필요합니다.",
 
     -- Compartment tooltip
     ["Compact prey-hunt tracker anchored to the Blizzard widget."] = "블리자드 위젯에 고정된 컴팩트 먹이 사냥 추적기.",

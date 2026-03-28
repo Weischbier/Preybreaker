@@ -22,6 +22,23 @@ local FALLBACK_MARKDOWN = [[
 
 All notable changes to this project will be documented in this file.
 
+## [v1.2.3] - 2026-03-28
+
+### Added
+
+- Added `/pb diag` and `/pb mapdump` commands to inspect prey badge decisions and raw Adventure Map hunt pin data in game.
+
+### Changed
+
+- Reworked prey hunt achievement badges to use direct Retail Prey achievement and criteria completion checks instead of map-text or quest-completion heuristics.
+- Added achievement-cache invalidation on achievement and criteria update events so hunt badge state refreshes without requiring a reload.
+
+### Fixed
+
+- Fixed completed prey targets still showing the hunt achievement badge when their corresponding Prey achievement criterion was already complete.
+- Fixed hunt rows and achievement tooltips to fail closed when a hunt title does not match a verified achievement criterion, avoiding false-positive badges.
+- Fixed new badge diagnostic and tooltip strings across all shipped locales instead of leaving English fallback text in non-enUS clients.
+
 ## [v1.2.2] - 2026-03-27
 
 ### Fixed
