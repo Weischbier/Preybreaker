@@ -214,6 +214,45 @@ local function LogHuntPanel(action, detail, extra)
     ns.Debug:Log("hunts", ns.Debug:KV("action", action), ns.Debug:KV("detail", detail), ns.Debug:KV("extra", extra))
 end
 
+local ALLOWED_SUBZONE_GLOBAL_KEYS = {
+    "ASTALORS_SANCTUM",
+}
+local ALLOWED_SUBZONE_FALLBACKS = {
+    ["Astalor's Sanctum"] = true,
+}
+
+local function GetCurrentSubZoneText()
+    if type(GetSubZoneText) ~= "function" then
+        return nil
+    end
+
+    local subZoneText = SafeCall(GetSubZoneText)
+    if type(subZoneText) ~= "string" or subZoneText == "" then
+        return nil
+    end
+
+    return subZoneText
+end
+
+local function IsAllowedHuntPanelSubZone(subZoneText)
+    if type(subZoneText) ~= "string" or subZoneText == "" then
+        return false, nil
+    end
+
+    for _, globalKey in ipairs(ALLOWED_SUBZONE_GLOBAL_KEYS) do
+        local globalText = _G and _G[globalKey] or nil
+        if type(globalText) == "string" and globalText ~= "" and subZoneText == globalText then
+            return true, globalKey
+        end
+    end
+
+    if ALLOWED_SUBZONE_FALLBACKS[subZoneText] then
+        return true, "fallback"
+    end
+
+    return false, nil
+end
+
 local function GetRemnantQuantity()
     local hunt = Constants and Constants.Hunt
     if not hunt or type(hunt.RemnantCurrencyID) ~= "number" then return 0 end
@@ -1329,6 +1368,14 @@ end
 
 function HuntPanel:QuickEvaluateBeforeOpen()
     LogHuntPanel("quickEval", "start", nil)
+
+    local subZoneText = GetCurrentSubZoneText()
+    local allowedSubZone, source = IsAllowedHuntPanelSubZone(subZoneText)
+    if not allowedSubZone then
+        LogHuntPanel("quickEval", "blockedSubZone", string.format("source=%s,subZone=%s", tostring(source), tostring(subZoneText)))
+        return false
+    end
+
     if not HuntList or not HuntList.QuickEvaluate then
         LogHuntPanel("quickEval", "noHuntList", nil)
         return true
@@ -1342,6 +1389,14 @@ function HuntPanel:Refresh()
     local frame = self:Ensure()
     if not frame:IsShown() then
         LogHuntPanel("refresh", "skip", "frameNotShown")
+        return
+    end
+
+    local subZoneText = GetCurrentSubZoneText()
+    local allowedSubZone, source = IsAllowedHuntPanelSubZone(subZoneText)
+    if not allowedSubZone then
+        LogHuntPanel("refresh", "hideBlockedSubZone", string.format("source=%s,subZone=%s", tostring(source), tostring(subZoneText)))
+        self:Hide()
         return
     end
 

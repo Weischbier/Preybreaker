@@ -4,9 +4,27 @@
 local ADDON_NAME, ns = ...
 
 local L = ns.L
+local FR = ns.Constants and ns.Constants.FrameRef or {}
+local MISSION_FRAME_NAME = FR.MissionFrame or "CovenantMissionFrame"
 
 local function GetController()
     return ns.Controller
+end
+
+local function IsShiftHeld()
+    if type(IsShiftKeyDown) == "function" and IsShiftKeyDown() then
+        return true
+    end
+
+    if type(IsLeftShiftKeyDown) == "function" and IsLeftShiftKeyDown() then
+        return true
+    end
+
+    if type(IsRightShiftKeyDown) == "function" and IsRightShiftKeyDown() then
+        return true
+    end
+
+    return false
 end
 
 local function GetSnapshot()
@@ -41,19 +59,28 @@ function _G.Preybreaker_OnAddonCompartmentClick(addonName, buttonName)
         return
     end
 
-    if buttonName == "LeftButton" and IsShiftKeyDown() and ns.SettingsPanel then
+    local shiftHeld = IsShiftHeld()
+
+    if buttonName == "LeftButton" and shiftHeld and ns.SettingsPanel then
         ns.SettingsPanel:Open()
         return
     end
 
     -- Shift + Right-click: open hunt panel standalone
-    if buttonName == "RightButton" and IsShiftKeyDown() then
+    if buttonName == "RightButton" and shiftHeld then
         if ns.Settings and not ns.Settings:IsHuntPanelEnabled() then
             ns.Util.Print(L["Hunt panel disabled."])
             return
         end
         if ns.HuntPanel then
-            ns.HuntPanel:ShowStandalone()
+            local opened = ns.HuntPanel:ShowStandalone() == true
+            if not opened and _G[MISSION_FRAME_NAME] and _G[MISSION_FRAME_NAME]:IsShown() then
+                opened = ns.HuntPanel:ShowAttached(true) == true
+            end
+
+            if not opened then
+                ns.Util.Print("Hunt panel can only open in Astalor's Sanctum.")
+            end
         end
         return
     end

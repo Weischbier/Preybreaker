@@ -22,6 +22,16 @@ local FALLBACK_MARKDOWN = [[
 
 All notable changes to this project will be documented in this file.
 
+## [v1.2.5] - 2026-04-07
+
+### Changed
+
+- Tightened hunt panel visibility gating so the panel only opens and stays visible in Astalor's Sanctum (`ASTALORS_SANCTUM` global-string subzone).
+
+### Fixed
+
+- Fixed hunt panel appearing on the Midnight non-prey Adventure table by enforcing Astalor's Sanctum as a hard whitelist at open-time and refresh-time.
+
 ## [v1.2.4] - 2026-04-07
 
 ### Added
