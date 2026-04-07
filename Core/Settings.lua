@@ -412,6 +412,23 @@ function ns.Settings:GetAccountDB()
     return self.accountDB or _G[DB_NAME]
 end
 
+function ns.Settings:GetCharDB()
+    return self.charDB or _G[CHAR_DB_NAME]
+end
+
+function ns.Settings:GetCharacterHuntQuestCache()
+    local charDB = self:GetCharDB()
+    if type(charDB) ~= "table" then
+        return nil
+    end
+
+    if type(charDB.huntQuestCache) ~= "table" then
+        charDB.huntQuestCache = {}
+    end
+
+    return charDB.huntQuestCache
+end
+
 function ns.Settings:GetValue(key)
     local db = self:GetDB()
     if DEFAULTS[key] == nil then

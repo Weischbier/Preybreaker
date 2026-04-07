@@ -22,6 +22,21 @@ local FALLBACK_MARKDOWN = [[
 
 All notable changes to this project will be documented in this file.
 
+## [v1.2.4] - 2026-04-07
+
+### Added
+
+- Added character-scoped hunt quest cache persistence (`PreybreakerCharDB.huntQuestCache`) so known prey map entries and warmed reward snapshots restore faster between panel opens and reloads.
+
+### Changed
+
+- Updated hunt panel data flow to prefer cached hunt entries before running stabilized pin scans, reducing repeated Adventure Map scan passes when hunt data is already known for the character.
+
+### Fixed
+
+- Fixed Midnight dual-table map interaction blocking by hard-skipping prey pin scanning and reward warmup on the non-prey Adventure table subzone (`SANCTUM_OF_LIGHT` / Sanctum of Light).
+- Fixed stale cached hunt quest entries by removing character-cache rows when a tracked hunt quest is removed or completed.
+
 ## [v1.2.3] - 2026-03-28
 
 ### Added

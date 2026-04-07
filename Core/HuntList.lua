@@ -35,6 +35,12 @@ local WARMUP_STABLE_READS = 3
 local WARMUP_TIMEOUT_SECONDS = 4.0
 local WARMUP_MAX_EMPTY_ATTEMPTS = 3
 local WARMUP_PASS_COOLDOWN_SECONDS = 0.9
+local BLOCKED_SUBZONE_GLOBAL_KEYS = {
+    "SANCTUM_OF_LIGHT",
+}
+local BLOCKED_SUBZONE_FALLBACKS = {
+    ["Sanctum of Light"] = true,
+}
 
 local ParseDifficulty
 local ResolveZoneByCoords
@@ -70,6 +76,51 @@ local function LogHunts(action, detail, extra)
         ns.Debug:KV("detail", detail),
         ns.Debug:KV("extra", extra)
     )
+end
+
+local function GetCurrentSubZoneText()
+    if type(GetSubZoneText) ~= "function" then
+        return nil
+    end
+
+    local subZoneText = Util.SafeCall(GetSubZoneText)
+    if type(subZoneText) ~= "string" or subZoneText == "" then
+        return nil
+    end
+
+    return subZoneText
+end
+
+local function IsBlockedSubZone(subZoneText)
+    if type(subZoneText) ~= "string" or subZoneText == "" then
+        return false, nil
+    end
+
+    for _, globalKey in ipairs(BLOCKED_SUBZONE_GLOBAL_KEYS) do
+        local globalText = _G and _G[globalKey] or nil
+        if type(globalText) == "string" and globalText ~= "" and subZoneText == globalText then
+            return true, globalKey
+        end
+    end
+
+    if BLOCKED_SUBZONE_FALLBACKS[subZoneText] then
+        return true, "fallback"
+    end
+
+    return false, nil
+end
+
+local function GetCharacterHuntQuestCache()
+    if not (ns.Settings and type(ns.Settings.GetCharacterHuntQuestCache) == "function") then
+        return nil
+    end
+
+    local cache = ns.Settings:GetCharacterHuntQuestCache()
+    if type(cache) ~= "table" then
+        return nil
+    end
+
+    return cache
 end
 
 local function NormalizeFilter(filterValue)
@@ -390,6 +441,110 @@ local function BuildQuestIDSet(hunts)
     return set
 end
 
+local function SnapshotRewardEntry(reward)
+    if type(reward) ~= "table" then
+        return nil
+    end
+
+    return {
+        rewardIndex = reward.rewardIndex,
+        tooltipType = reward.tooltipType,
+        name = reward.name,
+        texture = reward.texture,
+        count = reward.count,
+    }
+end
+
+local function SnapshotRewards(rewards)
+    if type(rewards) ~= "table" then
+        return nil
+    end
+
+    local copy = {}
+    for index, reward in ipairs(rewards) do
+        copy[index] = SnapshotRewardEntry(reward)
+    end
+
+    return copy
+end
+
+local function BuildHuntFromCacheEntry(questID, entry)
+    if type(entry) ~= "table" then
+        return nil
+    end
+
+    local cachedQuestID = tonumber(entry.questID) or tonumber(questID)
+    if not cachedQuestID or cachedQuestID <= 0 then
+        return nil
+    end
+
+    local difficulty = NormalizeFilter(entry.difficulty)
+    if difficulty == FILTER_ALL then
+        difficulty = FILTER_NORMAL
+    end
+
+    return {
+        questID = cachedQuestID,
+        name = type(entry.name) == "string" and entry.name or "",
+        description = type(entry.description) == "string" and entry.description or "",
+        difficulty = difficulty,
+        zone = type(entry.zone) == "string" and entry.zone or nil,
+    }
+end
+
+local function PersistHuntCacheEntry(hunt, rewards)
+    if type(hunt) ~= "table" or type(hunt.questID) ~= "number" then
+        return
+    end
+
+    local cache = GetCharacterHuntQuestCache()
+    if type(cache) ~= "table" then
+        return
+    end
+
+    cache[hunt.questID] = {
+        questID = hunt.questID,
+        name = type(hunt.name) == "string" and hunt.name or "",
+        description = type(hunt.description) == "string" and hunt.description or "",
+        difficulty = NormalizeFilter(hunt.difficulty),
+        zone = hunt.zone,
+        rewards = SnapshotRewards(rewards),
+    }
+end
+
+local function RemoveHuntCacheEntry(questID)
+    if type(questID) ~= "number" then
+        return
+    end
+
+    local cache = GetCharacterHuntQuestCache()
+    if type(cache) ~= "table" then
+        return
+    end
+
+    cache[questID] = nil
+end
+
+local function LoadCachedHunts(state)
+    if type(state) ~= "table" then
+        return
+    end
+
+    local cache = GetCharacterHuntQuestCache()
+    if type(cache) ~= "table" then
+        return
+    end
+
+    for questID, entry in pairs(cache) do
+        local hunt = BuildHuntFromCacheEntry(questID, entry)
+        if hunt and not state.questIndex[hunt.questID] then
+            state.hunts[#state.hunts + 1] = hunt
+            state.questIndex[hunt.questID] = hunt
+            state.rewardCache[hunt.questID] = SnapshotRewards(entry.rewards)
+        end
+    end
+end
+
 local function SnapshotDialogPoolRewards(dialog)
     if not dialog or type(dialog) ~= "table" then
         return {}
@@ -456,6 +611,8 @@ function HuntList:GetState()
             stabilizeTicker = nil,
             cancelWarmup = nil,
         }
+
+        LoadCachedHunts(self.state)
     end
 
     return self.state
@@ -511,6 +668,7 @@ function HuntList:RemoveByQuestID(questID)
     state.questIndex[questID] = nil
     state.rewardCache[questID] = nil
     state.attemptCount[questID] = nil
+    RemoveHuntCacheEntry(questID)
     for i = #state.hunts, 1, -1 do
         if state.hunts[i].questID == questID then
             table.remove(state.hunts, i)
@@ -576,6 +734,7 @@ function HuntList:ApplyRefreshedHunts(refreshed, sourceTag)
     for _, hunt in ipairs(refreshed) do
         state.hunts[#state.hunts + 1] = hunt
         state.questIndex[hunt.questID] = hunt
+        PersistHuntCacheEntry(hunt, state.rewardCache[hunt.questID])
     end
 
     LogHunts(sourceTag or "refreshPins", #state.hunts, cacheWarm and "cacheWarm" or "cacheReset")
@@ -583,9 +742,26 @@ function HuntList:ApplyRefreshedHunts(refreshed, sourceTag)
 end
 
 function HuntList:RefreshFromPins()
+    if self:HasAnyHunts() then
+        LogHunts("refreshPins", "cacheHit", #self:GetState().hunts)
+        return true
+    end
+
+    local blocked, source, subZoneText = self:IsScanBlockedBySubZone()
+    if blocked then
+        LogHunts("refreshPins", "blockedSubZone", string.format("source=%s,subZone=%s", tostring(source), tostring(subZoneText)))
+        return true
+    end
+
     local refreshed = DedupeHuntsByDifficultyAndZone(BuildRawHuntsFromPins())
     local cacheWarm = self:ApplyRefreshedHunts(refreshed, "refreshPins")
     return cacheWarm
+end
+
+function HuntList:IsScanBlockedBySubZone()
+    local subZoneText = GetCurrentSubZoneText()
+    local blocked, source = IsBlockedSubZone(subZoneText)
+    return blocked, source, subZoneText
 end
 
 function HuntList:QuickEvaluateAvailability()
@@ -704,6 +880,25 @@ function HuntList:BeginStabilizedScan(onReady)
 
     state.scanning = true
 
+    if self:HasAnyHunts() then
+        state.scanning = false
+        LogHunts("scanSkip", #state.hunts, "cacheHit")
+        if type(onReady) == "function" then
+            onReady(true, #state.hunts)
+        end
+        return
+    end
+
+    local blocked, source, subZoneText = self:IsScanBlockedBySubZone()
+    if blocked then
+        state.scanning = false
+        LogHunts("scanSkip", 0, string.format("blockedSubZone:%s:%s", tostring(source), tostring(subZoneText)))
+        if type(onReady) == "function" then
+            onReady(true, #state.hunts)
+        end
+        return
+    end
+
     local function Finish(cacheWarm, huntCount, reason)
         if state.stabilizeTicker then
             state.stabilizeTicker:Cancel()
@@ -782,6 +977,16 @@ end
 
 function HuntList:WarmRewardCacheAsync(onProgress, onDone, questIDs)
     local state = self:GetState()
+
+    local blocked, source, subZoneText = self:IsScanBlockedBySubZone()
+    if blocked then
+        LogHunts("warmupSkip", "blockedSubZone", string.format("source=%s,subZone=%s", tostring(source), tostring(subZoneText)))
+        if type(onDone) == "function" then
+            onDone()
+        end
+        return
+    end
+
     if state.warming then
         LogHunts("warmupSkip", "alreadyWarming", nil)
         return
@@ -858,6 +1063,7 @@ function HuntList:WarmRewardCacheAsync(onProgress, onDone, questIDs)
             state.attemptCount[questID] = (state.attemptCount[questID] or 0) + 1
             if state.attemptCount[questID] >= WARMUP_MAX_EMPTY_ATTEMPTS then
                 state.rewardCache[questID] = {}
+                PersistHuntCacheEntry(queue[qIdx], state.rewardCache[questID])
                 LogHunts("warmupCommit", questID, string.format("timedOutEmpty:accepted attempts=%d", state.attemptCount[questID]))
             else
                 state.rewardCache[questID] = nil
@@ -866,6 +1072,7 @@ function HuntList:WarmRewardCacheAsync(onProgress, onDone, questIDs)
         else
             state.rewardCache[questID] = rewards
             state.attemptCount[questID] = nil
+            PersistHuntCacheEntry(queue[qIdx], state.rewardCache[questID])
             LogHunts("warmupCommit", questID, string.format("ready rewards=%d", #rewards))
         end
 
