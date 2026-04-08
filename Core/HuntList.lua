@@ -900,6 +900,25 @@ function HuntList:CancelWarmup()
     state.warming = false
 end
 
+function HuntList:ResetCachedHuntsForRescan()
+    local state = self:GetState()
+
+    self:CancelWarmup()
+
+    wipe(state.hunts)
+    wipe(state.questIndex)
+    wipe(state.rewardCache)
+    wipe(state.attemptCount)
+    state.nextWarmupAt = 0
+
+    local cache = GetCharacterHuntQuestCache()
+    if type(cache) == "table" then
+        wipe(cache)
+    end
+
+    LogHunts("resetCache", "cleared", 0)
+end
+
 function HuntList:BeginStabilizedScan(onReady)
     local state = self:GetState()
     if state.stabilizeTicker then

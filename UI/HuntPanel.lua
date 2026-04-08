@@ -393,10 +393,10 @@ local function SetupRewardTooltip(button)
         if reward.name and reward.name ~= "" then
             GameTooltip:SetText(reward.name, 1, 1, 1)
             if reward.count then
-                GameTooltip:AddLine(string.format("Quantity: %s", reward.count), 0.8, 0.8, 0.8)
+                GameTooltip:AddLine(string.format(L["Quantity: %s"], reward.count), 0.8, 0.8, 0.8)
             end
         else
-            GameTooltip:SetText("Unknown reward")
+            GameTooltip:SetText(L["Unknown reward"])
         end
 
         GameTooltip:Show()
@@ -511,7 +511,7 @@ local function CreateHuntRow(parent)
     end
 
     -- Accept button (modern accent style)
-    ApplyAccentButtonStyle(row.AcceptButton, "Accept")
+    ApplyAccentButtonStyle(row.AcceptButton, L["Accept"])
 
     -- Reward shelf
     row.Rewards = {}
@@ -542,25 +542,65 @@ end
 
 local function LayoutHuntRow(row, width)
     if not row then return end
-    row._layoutWidth = width
-    local compact = type(width) == "number" and width < 290
-    local statusWidth = compact and 86 or 96
+    local rowWidth = type(width) == "number" and width or row:GetWidth()
+    row._layoutWidth = rowWidth
+    local compact = type(rowWidth) == "number" and rowWidth < 290
     local iconSize = compact and 16 or REWARD_ICON_SIZE
     local gap = compact and 2 or 3
     local shelfWidth = (iconSize * MAX_REWARD_ICONS) + (gap * (MAX_REWARD_ICONS - 1))
+
+    local function MeasureFontStringTextWidth(fontString, fallbackText)
+        if not fontString then
+            return 0
+        end
+
+        local text = fontString:GetText()
+        if (not text or text == "") and type(fallbackText) == "string" then
+            text = fallbackText
+        end
+
+        if type(text) ~= "string" or text == "" then
+            return 0
+        end
+
+        local widthBefore = fontString:GetStringWidth() or 0
+        if widthBefore > 0 and widthBefore ~= math.huge then
+            return widthBefore
+        end
+
+        local originalText = fontString:GetText()
+        fontString:SetText(text)
+        local measured = fontString:GetStringWidth() or 0
+        fontString:SetText(originalText or "")
+        return measured
+    end
+
+    local safeRowWidth = math.max(220, math.floor(rowWidth or 220))
+    local acceptMinWidth = compact and 64 or 72
+    local acceptMaxWidth = math.max(acceptMinWidth, math.floor(safeRowWidth * 0.34))
+    local acceptTextWidth = MeasureFontStringTextWidth(row.AcceptButton and row.AcceptButton.Label, L["Accept"])
+    local acceptWidth = math.max(acceptMinWidth, math.ceil(acceptTextWidth + 18))
+    acceptWidth = math.min(acceptWidth, acceptMaxWidth)
+
+    local statusMinWidth = compact and 88 or 96
+    local statusMaxWidth = math.max(statusMinWidth, math.floor(safeRowWidth * 0.56))
+    local statusTextWidth = MeasureFontStringTextWidth(row.Status, L["Loading"])
+    local statusWidth = math.max(statusMinWidth, math.ceil(statusTextWidth + 18))
+    statusWidth = math.min(statusWidth, statusMaxWidth)
 
     row.StatusFrame:ClearAllPoints()
     row.StatusFrame:SetSize(statusWidth, 16)
     row.StatusFrame:SetPoint("TOPRIGHT", row, "TOPRIGHT", -8, -10)
 
     row.AcceptButton:ClearAllPoints()
+    row.AcceptButton:SetSize(acceptWidth, 18)
     row.AcceptButton:SetPoint("RIGHT", row, "RIGHT", -8, -7)
 
     row.RewardShelf:ClearAllPoints()
     row.RewardShelf:SetSize(shelfWidth, iconSize)
     row.RewardShelf:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 104, 6)
 
-    row.RewardLabel:SetWidth(math.max(52, math.floor((width or 0) - shelfWidth - 176)))
+    row.RewardLabel:SetWidth(math.max(52, math.floor((safeRowWidth or 0) - shelfWidth - acceptWidth - 118)))
 
     for index = 1, MAX_REWARD_ICONS do
         local reward = row.Rewards[index]
@@ -569,7 +609,7 @@ local function LayoutHuntRow(row, width)
         reward:SetPoint("LEFT", row.RewardShelf, "LEFT", (index - 1) * (iconSize + gap), 0)
     end
 
-    local rightPad = compact and 66 or 74
+    local rightPad = math.max(statusWidth, acceptWidth) + (compact and 16 or 18)
     row.Title:ClearAllPoints()
     if row.AchievementIcon and row.AchievementIcon:IsShown() then
         row.AchievementIcon:ClearAllPoints()
@@ -605,12 +645,12 @@ local function GetRowCountHint(hunts)
 end
 
 local function GetRewardSummaryText(hunt)
-    if not hunt then return "Rewards pending" end
-    if hunt.rewardState == "retrying" then return "Syncing rewards" end
-    if hunt.rewardState == "empty" then return "No reward choices" end
-    if not hunt.rewards then return "Rewards pending" end
-    if #hunt.rewards == 0 then return "No reward choices" end
-    return string.format("%d reward choices", #hunt.rewards)
+    if not hunt then return L["Rewards pending"] end
+    if hunt.rewardState == "retrying" then return L["Syncing rewards"] end
+    if hunt.rewardState == "empty" then return L["No reward choices"] end
+    if not hunt.rewards then return L["Rewards pending"] end
+    if #hunt.rewards == 0 then return L["No reward choices"] end
+    return string.format(L["%d reward choices"], #hunt.rewards)
 end
 
 local function GetAnguishText()
@@ -643,7 +683,7 @@ end
 local function ApplyLoadingCardColors(card)
     local p = SP()
     ApplyCardBackdrop(card)
-    card.Title:SetText("Hunt Sync")
+    card.Title:SetText(L["Hunt Sync"])
     SetTextColor(card.Title, p.TitleColor or { 0.94, 0.86, 0.72 })
     SetTextColor(card.StatusText, p.MutedColor or { 0.58, 0.54, 0.49 })
     SetTextColor(card.ProgressText, p.AccentColor or { 0.86, 0.66, 0.28 })
@@ -812,9 +852,9 @@ local function SetupPanelFrame()
     end)
 
     -- Title / subtitle
-    frame.Title:SetText("TACTICAL HUNT CONSOLE")
+    frame.Title:SetText(L["Tactical Hunt Console"])
     SetTextColor(frame.Title, p.TitleColor or { 0.94, 0.86, 0.72 })
-    frame.Subtitle:SetText("Live prey routing, reward telemetry,\nand one-click quest access")
+    frame.Subtitle:SetText(L["Live prey routing, reward telemetry, and one-click quest access"])
     SetTextColor(frame.Subtitle, p.MutedColor or { 0.58, 0.54, 0.49 })
 
     -- Close button
@@ -832,9 +872,14 @@ local function SetupPanelFrame()
     -- Filter buttons
     frame.FilterBar = frame.Body.FilterBar
     frame.FilterButtons = {}
-    local filterOrder = { "All", "Nightmare", "Hard", "Normal" }
+    local filterOrder = {
+        { value = "All", label = L["All"] },
+        { value = "Nightmare", label = L["Nightmare"] },
+        { value = "Hard", label = L["Hard"] },
+        { value = "Normal", label = L["Normal"] },
+    }
     for _, filter in ipairs(filterOrder) do
-        local button = CreateFilterButton(frame.FilterBar, filter, filter)
+        local button = CreateFilterButton(frame.FilterBar, filter.value, filter.label)
         frame.FilterButtons[#frame.FilterButtons + 1] = button
     end
 
@@ -879,7 +924,7 @@ local function SetupPanelFrame()
     frame.AnguishIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
     frame.ModeButton = frame.Footer.ModeButton
-    ApplyAccentButtonStyle(frame.ModeButton, "Detach")
+    ApplyAccentButtonStyle(frame.ModeButton, L["Detach"])
     frame.ModeButton:SetScript("OnClick", function()
         HuntPanel:ToggleStandalone()
     end)
@@ -894,7 +939,7 @@ local function SetupPanelFrame()
 
     frame.EmptyState = CreateText(frame.ScrollChild, "OVERLAY", "GameFontDisableLarge")
     frame.EmptyState:SetPoint("TOP", frame.EmptyIcon, "BOTTOM", 0, -8)
-    frame.EmptyState:SetText("No hunt signals detected.")
+    frame.EmptyState:SetText(L["No hunt signals detected."])
     SetTextColor(frame.EmptyState, p.MutedColor or { 0.58, 0.54, 0.49 })
     frame.EmptyState:Hide()
 
@@ -966,7 +1011,7 @@ local function UpdateRowState(row, hunt)
     end
 
     row.Title:SetText(hunt.name or ("Quest " .. tostring(hunt.questID)))
-    row.Difficulty:SetText(hunt.difficulty or "Normal")
+    row.Difficulty:SetText(L[hunt.difficulty or "Normal"])
     SetTextColor(row.Difficulty, p.TitleColor or { 0.94, 0.86, 0.72 })
     row.Zone:SetText(hunt.zone or L["Unknown zone"])
     SetTextColor(row.Zone, p.MutedColor or { 0.58, 0.54, 0.49 })
@@ -989,15 +1034,16 @@ local function UpdateRowState(row, hunt)
     -- Status
     local statusText
     if hunt.inProgress then
-        statusText = "Tracking"
+        statusText = L["Tracking"]
     elseif hunt.rewardState == "retrying" then
-        statusText = "Syncing"
+        statusText = L["Syncing"]
     elseif hunt.rewardState == "ready" then
         statusText = GetRewardSummaryText(hunt)
     else
-        statusText = "Loading"
+        statusText = L["Loading"]
     end
     row.Status:SetText(statusText)
+    LayoutHuntRow(row, row._layoutWidth or row:GetWidth())
 
     if hunt.inProgress then
         SetTextColor(row.Status, p.PositiveColor or { 0.82, 0.90, 0.63 })
@@ -1207,7 +1253,7 @@ function HuntPanel:UpdateSummary()
     local hunts = HuntList and HuntList:GetFilteredSortedHunts() or {}
     local inProgress, available = GetRowCountHint(hunts)
     local filter = HuntList and HuntList:GetDifficultyFilter() or "All"
-    frame.Summary:SetText(string.format("Band %s  |  Active %d  |  Ready %d", filter, inProgress, available))
+    frame.Summary:SetText(string.format(L["Band %s | Active %d | Ready %d"], L[filter], inProgress, available))
     if frame.AnguishText then
         frame.AnguishText:SetText(GetAnguishText())
     end
@@ -1254,7 +1300,7 @@ function HuntPanel:UpdateLoading(done, total, text)
         if overlay then
             if showProgress then
                 overlay.Card:Show()
-                UpdateLoadingCard(overlay.Card, done, total, text or (HuntList:IsWarmupActive() and "Synchronizing hunt deck" or "Stabilizing hunt signals"))
+                UpdateLoadingCard(overlay.Card, done, total, text or (HuntList:IsWarmupActive() and L["Synchronizing hunt deck"] or L["Stabilizing hunt signals"]))
                 overlay:Show()
             else
                 overlay:Hide()
@@ -1267,7 +1313,7 @@ function HuntPanel:UpdateLoading(done, total, text)
 
     if blockPanel then
         frame.LoadingOverlay:Show()
-        UpdateLoadingCard(frame.LoadingOverlay.Card, done, total, text or (HuntList:IsWarmupActive() and "Synchronizing hunt deck" or "Stabilizing hunt signals"))
+        UpdateLoadingCard(frame.LoadingOverlay.Card, done, total, text or (HuntList:IsWarmupActive() and L["Synchronizing hunt deck"] or L["Stabilizing hunt signals"]))
     else
         frame.LoadingOverlay:Hide()
     end
@@ -1312,7 +1358,7 @@ function HuntPanel:RequestWarmup()
         LogHuntPanel("warmupProgress", string.format("done=%s,total=%s", tostring(done), tostring(total)), nil)
 
         if HuntPanel.frame and HuntPanel.frame:IsShown() then
-            HuntPanel:UpdateLoading(done, total, "Synchronizing hunt deck")
+            HuntPanel:UpdateLoading(done, total, L["Synchronizing hunt deck"])
             local currentHunts = HuntList and HuntList:GetFilteredSortedHunts() or {}
             LayoutRows(HuntPanel.frame, currentHunts)
             HuntPanel:UpdateSummary()
@@ -1382,12 +1428,12 @@ function HuntPanel:Refresh()
     local hunts = HuntList and HuntList:GetFilteredSortedHunts() or {}
     LayoutRows(frame, hunts)
     UpdateFilterButtons(frame)
-    ApplyAccentButtonStyle(frame.ModeButton, self.mode == "attached" and "Detach" or "Dock")
+    ApplyAccentButtonStyle(frame.ModeButton, self.mode == "attached" and L["Detach"] or L["Dock"])
     self:UpdateSummary()
     self:UpdateLoading(nil, nil, nil)
 
     if HuntList and HuntList:IsScanActive() then
-        self:UpdateLoading(nil, nil, "Stabilizing map pins")
+        self:UpdateLoading(nil, nil, L["Stabilizing map pins"])
         return
     end
 

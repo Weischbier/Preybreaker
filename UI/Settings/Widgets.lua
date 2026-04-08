@@ -244,16 +244,63 @@ function SP.CreateActionsCard(parent)
     card.Hint:SetText(L["Open this panel with /pb or by shift-left-clicking the compartment icon."])
     SetTextColor(card.Hint, panel.MutedColor)
 
+    local function GetLocalizedButtonWidth(button)
+        local fontString = button and button.GetFontString and button:GetFontString() or nil
+        local textWidth = fontString and fontString.GetStringWidth and fontString:GetStringWidth() or 0
+        return math.max(96, math.ceil(textWidth + 28))
+    end
+
+    function card:LayoutButtons()
+        local leftInset = 14
+        local rightInset = 12
+        local topOffset = -14
+        local horizontalGap = 10
+        local verticalGap = 8
+        local buttonHeight = 22
+        local availableWidth = math.max(120, (self:GetWidth() or panel.SidebarWidth) - leftInset - rightInset)
+
+        local resetWidth = GetLocalizedButtonWidth(self.ResetButton)
+        local refreshWidth = GetLocalizedButtonWidth(self.RefreshButton)
+
+        self.ResetButton:ClearAllPoints()
+        self.RefreshButton:ClearAllPoints()
+
+        if (resetWidth + horizontalGap + refreshWidth) <= availableWidth then
+            self.ResetButton:SetSize(resetWidth, buttonHeight)
+            self.ResetButton:SetPoint("TOPLEFT", self.Title, "BOTTOMLEFT", 0, topOffset)
+
+            self.RefreshButton:SetSize(refreshWidth, buttonHeight)
+            self.RefreshButton:SetPoint("LEFT", self.ResetButton, "RIGHT", horizontalGap, 0)
+
+            self._buttonBlockHeight = buttonHeight
+            return
+        end
+
+        local stackedWidth = math.min(availableWidth, math.max(resetWidth, refreshWidth))
+        self.ResetButton:SetSize(stackedWidth, buttonHeight)
+        self.ResetButton:SetPoint("TOPLEFT", self.Title, "BOTTOMLEFT", 0, topOffset)
+
+        self.RefreshButton:SetSize(stackedWidth, buttonHeight)
+        self.RefreshButton:SetPoint("TOPLEFT", self.ResetButton, "BOTTOMLEFT", 0, -verticalGap)
+
+        self._buttonBlockHeight = (buttonHeight * 2) + verticalGap
+    end
+
     function card:ResizeToFit()
+        self:LayoutButtons()
         local h = 12
         h = h + (self.Title:GetStringHeight() or 14)
         h = h + 14
-        h = h + (self.ResetButton:GetHeight() or 22)
+        h = h + (self._buttonBlockHeight or (self.ResetButton:GetHeight() or 22))
         h = h + 12
         h = h + (self.Hint:GetStringHeight() or 10)
         h = h + 14
         self:SetHeight(math.ceil(h))
     end
+
+    card:HookScript("OnSizeChanged", function(self)
+        self:ResizeToFit()
+    end)
 
     card:ResizeToFit()
 

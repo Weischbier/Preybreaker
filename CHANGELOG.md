@@ -4,15 +4,24 @@ All notable changes to this project will be documented in this file.
 
 ## [v1.2.7] - 2026-04-08
 
+### Added
+
+- Added a hunt-cache reset slash command (`/pb huntrescan`, with aliases `/pb rescanhunts` and `/pb clearhuntcache`) that clears cached hunt rows and reward snapshots, then immediately starts a fresh stabilized hunt scan.
+
 ### Changed
 
 - Removed the addon's sound subsystem, sound settings, and sound event routing so Preybreaker no longer plays hunt audio cues.
 - Reworked hunt-panel open gating to use live prey quest context and live map state instead of an English-only Astalor subzone whitelist.
+- Added a dedicated HuntList cache-reset path used by slash commands to cancel active warmup/scan work, clear runtime hunt state, clear character cache entries, and force the next hunt evaluation to come from a live scan.
+- Made the settings sidebar quick-action buttons locale-safe by dynamically sizing translated labels and stacking the buttons vertically when needed instead of clipping text.
+- Migrated HuntPanel UI runtime text from hardcoded English literals to locale keys (title, subtitle, filter labels, status strings, summary line, loading labels, reward labels, and mode button labels).
 
 ### Fixed
 
 - Fixed hunt list visibility on non-English clients by dropping the locale-fragile `Astalor's Sanctum` panel whitelist.
 - Fixed secret-string and secret-table-index runtime errors from `Core/Controller/RefreshAndSound.lua` by removing the sound-only prey combat tracking path that was reading restricted values.
+- Fixed German quick-action button label clipping/overlap in the settings panel.
+- Fixed HuntPanel text staying English on non-English clients by wiring HuntPanel runtime strings through the locale table and adding locale entries across all shipped locale files.
 
 ## [v1.2.6] - 2026-04-08
 

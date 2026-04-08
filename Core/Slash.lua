@@ -42,6 +42,24 @@ SlashCmdList.PREYBREAKER = function(message)
         return
     end
 
+    if command == "huntrescan" or command == "rescanhunts" or command == "clearhuntcache" then
+        if ns.HuntList and type(ns.HuntList.ResetCachedHuntsForRescan) == "function" then
+            ns.HuntList:ResetCachedHuntsForRescan()
+            ns.HuntList:BeginStabilizedScan(function()
+                if ns.HuntPanel and ns.HuntPanel.frame and ns.HuntPanel.frame:IsShown() then
+                    ns.HuntPanel:Refresh()
+                elseif ns.Controller then
+                    ns.Controller:Refresh("slash:huntrescan")
+                end
+            end)
+        elseif ns.Controller then
+            ns.Controller:Refresh("slash:huntrescan")
+        end
+
+        ns.Util.Print(L["Hunt cache cleared. A fresh hunt scan has started."])
+        return
+    end
+
     if command == "debug" or command == "debug on" or command == "debug off" then
         local enableDebug = command == "debug on"
         if command == "debug" then
