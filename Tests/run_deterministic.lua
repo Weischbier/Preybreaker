@@ -538,7 +538,6 @@ local function runEventRouterAchievementCacheInvalidationTests()
     local refreshEvents = {}
     local invalidationCount = 0
     local removedQuestID = nil
-    local turnedInQuestID = nil
 
     ns.Debug = {
         IsEnabled = function()
@@ -558,9 +557,6 @@ local function runEventRouterAchievementCacheInvalidationTests()
         end,
         RegisterEvent = function(_, eventName)
             registeredEvents[eventName] = true
-        end,
-        HandleQuestTurnedInSound = function(_, questID)
-            turnedInQuestID = questID
         end,
         Refresh = function(_, eventName)
             refreshEvents[#refreshEvents + 1] = eventName
@@ -596,7 +592,6 @@ local function runEventRouterAchievementCacheInvalidationTests()
     ns.Controller.onEvent(ns.Controller, "QUEST_TURNED_IN", 91458)
 
     expectEqual("achievement cache invalidated for criteria and turn-in events", invalidationCount, 4)
-    expectEqual("quest turned-in sound handler still runs", turnedInQuestID, 91458)
     expectEqual("hunt list entry still removed on quest turn-in", removedQuestID, 91458)
     expectEqual("criteria update still refreshes after invalidation", refreshEvents[1], "CRITERIA_UPDATE")
     expectEqual("achievement earned still refreshes after invalidation", refreshEvents[2], "ACHIEVEMENT_EARNED")
@@ -1346,7 +1341,6 @@ runHuntDataAchievementMatchTests()
 runEventRouterAchievementCacheInvalidationTests()
 runLocalePatternDifficultyTests()
 runHuntListQuickEvaluateTests()
-runRefreshAndSoundRoutingTests()
 runSettingsAndMigrationTests()
 
 if #failures > 0 then

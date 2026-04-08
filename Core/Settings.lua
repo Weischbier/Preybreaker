@@ -20,7 +20,6 @@ local DISPLAY_MODE_TEXT = "text"
 local SCHEMA_VERSION = 5
 local DEFAULT_SCALE = 1
 local DEFAULT_TEXT_FONT_VALUE = (ns.TextStyle and ns.TextStyle:GetDefaultFontValue()) or "builtin:standard"
-local DEFAULT_SOUND_THEME = "AmongUs"
 local DEFAULTS = {
     schemaVersion = SCHEMA_VERSION,
     enabled = true,
@@ -40,9 +39,6 @@ local DEFAULTS = {
     autoWatchPreyQuest = false,
     autoSuperTrackPreyQuest = false,
     autoTurnInPreyQuest = false,
-    playSoundOnPhaseChange = false,
-    soundTheme = DEFAULT_SOUND_THEME,
-    enableDeathSounds = true,
     useCharacterProfile = false,
     textFontFace = DEFAULT_TEXT_FONT_VALUE,
     textOutlineMode = "default",
@@ -155,26 +151,6 @@ local function SanitizeRemnantThreshold(value)
     return ClampNumber(snapped, THRESHOLD_MIN, THRESHOLD_MAX, 0)
 end
 
-local function SanitizeSoundTheme(value)
-    local constants = ns.Constants
-    local media = constants and constants.Media or nil
-    local themes = media and media.SoundThemes or nil
-
-    if type(value) == "string" and type(themes) == "table" then
-        for _, theme in ipairs(themes) do
-            if value == theme then
-                return value
-            end
-        end
-    end
-
-    if type(themes) == "table" and type(themes[1]) == "string" then
-        return themes[1]
-    end
-
-    return DEFAULT_SOUND_THEME
-end
-
 local function GetOffsetKey(axisSuffix, mode)
     local resolvedMode = SanitizeDisplayMode(mode)
     if resolvedMode == DISPLAY_MODE_BAR then
@@ -208,9 +184,6 @@ local SANITIZERS = {
     autoWatchPreyQuest = function(value) return SanitizeBoolean(value, false) end,
     autoSuperTrackPreyQuest = function(value) return SanitizeBoolean(value, false) end,
     autoTurnInPreyQuest = function(value) return SanitizeBoolean(value, false) end,
-    playSoundOnPhaseChange = function(value) return SanitizeBoolean(value, false) end,
-    soundTheme = SanitizeSoundTheme,
-    enableDeathSounds = function(value) return SanitizeBoolean(value, true) end,
     useCharacterProfile = function(value) return SanitizeBoolean(value, false) end,
     textFontFace = function(value)
         if ns.TextStyle and type(ns.TextStyle.SanitizeFontValue) == "function" then
@@ -374,6 +347,10 @@ local function ApplyDefaults(db)
             db[key] = db[key] == nil and defaultValue or db[key]
         end
     end
+
+    db.playSoundOnPhaseChange = nil
+    db.soundTheme = nil
+    db.enableDeathSounds = nil
 
     db.schemaVersion = SCHEMA_VERSION
 end
@@ -554,30 +531,6 @@ end
 
 function ns.Settings:SetAutoTurnInPreyQuest(enabled)
     return self:SetValue("autoTurnInPreyQuest", enabled)
-end
-
-function ns.Settings:ShouldPlaySoundOnPhaseChange()
-    return self:GetValue("playSoundOnPhaseChange") == true
-end
-
-function ns.Settings:SetPlaySoundOnPhaseChange(enabled)
-    return self:SetValue("playSoundOnPhaseChange", enabled)
-end
-
-function ns.Settings:GetSoundTheme()
-    return self:GetValue("soundTheme") or DEFAULT_SOUND_THEME
-end
-
-function ns.Settings:SetSoundTheme(theme)
-    return self:SetValue("soundTheme", theme)
-end
-
-function ns.Settings:ShouldPlayDeathSounds()
-    return self:GetValue("enableDeathSounds") == true
-end
-
-function ns.Settings:SetPlayDeathSounds(enabled)
-    return self:SetValue("enableDeathSounds", enabled)
 end
 
 function ns.Settings:GetTextFontFace()

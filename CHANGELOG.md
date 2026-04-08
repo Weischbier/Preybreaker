@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.2.7] - 2026-04-08
+
+### Changed
+
+- Removed the addon's sound subsystem, sound settings, and sound event routing so Preybreaker no longer plays hunt audio cues.
+- Reworked hunt-panel open gating to use live prey quest context and live map state instead of an English-only Astalor subzone whitelist.
+
+### Fixed
+
+- Fixed hunt list visibility on non-English clients by dropping the locale-fragile `Astalor's Sanctum` panel whitelist.
+- Fixed secret-string and secret-table-index runtime errors from `Core/Controller/RefreshAndSound.lua` by removing the sound-only prey combat tracking path that was reading restricted values.
+
+## [v1.2.6] - 2026-04-08
+
+### Changed
+
+- Removed the addon's sound subsystem, sound settings, and sound event routing so Preybreaker no longer plays hunt audio cues.
+- Reworked hunt-panel open gating to use live prey quest context and live map state instead of an English-only Astalor subzone whitelist.
+
+### Fixed
+
+- Fixed hunt list visibility on non-English clients by dropping the locale-fragile `Astalor's Sanctum` panel whitelist.
+- Fixed secret-string and secret-table-index runtime errors from `Core/Controller/RefreshAndSound.lua` by removing the sound-only prey combat tracking path that was reading restricted values.
+
 ## [v1.2.5] - 2026-04-07
 
 ### Changed

@@ -23,62 +23,16 @@ Preybreaker:SetScript("OnEvent", function(self, event, arg1, ...)
         return
     end
 
-    if event == "PLAYER_DEAD" then
-        self:HandlePlayerDeathForSounds()
-        return
-    end
-
-    if event == "PLAYER_ALIVE" or event == "PLAYER_UNGHOST" then
-        self:HandlePlayerRevivedForSounds()
-        return
-    end
-
-    if event == "NAME_PLATE_UNIT_ADDED" then
-        self:HandleNameplateUnitAddedForSounds(arg1)
-        return
-    end
-
-    if event == "NAME_PLATE_UNIT_REMOVED" then
-        self:HandleNameplateUnitRemovedForSounds(arg1)
-        return
-    end
-
-    if event == "PLAYER_TARGET_CHANGED" then
-        self:HandlePlayerTargetChangedForSounds()
-        return
-    end
-
-    if event == "UPDATE_MOUSEOVER_UNIT" then
-        self:HandleMouseoverChangedForSounds()
-        return
-    end
-
     if event == "CRITERIA_UPDATE" or event == "ACHIEVEMENT_EARNED" or event == "QUEST_LOG_CRITERIA_UPDATE" then
         if ns.HuntData and type(ns.HuntData.InvalidateAchievementCache) == "function" then
             ns.HuntData:InvalidateAchievementCache()
         end
     end
 
-    if event == "UNIT_SPELLCAST_SUCCEEDED" then
-        local spellID = select(2, ...)
-        self:HandleUnitSpellcastSound(arg1, spellID)
-        return
-    end
-
-    if event == "CHAT_MSG_SYSTEM"
-        or event == "CHAT_MSG_MONSTER_EMOTE"
-        or event == "CHAT_MSG_MONSTER_SAY"
-        or event == "CHAT_MSG_MONSTER_YELL"
-        or event == "CHAT_MSG_RAID_BOSS_EMOTE" then
-        self:HandleAmbushChatMessageForSounds(arg1, event)
-        return
-    end
-
     -- Events below intentionally fall through to Refresh() after running
     -- their specific handler. Do not add `return` statements here.
 
     if event == "QUEST_TURNED_IN" then
-        self:HandleQuestTurnedInSound(arg1)
         if ns.HuntData and type(ns.HuntData.InvalidateAchievementCache) == "function" then
             ns.HuntData:InvalidateAchievementCache()
         end
@@ -88,7 +42,6 @@ Preybreaker:SetScript("OnEvent", function(self, event, arg1, ...)
     end
 
     if event == "QUEST_REMOVED" then
-        self:HandleQuestRemovedForSounds(arg1)
         if ns.HuntList and ns.HuntList.GetHuntByQuestID and ns.HuntList:GetHuntByQuestID(arg1) then
             ns.HuntList:RemoveByQuestID(arg1)
         end
@@ -187,20 +140,7 @@ end)
 Preybreaker:RegisterEvent("ADDON_LOADED")
 Preybreaker:RegisterEvent("PLAYER_ENTERING_WORLD")
 Preybreaker:RegisterEvent("PLAYER_REGEN_ENABLED")
-Preybreaker:RegisterEvent("PLAYER_DEAD")
-Preybreaker:RegisterEvent("PLAYER_ALIVE")
-Preybreaker:RegisterEvent("PLAYER_UNGHOST")
 Preybreaker:RegisterEvent("ZONE_CHANGED_NEW_AREA")
-Preybreaker:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
-Preybreaker:RegisterEvent("CHAT_MSG_SYSTEM")
-Preybreaker:RegisterEvent("CHAT_MSG_MONSTER_EMOTE")
-Preybreaker:RegisterEvent("CHAT_MSG_MONSTER_SAY")
-Preybreaker:RegisterEvent("CHAT_MSG_MONSTER_YELL")
-Preybreaker:RegisterEvent("CHAT_MSG_RAID_BOSS_EMOTE")
-Preybreaker:RegisterEvent("NAME_PLATE_UNIT_ADDED")
-Preybreaker:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
-Preybreaker:RegisterEvent("PLAYER_TARGET_CHANGED")
-Preybreaker:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
 Preybreaker:RegisterEvent("CRITERIA_UPDATE")
 Preybreaker:RegisterEvent("ACHIEVEMENT_EARNED")
 Preybreaker:RegisterEvent("QUEST_ACCEPTED")

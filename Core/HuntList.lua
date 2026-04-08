@@ -110,6 +110,27 @@ local function IsBlockedSubZone(subZoneText)
     return false, nil
 end
 
+local function HasRelevantPreyQuestContext()
+    if Util and type(Util.BuildPreyQuestContext) == "function" then
+        local context = Util.BuildPreyQuestContext()
+        if type(context) == "table" then
+            local questID = context.trackedQuestID or context.activeQuestID or context.worldQuestID
+            if type(questID) == "number" and questID > 0 then
+                return true, questID
+            end
+        end
+    end
+
+    if type(C_QuestLog) == "table" and type(C_QuestLog.GetActivePreyQuest) == "function" then
+        local activeQuestID = Util.SafeCall(C_QuestLog.GetActivePreyQuest)
+        if type(activeQuestID) == "number" and activeQuestID > 0 then
+            return true, activeQuestID
+        end
+    end
+
+    return false, nil
+end
+
 local function GetCharacterHuntQuestCache()
     if not (ns.Settings and type(ns.Settings.GetCharacterHuntQuestCache) == "function") then
         return nil
@@ -764,8 +785,23 @@ function HuntList:IsScanBlockedBySubZone()
     return blocked, source, subZoneText
 end
 
-function HuntList:QuickEvaluateAvailability()
-    if self:HasAnyHunts() then
+function HuntList:QuickEvaluateAvailability(options)
+    local allowCached = true
+    if type(options) == "table" and options.allowCached == false then
+        allowCached = false
+    end
+
+    local blocked = self:IsScanBlockedBySubZone()
+    if blocked then
+        return false, 0, "blockedSubZone"
+    end
+
+    local hasQuestContext = HasRelevantPreyQuestContext()
+    if hasQuestContext then
+        return true, 1, "questContext"
+    end
+
+    if allowCached and self:HasAnyHunts() then
         return true, #self:GetState().hunts, "cached"
     end
 
@@ -777,13 +813,6 @@ function HuntList:QuickEvaluateAvailability()
     local refreshed = DedupeHuntsByDifficultyAndZone(BuildRawHuntsFromPins())
     if #refreshed > 0 then
         return true, #refreshed, "pinSnapshot"
-    end
-
-    if type(C_QuestLog) == "table" and type(C_QuestLog.GetActivePreyQuest) == "function" then
-        local activeQuestID = Util.SafeCall(C_QuestLog.GetActivePreyQuest)
-        if type(activeQuestID) == "number" and activeQuestID > 0 then
-            return true, 1, "activePreyQuest"
-        end
     end
 
     -- Map-visible empties can be transient while pin pools are still filling.

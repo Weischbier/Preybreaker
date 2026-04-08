@@ -880,65 +880,6 @@ function SP.CreateSections(parent)
             },
         },
         {
-            title = L["Audio & feedback"],
-            description = L["Control sound cues that fire when your hunt phase changes."],
-            fields = {
-                {
-                    type = "toggle",
-                    key = "playSoundOnPhaseChange",
-                    title = L["Play sound on phase change"],
-                    description = L["Hear an audio cue when the prey hunt moves to a new stage."],
-                    get = function()
-                        return Settings:ShouldPlaySoundOnPhaseChange()
-                    end,
-                    set = function(value)
-                        Settings:SetPlaySoundOnPhaseChange(value)
-                    end,
-                },
-                {
-                    type = "dropdown",
-                    key = "soundTheme",
-                    title = L["Sound theme"],
-                    description = L["Select the active sound pack used for prey hunt audio cues."],
-                    options = function()
-                        return {
-                            { value = "AmongUs", label = L["Among Us"] },
-                            { value = "Generic", label = L["Generic"] },
-                            { value = "JurassicPark", label = L["Jurassic Park"] },
-                            { value = "Pokemon", label = L["Pokemon"] },
-                            { value = "Predator", label = L["Predator"] },
-                            { value = "StrangerThings", label = L["Stranger Things"] },
-                            { value = "Random", label = L["Random"] },
-                        }
-                    end,
-                    isAvailable = function()
-                        return Settings:ShouldPlaySoundOnPhaseChange()
-                    end,
-                    get = function()
-                        return Settings:GetSoundTheme()
-                    end,
-                    set = function(value)
-                        Settings:SetSoundTheme(value)
-                    end,
-                },
-                {
-                    type = "toggle",
-                    key = "enableDeathSounds",
-                    title = L["Death cue during hunt"],
-                    description = L["Play a death cue when you die during an active prey hunt in the hunt zone."],
-                    isAvailable = function()
-                        return Settings:ShouldPlaySoundOnPhaseChange()
-                    end,
-                    get = function()
-                        return Settings:ShouldPlayDeathSounds()
-                    end,
-                    set = function(value)
-                        Settings:SetPlayDeathSounds(value)
-                    end,
-                },
-            },
-        },
-        {
             title = L["Profile"],
             description = L["Choose whether this character uses its own settings or the account-wide defaults."],
             fields = {

@@ -79,7 +79,7 @@ function _G.Preybreaker_OnAddonCompartmentClick(addonName, buttonName)
             end
 
             if not opened then
-                ns.Util.Print("Hunt panel can only open in Astalor's Sanctum.")
+                ns.Util.Print("Hunt panel is only available while a prey hunt is active or while the prey map is open.")
             end
         end
         return
