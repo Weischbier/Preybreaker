@@ -4,9 +4,11 @@ curse-id: 1489463
 wago-id: vNAg1BKo
 
 ignore:
+  - .github
   - CHANGELOG.md
   - README.md
   - LICENSE-NOTES.md
+  - Tests
   - PreybreakerTests
 
 manual-changelog: CHANGELOG.md

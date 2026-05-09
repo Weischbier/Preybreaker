@@ -11,7 +11,6 @@ ns._activeTranslation = {
     ["Readout"] = "Показник",
     ["Text style"] = "Стиль тексту",
     ["Quest help"] = "Допомога завдань",
-    ["Audio & feedback"] = "Аудіо та зворотний зв'язок",
     ["Profile"] = "Профіль",
 
     -- Section descriptions
@@ -20,7 +19,6 @@ ns._activeTranslation = {
     ["Choose which cues appear around the tracker while you hunt."] = "Оберіть, які підказки з'являються навколо трекера під час полювання.",
     ["Adjust tracker text styling without adding a hard dependency. LibSharedMedia fonts appear automatically when the library is installed."] = "Налаштуйте стиль тексту трекера без жорсткої залежності. Шрифти LibSharedMedia з'являються автоматично, коли бібліотека встановлена.",
     ["Keep the active prey quest easy to spot while the hunt is running."] = "Тримайте активне завдання здобичі на видному місці під час полювання.",
-    ["Control sound cues that fire when your hunt phase changes."] = "Керуйте звуковими сигналами, що лунають при зміні фази полювання.",
     ["Choose whether this character uses its own settings or the account-wide defaults."] = "Оберіть, чи цей персонаж використовує власні налаштування, чи загальні для облікового запису.",
 
     -- Field titles
@@ -40,9 +38,6 @@ ns._activeTranslation = {
     ["Add prey quest to tracker"] = "Додати завдання здобичі до відстеження",
     ["Focus the prey quest"] = "Сфокусувати завдання здобичі",
     ["Auto turn-in prey quest"] = "Автозавершення завдання здобичі",
-    ["Play sound on phase change"] = "Відтворити звук при зміні фази",
-    ["Sound theme"] = "Звукова тема",
-    ["Death cue during hunt"] = "Сигнал смерті під час полювання",
     ["Use character profile"] = "Використовувати профіль персонажа",
 
     -- Field descriptions
@@ -61,9 +56,6 @@ ns._activeTranslation = {
     ["Automatically place the active prey quest in your watch list."] = "Автоматично додати активне завдання здобичі до списку спостереження.",
     ["Keep the active prey quest selected for your objective arrow."] = "Тримати активне завдання здобичі обраним для стрілки цілі.",
     ["Automatically complete the prey quest when it pops up, unless a reward choice is required."] = "Автоматично завершити завдання здобичі, коли воно з'являється, якщо не потрібен вибір нагороди.",
-    ["Hear an audio cue when the prey hunt moves to a new stage."] = "Почути звуковий сигнал, коли полювання переходить до нової фази.",
-    ["Select the active sound pack used for prey hunt audio cues."] = "Оберіть активний звуковий пакет для сигналів полювання на здобич.",
-    ["Play a death cue when you die during an active prey hunt in the hunt zone."] = "Відтворити сигнал смерті, коли ви гинете під час активного полювання в зоні полювання.",
     ["Store a separate set of settings for this character."] = "Зберегти окремий набір налаштувань для цього персонажа.",
     ["Nudge the tracker left or right around the prey icon."] = "Зсунути трекер ліворуч або праворуч навколо іконки здобичі.",
     ["Nudge the tracker up or down around the prey icon."] = "Зсунути трекер вгору або вниз навколо іконки здобичі.",
@@ -74,14 +66,6 @@ ns._activeTranslation = {
     ["Bar"] = "Смуга",
     ["Text"] = "Текст",
 
-    -- Sound theme labels
-    ["Among Us"] = "Among Us",
-    ["Generic"] = "Загальний",
-    ["Jurassic Park"] = "Jurassic Park",
-    ["Pokemon"] = "Pokémon",
-    ["Predator"] = "Predator",
-    ["Stranger Things"] = "Stranger Things",
-    ["Random"] = "Випадковий",
 
     -- Stage labels
     ["COLD"] = "ХОЛОДНО",
@@ -243,4 +227,26 @@ ns._activeTranslation = {
     ["Items tracked for upcoming releases."] = "Елементи, відстежувані для наступних випусків.",
     ["No known issues currently listed."] = "Наразі відомих проблем не зазначено.",
     ["No planned features currently listed."] = "Наразі запланованих функцій не зазначено.",
+
+    -- Account Command Center fallback keys
+    ["Filter: All"] = "Filter: All",
+    ["Filter: Stale"] = "Filter: Stale",
+    ["Filter: Active"] = "Filter: Active",
+    ["Filter: Goals"] = "Filter: Goals",
+    ["Sort: Priority"] = "Sort: Priority",
+    ["Sort: Name"] = "Sort: Name",
+    ["Sort: Recent"] = "Sort: Recent",
+    ["All roster entries are hidden"] = "All roster entries are hidden",
+    ["Change the Command Center filter to All to show every local character."] = "Change the Command Center filter to All to show every local character.",
+    ["Clear ignored"] = "Clear ignored",
+    ["%d ignored goals hidden"] = "%d ignored goals hidden",
+    ["Clear ignored goals to restore hidden weekly recommendations."] = "Clear ignored goals to restore hidden weekly recommendations.",
+    ["Pinned goals are preserved."] = "Pinned goals are preserved.",
+    ["All goals are ignored"] = "All goals are ignored",
+    ["All goals are hidden"] = "All goals are hidden",
+    ["Change the Command Center filter to All to show every recommendation."] = "Change the Command Center filter to All to show every recommendation.",
+    ["All rewards are hidden"] = "All rewards are hidden",
+    ["Change the Command Center filter to All to show every live reward preview."] = "Change the Command Center filter to All to show every live reward preview.",
+    ["All timeline entries are hidden"] = "All timeline entries are hidden",
+    ["Change the Command Center filter to All to show account history."] = "Change the Command Center filter to All to show account history.",
 }

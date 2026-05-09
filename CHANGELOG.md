@@ -2,6 +2,62 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.1.0] - 2026-05-09
+
+### Changed
+
+- Hardened Account Command Center roster updates so opening the panel without a fresh live snapshot no longer clears active-hunt context.
+- Added dashboard filter and sort controls for roster, goals, rewards, and timeline views.
+- Reduced Command Center refresh churn by building one shared context per refresh.
+
+### Fixed
+
+- Added GUID-based roster dedupe for characters whose `realm:name` key changes.
+- Weekly goal reset maintenance now clears ignored and completed goals while preserving pinned goals.
+- Diagnostics now report weekly goal counts, dashboard filter/sort, roster merge count, and last Command Center refresh source.
+
+## [v4.0.0] - 2026-05-08
+
+### Added
+
+- Added the Account Command Center with Overview, Roster, Goals, Rewards, Timeline, and Diagnostics tabs.
+- Added account-local roster tracking, weekly goal state, goal preferences, dashboard state, alerts, and Goal Engine recommendations.
+- Added `/pb command`, `/pb goals`, and `/pb roster` entry points; the minimap button now opens the Command Center on right-click.
+
+### Changed
+
+- Upgraded SavedVariables to schema 8 while preserving v7 journal and weekly Hunt OS data.
+- Diagnostics now include roster size, stale character count, command data version, and Goal Engine inputs.
+- Planner recommendations now feed an account-wide advisory Goal Engine without automating quest acceptance or turn-in.
+
+## [v3.0.0] - 2026-05-08
+
+### Added
+
+- Added Hunt OS modules for character-scoped completion history, weekly reset state, planner recommendations, stats summaries, and readable diagnostics.
+- Added Tactical Hunt Console tabs: Available, Planner, Journal, and Stats.
+- Added optional tracker context tooltip, compact tracker context line, and minimap button entry point.
+- Added `/pb journal`, `/pb planner`, and `/pb stats`; `/pb diag` now opens the in-game diagnostics page.
+
+### Changed
+
+- Upgraded SavedVariables to schema 7 with `huntHistory`, `weeklyState`, `plannerPreferences`, and `minimap` state.
+- Reward previews now explain preferred/fallback reward handling and visually mark the expected reward in the hunt rows.
+
+## [v2.0.0] - 2026-05-08
+
+### Changed
+
+- Reworked the Tactical Hunt Console to rebuild from live Adventure Map pins instead of treating saved hunt rows as authoritative.
+- Migrated saved variables to schema 6 and clears stale hunt caches automatically during upgrade.
+- Removed unused packaged sound assets and stale sound locale strings now that Preybreaker no longer has a sound subsystem.
+- Updated release packaging to exclude test and repository automation files.
+
+### Fixed
+
+- Fixed stale cached hunts blocking weekly-reset updates until users deleted SavedVariables.
+- Fixed Accept clicks on stale hunt rows silently doing nothing by invalidating the stale row and starting a live rescan.
+
 ## [v1.2.7] - 2026-04-08
 
 ### Added
@@ -19,7 +75,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - Fixed hunt list visibility on non-English clients by dropping the locale-fragile `Astalor's Sanctum` panel whitelist.
-- Fixed secret-string and secret-table-index runtime errors from `Core/Controller/RefreshAndSound.lua` by removing the sound-only prey combat tracking path that was reading restricted values.
+- Fixed secret-string and secret-table-index runtime errors by removing the stale prey combat tracking path that was reading restricted values.
 - Fixed German quick-action button label clipping/overlap in the settings panel.
 - Fixed HuntPanel text staying English on non-English clients by wiring HuntPanel runtime strings through the locale table and adding locale entries across all shipped locale files.
 
@@ -33,7 +89,7 @@ All notable changes to this project will be documented in this file.
 ### Fixed
 
 - Fixed hunt list visibility on non-English clients by dropping the locale-fragile `Astalor's Sanctum` panel whitelist.
-- Fixed secret-string and secret-table-index runtime errors from `Core/Controller/RefreshAndSound.lua` by removing the sound-only prey combat tracking path that was reading restricted values.
+- Fixed secret-string and secret-table-index runtime errors by removing the stale prey combat tracking path that was reading restricted values.
 
 ## [v1.2.5] - 2026-04-07
 
@@ -192,7 +248,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- Switched prey kill cue detection to `NAME_PLATE_UNIT_REMOVED` with prey candidate matching plus dead-state checks, so kill sounds still fire without combat-log event subscription.
+- Switched prey kill-state detection to `NAME_PLATE_UNIT_REMOVED` with prey candidate matching plus dead-state checks, avoiding combat-log event subscription.
 
 ## [v1.1.3] - 2026-03-20
 
@@ -200,7 +256,7 @@ All notable changes to this project will be documented in this file.
 
 - Reorganized controller code into a new `Core/Controller/` module layout to reduce file size and improve ownership boundaries.
 - Split the former monolithic `Preybreaker.lua` into focused modules:
-  - `Core/Controller/RefreshAndSound.lua` for snapshot refresh and sound/combat matching logic.
+  - `Core/Controller/Refresh.lua` for snapshot refresh and controller state matching logic.
   - `Core/Controller/Bootstrap.lua` for startup/bootstrap and widget hook flow.
   - `Core/Controller/EventRouter.lua` for event dispatch and event registration.
 - Reduced `Preybreaker.lua` to a thin controller initialization/base helper module.
@@ -391,7 +447,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- Added a state badge below the percent readout using Blizzard's `uiwowlabsactionbar` art.
+- Added a state badge below the percent readout.
 
 ### Fixed
 

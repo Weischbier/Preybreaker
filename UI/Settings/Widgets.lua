@@ -171,15 +171,10 @@ function SP.CreatePreviewCard(parent)
     orbProgress:SetPoint("CENTER")
     orbProgress:Hide()
 
-    local badge = overlay:CreateTexture(nil, "OVERLAY", nil, 1)
+    local badge = CreateFrame("Frame", nil, overlay, SP.BACKDROP_TEMPLATE)
     badge:SetSize(Constants.Layout.StageBadgeWidth, Constants.Layout.StageBadgeHeight)
-    badge:SetTexture(Constants.Media.StageBadge)
-    badge:SetTexCoord(
-        Constants.Media.StageBadgeTexCoord.left,
-        Constants.Media.StageBadgeTexCoord.right,
-        Constants.Media.StageBadgeTexCoord.top,
-        Constants.Media.StageBadgeTexCoord.bottom
-    )
+    badge:SetFrameLevel(overlay:GetFrameLevel() + 2)
+    ApplyInsetBackdrop(badge)
 
     local badgeText = overlay:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     badgeText:SetPoint("CENTER", badge, "CENTER", 0, 0)

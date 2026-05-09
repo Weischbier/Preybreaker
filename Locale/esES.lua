@@ -11,7 +11,6 @@ ns._activeTranslation = {
     ["Readout"] = "Indicador",
     ["Text style"] = "Estilo de texto",
     ["Quest help"] = "Ayuda de misión",
-    ["Audio & feedback"] = "Audio y retroalimentación",
     ["Profile"] = "Perfil",
 
     -- Section descriptions
@@ -20,7 +19,6 @@ ns._activeTranslation = {
     ["Choose which cues appear around the tracker while you hunt."] = "Elige qué indicadores aparecen alrededor del rastreador durante la cacería.",
     ["Adjust tracker text styling without adding a hard dependency. LibSharedMedia fonts appear automatically when the library is installed."] = "Ajusta el estilo del texto del rastreador sin añadir una dependencia obligatoria. Las fuentes de LibSharedMedia aparecen automáticamente cuando la biblioteca está instalada.",
     ["Keep the active prey quest easy to spot while the hunt is running."] = "Mantén la misión de presa activa bien visible durante la cacería.",
-    ["Control sound cues that fire when your hunt phase changes."] = "Controla las señales de sonido que se emiten al cambiar de fase.",
     ["Choose whether this character uses its own settings or the account-wide defaults."] = "Elige si este personaje usa sus propios ajustes o los predeterminados de la cuenta.",
 
     -- Field titles
@@ -40,9 +38,6 @@ ns._activeTranslation = {
     ["Add prey quest to tracker"] = "Añadir misión de presa al seguimiento",
     ["Focus the prey quest"] = "Enfocar la misión de presa",
     ["Auto turn-in prey quest"] = "Entregar misión de presa automáticamente",
-    ["Play sound on phase change"] = "Reproducir sonido al cambiar de fase",
-    ["Sound theme"] = "Tema de sonido",
-    ["Death cue during hunt"] = "Señal de muerte durante la cacería",
     ["Use character profile"] = "Usar perfil de personaje",
 
     -- Field descriptions
@@ -61,9 +56,6 @@ ns._activeTranslation = {
     ["Automatically place the active prey quest in your watch list."] = "Colocar automáticamente la misión de presa activa en tu lista de seguimiento.",
     ["Keep the active prey quest selected for your objective arrow."] = "Mantener la misión de presa activa seleccionada para tu flecha de objetivo.",
     ["Automatically complete the prey quest when it pops up, unless a reward choice is required."] = "Completar automáticamente la misión de presa cuando aparezca, salvo que se requiera elegir recompensa.",
-    ["Hear an audio cue when the prey hunt moves to a new stage."] = "Escuchar una señal sonora cuando la cacería pase a una nueva fase.",
-    ["Select the active sound pack used for prey hunt audio cues."] = "Seleccionar el paquete de sonido activo para las señales de cacería.",
-    ["Play a death cue when you die during an active prey hunt in the hunt zone."] = "Reproducir una señal de muerte al morir durante una cacería activa en la zona de caza.",
     ["Store a separate set of settings for this character."] = "Guardar un conjunto separado de ajustes para este personaje.",
     ["Nudge the tracker left or right around the prey icon."] = "Desplazar el rastreador a izquierda o derecha alrededor del icono de presa.",
     ["Nudge the tracker up or down around the prey icon."] = "Desplazar el rastreador arriba o abajo alrededor del icono de presa.",
@@ -74,14 +66,6 @@ ns._activeTranslation = {
     ["Bar"] = "Barra",
     ["Text"] = "Texto",
 
-    -- Sound theme labels
-    ["Among Us"] = "Among Us",
-    ["Generic"] = "Genérico",
-    ["Jurassic Park"] = "Jurassic Park",
-    ["Pokemon"] = "Pokémon",
-    ["Predator"] = "Predator",
-    ["Stranger Things"] = "Stranger Things",
-    ["Random"] = "Aleatorio",
 
     -- Stage labels
     ["COLD"] = "FRÍO",
@@ -243,4 +227,26 @@ ns._activeTranslation = {
     ["Items tracked for upcoming releases."] = "Elementos rastreados para próximas versiones.",
     ["No known issues currently listed."] = "No hay problemas conocidos actualmente.",
     ["No planned features currently listed."] = "No hay funciones previstas actualmente.",
+
+    -- Account Command Center fallback keys
+    ["Filter: All"] = "Filter: All",
+    ["Filter: Stale"] = "Filter: Stale",
+    ["Filter: Active"] = "Filter: Active",
+    ["Filter: Goals"] = "Filter: Goals",
+    ["Sort: Priority"] = "Sort: Priority",
+    ["Sort: Name"] = "Sort: Name",
+    ["Sort: Recent"] = "Sort: Recent",
+    ["All roster entries are hidden"] = "All roster entries are hidden",
+    ["Change the Command Center filter to All to show every local character."] = "Change the Command Center filter to All to show every local character.",
+    ["Clear ignored"] = "Clear ignored",
+    ["%d ignored goals hidden"] = "%d ignored goals hidden",
+    ["Clear ignored goals to restore hidden weekly recommendations."] = "Clear ignored goals to restore hidden weekly recommendations.",
+    ["Pinned goals are preserved."] = "Pinned goals are preserved.",
+    ["All goals are ignored"] = "All goals are ignored",
+    ["All goals are hidden"] = "All goals are hidden",
+    ["Change the Command Center filter to All to show every recommendation."] = "Change the Command Center filter to All to show every recommendation.",
+    ["All rewards are hidden"] = "All rewards are hidden",
+    ["Change the Command Center filter to All to show every live reward preview."] = "Change the Command Center filter to All to show every live reward preview.",
+    ["All timeline entries are hidden"] = "All timeline entries are hidden",
+    ["Change the Command Center filter to All to show account history."] = "Change the Command Center filter to All to show account history.",
 }

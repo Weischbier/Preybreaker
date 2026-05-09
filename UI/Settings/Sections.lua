@@ -462,6 +462,30 @@ local function BuildRoadmapCards(page)
     MarkCardsBuilt(page)
 end
 
+local function BuildDiagnosticsCards(page)
+    local panel = Constants.SettingsPanel
+    local report = ns.HuntDiagnostics and ns.HuntDiagnostics.BuildReport and ns.HuntDiagnostics:BuildReport() or { lines = { "Diagnostics unavailable." } }
+    local lines = type(report.lines) == "table" and report.lines or {}
+    local totalHeight = 0
+
+    ClearCards(page)
+
+    local reportCard = BuildBulletListCard(
+        page.ScrollChild,
+        L["Hunt diagnostics"],
+        L["Live hunt scan, cache, and weekly reset state."],
+        lines,
+        L["Diagnostics unavailable."]
+    )
+    reportCard:SetPoint("TOPLEFT", page.ScrollChild, "TOPLEFT", 0, 0)
+    reportCard:SetPoint("TOPRIGHT", page.ScrollChild, "TOPRIGHT", 0, 0)
+    totalHeight = totalHeight + reportCard:GetHeight()
+    page.Cards[#page.Cards + 1] = reportCard
+
+    page.ScrollChild:SetHeight(math.max(totalHeight + panel.ContentInset, Constants.SettingsPanel.Height - Constants.SettingsPanel.HeaderHeight - (Constants.SettingsPanel.Padding * 2)))
+    MarkCardsBuilt(page)
+end
+
 function SP.CreateSections(parent)
     local panel = Constants.SettingsPanel
     local contentHost = CreateContentHost(parent)
@@ -754,6 +778,79 @@ function SP.CreateSections(parent)
                         end
                     end,
                 },
+                {
+                    type = "toggle",
+                    key = "trackerTooltip",
+                    title = L["Tracker context tooltip"],
+                    description = L["Show active hunt, stage, reward, and achievement context when hovering the tracker."],
+                    get = function()
+                        return Settings:ShouldShowTrackerTooltip()
+                    end,
+                    set = function(value)
+                        Settings:SetTrackerTooltip(value)
+                    end,
+                },
+                {
+                    type = "toggle",
+                    key = "trackerContextLine",
+                    title = L["Tracker context line"],
+                    description = L["Show a compact active hunt line under the tracker."],
+                    get = function()
+                        return Settings:ShouldShowTrackerContextLine()
+                    end,
+                    set = function(value)
+                        Settings:SetTrackerContextLine(value)
+                    end,
+                },
+                {
+                    type = "toggle",
+                    key = "showMinimapButton",
+                    title = L["Minimap button"],
+                    description = L["Show a minimap entry point for settings, hunt console, and live rescans."],
+                    get = function()
+                        return Settings:ShouldShowMinimapButton()
+                    end,
+                    set = function(value)
+                        Settings:SetMinimapButtonShown(value)
+                        if ns.MinimapButton then
+                            ns.MinimapButton:Refresh()
+                        end
+                    end,
+                },
+                {
+                    type = "toggle",
+                    key = "lockMinimapButton",
+                    title = L["Lock minimap button"],
+                    description = L["Prevent accidental minimap button dragging."],
+                    isAvailable = function()
+                        return Settings:ShouldShowMinimapButton()
+                    end,
+                    get = function()
+                        return Settings:IsMinimapLocked()
+                    end,
+                    set = function(value)
+                        Settings:SetMinimapLocked(value)
+                    end,
+                },
+                {
+                    type = "choice",
+                    key = "plannerFocus",
+                    title = L["Planner focus"],
+                    description = L["Choose which hunt recommendations the Planner tab prioritizes."],
+                    options = {
+                        { value = "all", label = L["All"] },
+                        { value = "nightmare", label = L["Nightmare"] },
+                        { value = "achievement", label = L["Achievements"] },
+                        { value = "reward", label = L["Rewards"] },
+                        { value = "active", label = L["Active"] },
+                    },
+                    get = function()
+                        return Settings:GetPlannerFocus()
+                    end,
+                    set = function(value)
+                        Settings:SetPlannerFocus(value)
+                    end,
+                },
             },
         },
         {
@@ -997,6 +1094,29 @@ function SP.CreateRoadmapPage(parent)
     end
 
     BuildRoadmapCards(page)
+    return page
+end
+
+function SP.CreateDiagnosticsPage(parent)
+    local contentHost = CreateContentHost(parent)
+    local scrollFrame, scrollChild = CreateScrollFrame(contentHost, "DiagnosticsScrollFrame")
+
+    local page = {
+        Host = contentHost,
+        ScrollFrame = scrollFrame,
+        ScrollChild = scrollChild,
+        Cards = {},
+        cardsBuilt = false,
+        lastBuildWidth = 0,
+    }
+
+    function page:Refresh(force)
+        if force or ShouldRebuildCards(self) then
+            BuildDiagnosticsCards(self)
+        end
+    end
+
+    BuildDiagnosticsCards(page)
     return page
 end
 
