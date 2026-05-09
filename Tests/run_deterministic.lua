@@ -408,6 +408,9 @@ local function runHuntListDedupeSortFilterTests()
         { questID = 5, title = "Lieutenant Blazewing", description = "Difficulty: Nightmare", normalizedX = 0.23, normalizedY = 0.22 },
     }
     _G.CovenantMissionFrame = {
+        IsShown = function()
+            return true
+        end,
         MapTab = {
             pinPools = {
                 ["AdventureMap_QuestOfferPinTemplate"] = makePinPool(pins),
@@ -538,6 +541,8 @@ local function runEventRouterAchievementCacheInvalidationTests()
     local refreshEvents = {}
     local invalidationCount = 0
     local removedQuestID = nil
+    local dirtyReason = nil
+    local journalRecordedQuestID = nil
 
     ns.Debug = {
         IsEnabled = function()
@@ -573,10 +578,21 @@ local function runEventRouterAchievementCacheInvalidationTests()
     }
     ns.HuntList = {
         GetHuntByQuestID = function(_, questID)
-            return questID == 91458
+            if questID == 91458 then
+                return { questID = 91458, name = "Tracked Hunt", difficulty = "Nightmare", zone = "Voidstorm" }
+            end
+            return nil
         end,
         RemoveByQuestID = function(_, questID)
             removedQuestID = questID
+        end,
+        MarkLiveSnapshotDirty = function(_, reason)
+            dirtyReason = reason
+        end,
+    }
+    ns.HuntJournal = {
+        RecordCompletion = function(_, snapshot)
+            journalRecordedQuestID = snapshot and snapshot.questID or nil
         end,
     }
 
@@ -590,9 +606,12 @@ local function runEventRouterAchievementCacheInvalidationTests()
     ns.Controller.onEvent(ns.Controller, "ACHIEVEMENT_EARNED", 42703)
     ns.Controller.onEvent(ns.Controller, "QUEST_LOG_CRITERIA_UPDATE")
     ns.Controller.onEvent(ns.Controller, "QUEST_TURNED_IN", 91458)
+    ns.Controller.onEvent(ns.Controller, "ADVENTURE_MAP_QUEST_UPDATE")
 
     expectEqual("achievement cache invalidated for criteria and turn-in events", invalidationCount, 4)
+    expectEqual("quest turn-in records journal completion before removal", journalRecordedQuestID, 91458)
     expectEqual("hunt list entry still removed on quest turn-in", removedQuestID, 91458)
+    expectEqual("adventure map update marks live hunt list dirty", dirtyReason, "ADVENTURE_MAP_QUEST_UPDATE")
     expectEqual("criteria update still refreshes after invalidation", refreshEvents[1], "CRITERIA_UPDATE")
     expectEqual("achievement earned still refreshes after invalidation", refreshEvents[2], "ACHIEVEMENT_EARNED")
     expectEqual("quest criteria update still refreshes after invalidation", refreshEvents[3], "QUEST_LOG_CRITERIA_UPDATE")
@@ -621,6 +640,9 @@ local function runLocalePatternDifficultyTests()
     }
 
     _G.CovenantMissionFrame = {
+        IsShown = function()
+            return true
+        end,
         MapTab = {
             pinPools = {
                 ["AdventureMap_QuestOfferPinTemplate"] = makePinPool({
@@ -687,535 +709,372 @@ local function runHuntListQuickEvaluateTests()
     expectEqual("quick eval pin snapshot source", source, "pinSnapshot")
 end
 
-local function runRefreshAndSoundRoutingTests()
+local function runHuntListLiveFirstCacheTests()
     local ns = newNamespace()
-    ns.Controller = {}
-    local selectedSoundTheme = "AmongUs"
-    local deathSoundsEnabled = true
+    local charCache = {
+        [90001] = {
+            questID = 90001,
+            name = "Stale Hunt",
+            description = "Normal",
+            difficulty = "Normal",
+            zone = "Eversong Woods",
+            rewards = {
+                { rewardIndex = 1, tooltipType = "text", name = "Old Reward", texture = "old" },
+            },
+        },
+    }
+
     ns.Settings = {
-        ShouldPlaySoundOnPhaseChange = function()
-            return true
+        GetHuntPanelFilter = function()
+            return "all"
         end,
-        GetSoundTheme = function()
-            return selectedSoundTheme
+        SetHuntPanelFilter = function()
         end,
-        ShouldPlayDeathSounds = function()
-            return deathSoundsEnabled
+        GetCharacterHuntQuestCache = function()
+            return charCache
         end,
-        IsEnabled = function()
-            return true
-        end,
-    }
-    ns.Util.IsRelevantPreyQuest = function(questID)
-        return questID == 91458
-    end
-    ns.Constants.Media = {
-        Sounds = {
-            HuntStart = "hunt_start.ogg",
-            HuntEnd = "hunt_end.ogg",
-            Ambush = "ambush.ogg",
-            Riposte = "riposte.ogg",
-            Kill = "kill.ogg",
-            Interaction = "interaction.ogg",
-            FinalPhase = "final_phase.ogg",
-        },
-        SoundCatalog = {
-            AmongUs = {
-                "ambush.ogg",
-                "hunt_end.ogg",
-                "hunt_start.ogg",
-            },
-            Generic = {
-                "interaction.ogg",
-                "kill.ogg",
-                "riposte.ogg",
-            },
-            Pokemon = {
-                "ambush.ogg",
-                "ambush_bonus1.ogg",
-                "progress.ogg",
-                "progress2.ogg",
-                "progress3.ogg",
-            },
-            Random = {
-                "random1.ogg",
-                "random2.ogg",
-            },
-        },
-        DeathSounds = {
-            "loser1.ogg",
-            "loser2.ogg",
-        },
     }
 
-    local capturedSounds = {}
-    local now = 100
-    local units = {}
-    local mapParents = {}
-    local function soundPath(pack, fileName)
-        return "Interface\\AddOns\\Preybreaker\\Media\\Sounds\\" .. pack .. "\\" .. fileName
-    end
-
-    local previousGlobals = {
-        Enum = _G.Enum,
-        C_QuestLog = _G.C_QuestLog,
-        GetLocale = _G.GetLocale,
-        GetSpellInfo = _G.GetSpellInfo,
-        PlaySoundFile = _G.PlaySoundFile,
-        GetTimePreciseSec = _G.GetTimePreciseSec,
-        UnitExists = _G.UnitExists,
-        UnitIsPlayer = _G.UnitIsPlayer,
-        UnitCanAttack = _G.UnitCanAttack,
-        UnitReaction = _G.UnitReaction,
-        UnitGUID = _G.UnitGUID,
-        UnitName = _G.UnitName,
-        UnitIsDeadOrGhost = _G.UnitIsDeadOrGhost,
-        UnitIsDead = _G.UnitIsDead,
-        C_Map = _G.C_Map,
-        MathRandom = math.random,
-    }
-
-    _G.Enum = {
-        PreyHuntProgressState = {
-            Cold = 0,
-            Warm = 1,
-            Hot = 2,
-            Final = 3,
-        },
-    }
     _G.C_QuestLog = {
-        GetTitleForQuestID = function(questID)
-            if questID == 91458 then
-                return "Prey: Razorclaw (Nightmare)"
-            end
-            return nil
-        end,
-        IsQuestFlaggedCompleted = function()
+        IsOnQuest = function()
             return false
         end,
-    }
-    _G.PlaySoundFile = function(path)
-        capturedSounds[#capturedSounds + 1] = path
-    end
-    _G.GetLocale = function()
-        return "enUS"
-    end
-    _G.GetSpellInfo = function(spellID)
-        if spellID == 8676 then
-            return "Ambush"
-        end
-        return nil
-    end
-    _G.GetTimePreciseSec = function()
-        return now
-    end
-    _G.UnitExists = function(unitToken)
-        return units[unitToken] ~= nil
-    end
-    _G.UnitIsPlayer = function(unitToken)
-        local unit = units[unitToken]
-        return unit and unit.isPlayer == true or false
-    end
-    _G.UnitCanAttack = function(_, unitToken)
-        local unit = units[unitToken]
-        return unit and unit.hostile == true or false
-    end
-    _G.UnitReaction = function(unitToken)
-        local unit = units[unitToken]
-        return unit and unit.reaction or nil
-    end
-    _G.UnitGUID = function(unitToken)
-        local unit = units[unitToken]
-        return unit and unit.guid or nil
-    end
-    _G.UnitName = function(unitToken)
-        local unit = units[unitToken]
-        return unit and unit.name or nil
-    end
-    _G.UnitIsDeadOrGhost = function(unitToken)
-        local unit = units[unitToken]
-        return unit and unit.dead == true or false
-    end
-    _G.UnitIsDead = _G.UnitIsDeadOrGhost
-    _G.C_Map = {
-        GetBestMapForUnit = function(unitToken)
-            local unit = units[unitToken]
-            return unit and unit.mapID or nil
+        GetActivePreyQuest = function()
+            return nil
         end,
-        GetMapInfo = function(mapID)
-            local parentMapID = mapParents[mapID]
-            if type(parentMapID) ~= "number" then
-                return nil
-            end
-            return { parentMapID = parentMapID }
+    }
+    _G.C_Timer = nil
+    _G.CovenantMissionFrame = {
+        IsShown = function()
+            return true
+        end,
+        MapTab = {
+            pinPools = {
+                ["AdventureMap_QuestOfferPinTemplate"] = makePinPool({
+                    { questID = 12, title = "Fresh Normal Hunt", description = "Normal", normalizedX = 0.2, normalizedY = 0.2 },
+                }),
+            },
+        },
+    }
+
+    loadModule("Core/HuntList.lua", ns)
+    local state = ns.HuntList:GetState()
+    expectEqual("cached stale hunt loads as warm start", state.hunts[1] and state.hunts[1].questID, 90001)
+
+    ns.HuntList:BeginStabilizedScan()
+    state = ns.HuntList:GetState()
+    expectEqual("live scan replaces stale cache count", #state.hunts, 1)
+    expectEqual("live scan replaces stale cache quest", state.hunts[1] and state.hunts[1].questID, 12)
+    expectNil("stale saved cache entry pruned", charCache[90001])
+    expectNotNil("fresh live hunt persisted to cache", charCache[12])
+    expectTrue("live snapshot marked ready", ns.HuntList:HasLiveHuntSnapshot() == true)
+
+    ns.HuntList:HandleMissingLivePin(12, "test")
+    expectNil("missing live pin removes runtime row", state.questIndex[12])
+    expectNil("missing live pin removes saved cache entry", charCache[12])
+    expectEqual("missing live pin dirties live snapshot", state.liveSnapshotDirty, true)
+end
+
+local function runHuntOSDataTests()
+    local ns = newNamespace()
+    ns.TextStyle = {
+        GetDefaultFontValue = function() return "builtin:standard" end,
+        SanitizeFontValue = function(_, value)
+            if type(value) == "string" and value ~= "" then return value end
+            return "builtin:standard"
         end,
     }
 
-    loadModule("Core/Controller/RefreshAndSound.lua", ns)
-    local controller = ns.Controller
-    expectNotNil("refreshAndSound transition handler exists", controller.HandleSnapshotSoundTransitions)
-    expectNil("sound registration dead-state method removed", controller.RefreshSoundEventRegistrations)
+    _G.C_QuestLog = _G.C_QuestLog or {}
+    _G.C_TaskQuest = _G.C_TaskQuest or {}
+    _G.C_Map = _G.C_Map or {}
+    _G.PreybreakerDB = {
+        schemaVersion = 7,
+        preferredHuntReward = "remnant",
+        fallbackHuntReward = "gold",
+        plannerPreferences = { focus = "achievement", preferredDifficulty = "nightmare", rewardGoal = "preferred" },
+    }
+    _G.PreybreakerCharDB = {
+        schemaVersion = 7,
+    }
 
-    local function resetHarness(progressState)
-        wipe(capturedSounds)
-        wipe(units)
-        controller.soundState = nil
-        controller.lastSnapshot = {
-            questID = 91458,
-            progressState = progressState or 0,
-        }
-        controller:RefreshSoundContext(controller.lastSnapshot)
+    loadModule("Core/Util.lua", ns)
+    loadModule("Core/Settings.lua", ns)
+    loadModule("Core/HuntJournal.lua", ns)
+    loadModule("Core/HuntPlanner.lua", ns)
+    loadModule("Core/HuntStats.lua", ns)
+    loadModule("Core/HuntDiagnostics.lua", ns)
+
+    ns.Settings:Initialize()
+
+    local snapshot = {
+        questID = 501,
+        name = "Nightmare Gap",
+        difficulty = "Nightmare",
+        zone = "Voidstorm",
+    }
+    ns.HuntJournal:RecordRewardSelection(501, {
+        rewardType = "remnant",
+        rewardName = "Remnant of Anguish",
+        rewardIndex = 2,
+        source = "test",
+    })
+    local recorded, entry = ns.HuntJournal:RecordCompletion(snapshot)
+    expectTrue("journal records completion", recorded == true)
+    expectEqual("journal stores quest id", entry and entry.questID, 501)
+    expectEqual("journal stores reward selection", entry and entry.reward and entry.reward.rewardType, "remnant")
+
+    ns.HuntJournal:RecordCompletion(snapshot)
+    expectEqual("journal dedupes same weekly completion", #ns.Settings:GetHuntHistory(), 1)
+    expectNotNil("journal recent lookup returns entry", ns.HuntJournal:GetRecentByQuestID(501))
+
+    local preferredPreview = ns.HuntPlanner:GetRewardPreview({
+        rewards = {
+            { rewardIndex = 1, name = "Gold Cache" },
+            { rewardIndex = 2, name = "Remnant of Anguish" },
+        },
+    })
+    expectEqual("planner picks preferred reward", preferredPreview.selectedRewardType, "remnant")
+    expectEqual("planner preferred status", preferredPreview.status, "preferred")
+
+    local fallbackPreview = ns.HuntPlanner:GetRewardPreview({
+        rewards = {
+            { rewardIndex = 1, name = "Remnant of Anguish", isCapped = true },
+            { rewardIndex = 2, name = "Gold Cache" },
+        },
+    })
+    expectEqual("planner falls back when preferred capped", fallbackPreview.selectedRewardType, "gold")
+    expectEqual("planner fallback status", fallbackPreview.status, "fallback")
+
+    local recommendations = ns.HuntPlanner:GetRecommendations({
+        {
+            questID = 601,
+            name = "Achievement Hunt",
+            difficulty = "Nightmare",
+            zone = "Voidstorm",
+            achievement = { isIncomplete = true },
+            rewards = { { rewardIndex = 1, name = "Gold Cache" } },
+        },
+        {
+            questID = 602,
+            name = "Normal Hunt",
+            difficulty = "Normal",
+            zone = "Eversong Woods",
+            rewards = { { rewardIndex = 1, name = "Gold Cache" } },
+        },
+    }, ns.HuntJournal:GetEntries("all"), ns.Settings:GetPlannerPreferences())
+    expectEqual("planner focus filters to achievement hunt", #recommendations, 1)
+    expectEqual("planner prioritizes achievement gap", recommendations[1] and recommendations[1].questID, 601)
+
+    local weekly = ns.HuntJournal:MarkLiveListFresh(4, "test")
+    expectEqual("weekly live list marked fresh", weekly and weekly.liveListFresh, true)
+    expectEqual("weekly live count stored", weekly and weekly.lastLiveCount, 4)
+
+    for questID = 700, 1005 do
+        ns.HuntJournal:RecordCompletion({
+            questID = questID,
+            name = "Pruned Hunt " .. tostring(questID),
+            difficulty = "Normal",
+            zone = "Harandar",
+        })
     end
+    expectEqual("journal pruning keeps max entries", #ns.Settings:GetHuntHistory(), 300)
 
-    -- Cold->Warm should not promote unrelated hostiles as prey candidates.
-    resetHarness(0)
-    now = 100
-    units.nameplate1 = {
-        guid = "Creature-0-0-0-0-11111-0000000001",
-        name = "Bandit Marauder",
-        hostile = true,
-        reaction = 3,
+    local summary = ns.HuntStats:GetSummary("all")
+    expectEqual("stats total follows journal", summary.total, 300)
+    expectTrue("stats has difficulty bucket", (summary.byDifficulty.Normal or 0) > 0)
+
+    ns.HuntList = {
+        GetDiagnosticsSnapshot = function()
+            return {
+                huntCount = 4,
+                cacheCount = 4,
+                cacheVersion = 2,
+                liveSnapshotReady = true,
+                liveSnapshotDirty = false,
+                huntsSource = "live",
+            }
+        end,
     }
-    units.target = {
-        guid = "Creature-0-0-0-0-22222-0000000002",
-        name = "Bandit Marauder",
-        hostile = true,
-        reaction = 3,
+    local report = ns.HuntDiagnostics:BuildReport()
+    expectTrue("diagnostics report has lines", type(report.lines) == "table" and #report.lines > 0)
+end
+
+local function runCommandCenterDataTests()
+    local ns = newNamespace()
+    ns.TextStyle = {
+        GetDefaultFontValue = function() return "builtin:standard" end,
+        SanitizeFontValue = function(_, value)
+            if type(value) == "string" and value ~= "" then return value end
+            return "builtin:standard"
+        end,
     }
-    controller:HandleNameplateUnitAddedForSounds("nameplate1")
-    controller:HandleSnapshotSoundTransitions(
-        { questID = 91458, progressState = 0 },
-        { questID = 91458, progressState = 1 }
-    )
-    local state = controller:GetSoundState()
-    expectNil("cold->warm blocks unrelated recent hostile promotion", state.preyCandidateGUIDs["Creature-0-0-0-0-11111-0000000001"])
-    expectNil("cold->warm blocks unrelated target promotion", state.preyCandidateGUIDs["Creature-0-0-0-0-22222-0000000002"])
-    expectEqual("cold->warm emits stage progress cue", capturedSounds[1], soundPath("Generic", "interaction.ogg"))
 
-    -- Cold->Warm should promote a recent hostile only when prey name matches.
-    resetHarness(0)
-    now = 200
-    units.nameplate2 = {
-        guid = "Creature-0-0-0-0-33333-0000000003",
-        name = "Razorclaw",
-        hostile = true,
-        reaction = 3,
+    local oldUnitFullName = _G.UnitFullName
+    local oldUnitName = _G.UnitName
+    local oldUnitGUID = _G.UnitGUID
+    local oldGetRealmName = _G.GetRealmName
+
+    _G.UnitFullName = function() return "Aelwyn", "MoonGuard" end
+    _G.UnitName = function() return "Aelwyn", "MoonGuard" end
+    _G.UnitGUID = function() return "Player-1-0001" end
+    _G.GetRealmName = function() return "MoonGuard" end
+
+    _G.C_QuestLog = _G.C_QuestLog or {}
+    _G.C_TaskQuest = _G.C_TaskQuest or {}
+    _G.C_Map = _G.C_Map or {}
+    _G.PreybreakerDB = {
+        schemaVersion = 7,
+        preferredHuntReward = "remnant",
+        fallbackHuntReward = "gold",
+        goalPreferences = {
+            focus = "alts",
+            preferredDifficulty = "hard",
+            rewardGoal = "remnant",
+            achievementWeight = 90,
+            rewardWeight = 55,
+            difficultyWeight = 12,
+            altStaleWeight = 80,
+            timeBudgetMinutes = 30,
+        },
+        dashboardState = { tab = "goals", sort = "name", filter = "stale" },
     }
-    units.target = {
-        guid = "Creature-0-0-0-0-44444-0000000004",
-        name = "Bandit Marauder",
-        hostile = true,
-        reaction = 3,
+    _G.PreybreakerCharDB = {
+        schemaVersion = 7,
+        weeklyState = { currentWeekKey = "legacy-week", liveListFresh = false },
+        huntHistory = {
+            {
+                questID = 501,
+                name = "Legacy Hunt",
+                difficulty = "Nightmare",
+                zone = "Voidstorm",
+                completedAt = 1000,
+                completedDate = "2026-05-01",
+                weekKey = "legacy-week",
+                reward = { rewardType = "gold", rewardName = "Gold" },
+            },
+        },
     }
-    controller:HandleNameplateUnitAddedForSounds("nameplate2")
-    controller:HandleSnapshotSoundTransitions(
-        { questID = 91458, progressState = 0 },
-        { questID = 91458, progressState = 1 }
-    )
-    state = controller:GetSoundState()
-    expectTrue(
-        "cold->warm promotes matching recent hostile",
-        state.preyCandidateGUIDs["Creature-0-0-0-0-33333-0000000003"] == true
-    )
-    expectNil("cold->warm still rejects unrelated target", state.preyCandidateGUIDs["Creature-0-0-0-0-44444-0000000004"])
-    expectEqual("prey name match stays exact, not substring", controller:IsLikelyPreyTargetName("Razor"), false)
 
-    -- Stage transition emits short stage cue; spell riposte remains separate.
-    resetHarness(1)
-    now = 300
-    controller:HandleSnapshotSoundTransitions(
-        { questID = 91458, progressState = 1 },
-        { questID = 91458, progressState = 2 }
-    )
-    controller.lastSnapshot = { questID = 91458, progressState = 2 }
-    controller:HandleUnitSpellcastSound("player", 1260432)
-    expectEqual("warm->hot emits stage progress cue", capturedSounds[1], soundPath("Generic", "interaction.ogg"))
-    expectEqual("spell riposte cue still plays", capturedSounds[2], soundPath("Generic", "riposte.ogg"))
+    loadModule("Core/Util.lua", ns)
+    loadModule("Core/Settings.lua", ns)
+    loadModule("Core/HuntJournal.lua", ns)
+    loadModule("Core/HuntPlanner.lua", ns)
+    loadModule("Core/HuntStats.lua", ns)
+    loadModule("Core/HuntRoster.lua", ns)
+    loadModule("Core/HuntGoalEngine.lua", ns)
+    loadModule("Core/HuntAlerts.lua", ns)
+    loadModule("Core/HuntDiagnostics.lua", ns)
 
-    -- Ambush chat cue should fire when localized message matches and hunt is active.
-    resetHarness(0)
-    now = 320
-    controller:HandleAmbushChatMessageForSounds("Ambush!", "CHAT_MSG_SYSTEM")
-    expectEqual("chat ambush cue in enUS", capturedSounds[1], soundPath("AmongUs", "ambush.ogg"))
+    ns.Settings:Initialize()
+    local accountDB = ns.Settings:GetAccountDB()
+    expectEqual("v8 account schema version set", accountDB.schemaVersion, 8)
+    expectEqual("v8 command data version set", accountDB.commandCenterVersion, 8)
+    expectEqual("v8 dashboard tab preserved", ns.Settings:GetCommandCenterTab(), "goals")
+    expectEqual("v8 goal focus preserved", ns.Settings:GetGoalPreferences().focus, "alts")
+    expectNotNil("v8 weekly stale character store", ns.Settings:GetWeeklyGoals().staleCharacters)
 
-    resetHarness(0)
-    now = 321
-    _G.GetLocale = function()
-        return "deDE"
-    end
-    _G.GetSpellInfo = function(spellID)
-        if spellID == 8676 then
-            return "Hinterhalt"
+    local current = ns.HuntRoster:UpdateCurrentCharacter({ active = true, questID = 501, percent = 42 })
+    expectEqual("roster current key uses realm and name", current and current.key, "MoonGuard:Aelwyn")
+    expectEqual("roster stores current guid", current and current.guid, "Player-1-0001")
+    expectEqual("roster stores active quest snapshot", current and current.activeHunt and current.activeHunt.questID, 501)
+    expectEqual("roster history count follows journal", current and current.historyTotal, 1)
+    ns.HuntRoster:UpdateCurrentCharacter({ active = true, questID = 501, percent = 43 })
+    expectEqual("roster dedupes same character key", #ns.HuntRoster:GetCharacters(), 1)
+
+    _G.UnitFullName = function() return "NoGuid", "MoonGuard" end
+    _G.UnitName = function() return "NoGuid", "MoonGuard" end
+    _G.UnitGUID = function() return nil end
+    local second = ns.HuntRoster:UpdateCurrentCharacter({ active = false })
+    expectEqual("roster falls back to realm:name without guid", second and second.key, "MoonGuard:NoGuid")
+    expectEqual("roster keeps two character profiles", #ns.HuntRoster:GetCharacters(), 2)
+
+    local rosterStore = ns.Settings:GetAccountRoster()
+    rosterStore["OldRealm:Oldalt"] = {
+        key = "OldRealm:Oldalt",
+        name = "Oldalt",
+        realm = "OldRealm",
+        weekKey = "expired-week",
+        lastSeenAt = 1,
+        lastSnapshot = { active = true },
+        completedThisWeek = 0,
+    }
+    local characters = ns.HuntRoster:GetCharacters()
+    local staleOld = nil
+    for _, character in ipairs(characters) do
+        if character.key == "OldRealm:Oldalt" then
+            staleOld = character
         end
-        return nil
     end
-    controller:HandleAmbushChatMessageForSounds("Hinterhalt!", "CHAT_MSG_MONSTER_EMOTE")
-    expectEqual("chat ambush cue in deDE", capturedSounds[1], soundPath("AmongUs", "ambush.ogg"))
+    expectTrue("roster marks old weekly character stale", staleOld and staleOld.stale == true)
+    expectTrue("weekly goals track stale character key", ns.Settings:GetWeeklyGoals().staleCharacters["OldRealm:Oldalt"] == true)
 
-    resetHarness(2)
-    now = 322
-    controller:HandleAmbushChatMessageForSounds("Hinterhalt!", "CHAT_MSG_MONSTER_EMOTE")
-    expectNil("chat ambush ignored after warm stage", capturedSounds[1])
-
-    resetHarness(0)
-    now = 323
-    controller:HandleAmbushChatMessageForSounds("Random warning", "CHAT_MSG_SYSTEM")
-    expectNil("non-ambush chat does not trigger cue", capturedSounds[1])
-
-    -- Numbered variants should randomize within the selected sound theme.
-    selectedSoundTheme = "Pokemon"
-    resetHarness(1)
-    now = 323.2
-    math.random = function(maxValue)
-        if maxValue then
-            return 2
-        end
-        return 0.99
-    end
-    controller:HandleSnapshotSoundTransitions(
-        { questID = 91458, progressState = 1 },
-        { questID = 91458, progressState = 2 }
-    )
-    expectEqual("pokemon numbered progress variant selected", capturedSounds[1], soundPath("Pokemon", "progress2.ogg"))
-
-    -- Bonus variants should be rare and never exposed as a setting.
-    resetHarness(0)
-    now = 323.4
-    math.random = function(maxValue)
-        if maxValue then
-            return 1
-        end
-        return 0.01
-    end
-    controller:HandleAmbushChatMessageForSounds("Ambush!", "CHAT_MSG_SYSTEM")
-    expectEqual("bonus ambush variant selected on low roll", capturedSounds[1], soundPath("Pokemon", "ambush_bonus1.ogg"))
-
-    resetHarness(0)
-    now = 323.6
-    math.random = function(maxValue)
-        if maxValue then
-            return 1
-        end
-        return 0.99
-    end
-    controller:HandleAmbushChatMessageForSounds("Ambush!", "CHAT_MSG_SYSTEM")
-    expectEqual("regular ambush variant selected on high roll", capturedSounds[1], soundPath("Pokemon", "ambush.ogg"))
-
-    -- Random theme falls back to random pool when an event key has no direct clip.
-    selectedSoundTheme = "Random"
-    resetHarness(2)
-    now = 323.8
-    math.random = function(maxValue)
-        if maxValue then
-            return 2
-        end
-        return 0.99
-    end
-    controller:HandleQuestTurnedInSound(91458)
-    expectEqual("random theme fallback clip selected", capturedSounds[1], soundPath("Random", "random2.ogg"))
-
-    selectedSoundTheme = "AmongUs"
-    math.random = previousGlobals.MathRandom
-
-    -- Ambush prey kill should still play kill cue even when prey name differs from quest title.
-    resetHarness(0)
-    now = 324
-    local ambushPreyGUID = "Creature-0-0-0-0-77777-0000000007"
-    units.target = {
-        guid = ambushPreyGUID,
-        name = "Nightstalker Ambusher",
-        hostile = true,
-        reaction = 3,
+    local liveHunts = {
+        {
+            questID = 601,
+            name = "Achievement Hunt",
+            difficulty = "Nightmare",
+            zone = "Voidstorm",
+            achievement = { isIncomplete = true },
+            rewards = { { rewardIndex = 1, name = "Gold Cache" } },
+        },
+        {
+            questID = 602,
+            name = "Reward Hunt",
+            difficulty = "Hard",
+            zone = "Harandar",
+            rewards = {
+                { rewardIndex = 1, name = "Remnant of Anguish", isCapped = true },
+                { rewardIndex = 2, name = "Gold Cache" },
+            },
+        },
     }
-    controller:HandleAmbushChatMessageForSounds("Ambush!", "CHAT_MSG_SYSTEM")
-    controller:HandlePlayerTargetChangedForSounds()
-    units.nameplateAmbush = {
-        guid = ambushPreyGUID,
-        name = "Nightstalker Ambusher",
-        hostile = true,
-        reaction = 3,
-        dead = true,
+    local preferences = {
+        focus = "achievements",
+        preferredDifficulty = "nightmare",
+        rewardGoal = "preferred",
+        achievementWeight = 100,
+        rewardWeight = 20,
+        difficultyWeight = 10,
+        altStaleWeight = 60,
     }
-    controller:HandleNameplateUnitRemovedForSounds("nameplateAmbush")
-    expectEqual("ambush cue still plays for ambush event", capturedSounds[1], soundPath("AmongUs", "ambush.ogg"))
-    expectEqual("ambush prey kill plays kill cue", capturedSounds[2], soundPath("Generic", "kill.ogg"))
+    local plan = ns.HuntGoalEngine:GetWeeklyPlan(characters, liveHunts, preferences)
+    expectEqual("goal engine prioritizes achievement gap", plan[1] and plan[1].id, "hunt:601")
 
-    -- Death clips only play while dead in the active hunt zone.
-    resetHarness(2)
-    now = 324.5
-    math.random = function(maxValue)
-        if maxValue then
-            return 1
+    local rewardGoal = nil
+    for _, goal in ipairs(plan) do
+        if goal.id == "hunt:602" then
+            rewardGoal = goal
         end
-        return 0.99
     end
-    units.player = { dead = true, mapID = 2472 }
-    mapParents[2472] = 0
-    controller.lastSnapshot.mapID = 2472
-    controller:HandlePlayerDeathForSounds()
-    expectEqual("death cue plays in active hunt zone", capturedSounds[1], soundPath("Death", "loser1.ogg"))
-    controller:HandlePlayerDeathForSounds()
-    expectEqual("death cue is armed until revive", #capturedSounds, 1)
-    controller:HandlePlayerRevivedForSounds()
-    controller:HandlePlayerDeathForSounds()
-    expectEqual("death cue can play again after revive", #capturedSounds, 2)
+    expectEqual("goal engine sees capped preferred fallback", rewardGoal and rewardGoal.rewardPreview and rewardGoal.rewardPreview.status, "fallback")
 
-    resetHarness(2)
-    now = 324.7
-    units.player = { dead = true, mapID = 9999 }
-    mapParents[9999] = 0
-    controller.lastSnapshot.mapID = 2472
-    controller:HandlePlayerDeathForSounds()
-    expectNil("death cue blocked outside hunt zone", capturedSounds[1])
+    ns.HuntGoalEngine:SetPinned("hunt:602", true)
+    plan = ns.HuntGoalEngine:GetWeeklyPlan(characters, liveHunts, preferences)
+    expectEqual("goal engine keeps pinned goal first", plan[1] and plan[1].id, "hunt:602")
+    expectTrue("goal engine marks pinned goal", plan[1] and plan[1].pinned == true)
 
-    resetHarness(2)
-    now = 324.9
-    units.player = { dead = true, mapID = 3000 }
-    mapParents[3000] = 2472
-    mapParents[2472] = 0
-    controller.lastSnapshot.mapID = 2472
-    controller:HandlePlayerDeathForSounds()
-    expectEqual("death cue allowed in child map of hunt zone", capturedSounds[1], soundPath("Death", "loser1.ogg"))
-
-    resetHarness(2)
-    now = 325.1
-    deathSoundsEnabled = false
-    units.player = { dead = true, mapID = 2472 }
-    controller.lastSnapshot.mapID = 2472
-    controller:HandlePlayerDeathForSounds()
-    expectNil("death cue respects setting toggle", capturedSounds[1])
-    deathSoundsEnabled = true
-    math.random = previousGlobals.MathRandom
-
-    -- Death during active hunt should preserve last known snapshot values.
-    local previousSnapshot = {
-        active = true,
-        widgetID = 9001,
-        questID = 91458,
-        activeQuestID = 91458,
-        worldQuestID = nil,
-        mapID = 2472,
-        progressState = 2,
-        progress = 0.67,
-        percent = 67,
-    }
-    local inactiveSnapshot = {
-        active = false,
-        widgetID = nil,
-        questID = nil,
-        activeQuestID = nil,
-        worldQuestID = nil,
-        mapID = nil,
-        progressState = nil,
-        progress = 0,
-        percent = 0,
-    }
-    units.player = { dead = true }
-    expectTrue(
-        "death snapshot preservation gate",
-        controller:ShouldPreserveSnapshotWhileDead(previousSnapshot, inactiveSnapshot) == true
-    )
-    local preservedSnapshot = controller:BuildDeathPreservedSnapshot(previousSnapshot, inactiveSnapshot)
-    expectTrue("death preservation marks snapshot", preservedSnapshot.preservedWhileDead == true)
-    expectEqual("death preservation keeps stage", preservedSnapshot.progressState, 2)
-    expectEqual("death preservation keeps percent", preservedSnapshot.percent, 67)
-    units.player = { dead = false }
-    expectEqual(
-        "snapshot not preserved when player alive",
-        controller:ShouldPreserveSnapshotWhileDead(previousSnapshot, inactiveSnapshot),
-        false
-    )
-
-    _G.GetLocale = function()
-        return "enUS"
-    end
-    _G.GetSpellInfo = function(spellID)
-        if spellID == 8676 then
-            return "Ambush"
+    ns.HuntGoalEngine:SetIgnored("hunt:602", true)
+    plan = ns.HuntGoalEngine:GetWeeklyPlan(characters, liveHunts, preferences)
+    local ignoredStillVisible = false
+    for _, goal in ipairs(plan) do
+        if goal.id == "hunt:602" then
+            ignoredStillVisible = true
         end
-        return nil
     end
+    expectTrue("goal engine hides ignored goals", ignoredStillVisible == false)
 
-    -- QUEST_REMOVED abandon should suppress immediate hunt-end cue.
-    resetHarness(2)
-    now = 340
-    controller:HandleQuestRemovedForSounds(91458)
-    controller:HandleQuestTurnedInSound(91458)
-    expectNil("abandon suppresses immediate hunt-end cue", capturedSounds[1])
-    now = now + 20
-    controller:HandleQuestTurnedInSound(91458)
-    expectEqual("suppression expires for later legitimate turn-in", capturedSounds[1], soundPath("AmongUs", "hunt_end.ogg"))
+    local alerts = ns.HuntAlerts:BuildAlerts(characters, { liveListFresh = false }, liveHunts)
+    expectTrue("alerts include account status", #alerts >= 2)
 
-    -- QUEST_REMOVED for completed quest should not suppress hunt-end.
-    resetHarness(2)
-    now = 350
-    _G.C_QuestLog.IsQuestFlaggedCompleted = function(questID)
-        return questID == 91458
-    end
-    controller:HandleQuestRemovedForSounds(91458)
-    controller:HandleQuestTurnedInSound(91458)
-    expectEqual("completed quest removal does not suppress hunt-end", capturedSounds[1], soundPath("AmongUs", "hunt_end.ogg"))
-    _G.C_QuestLog.IsQuestFlaggedCompleted = function()
-        return false
-    end
+    local report = ns.HuntDiagnostics:BuildReport()
+    expectEqual("diagnostics exposes roster count", report.roster and report.roster.characterCount, #ns.HuntRoster:GetCharacters())
+    expectEqual("diagnostics exposes v8 command data version", accountDB.commandCenterVersion, 8)
 
-    -- Interaction cue requires recent trap context.
-    resetHarness(2)
-    now = 350
-    controller:HandleUnitSpellcastSound("player", 1242005)
-    expectNil("interaction cue blocked without trap context", capturedSounds[1])
-    units.mouseover = {
-        guid = "Creature-0-0-0-0-66666-0000000006",
-        name = "Thorny Trap",
-        hostile = false,
-        reaction = 4,
-    }
-    controller:HandleMouseoverChangedForSounds()
-    controller:HandleUnitSpellcastSound("player", 1242005)
-    expectEqual("interaction cue allowed with trap context", capturedSounds[1], soundPath("Generic", "interaction.ogg"))
-    units.mouseover = nil
-    now = now + 5
-    controller:HandleUnitSpellcastSound("player", 1242005)
-    expectEqual("interaction cue not replayed after context expires", #capturedSounds, 1)
-
-    -- Hot->Final emits short stage cue; confirmed prey death still emits kill cue.
-    resetHarness(2)
-    now = 400
-    local preyGUID = "Creature-0-0-0-0-55555-0000000005"
-    controller:PromotePreyCombatCandidate(preyGUID)
-    controller:HandleSnapshotSoundTransitions(
-        { questID = 91458, progressState = 2 },
-        { questID = 91458, progressState = 3 }
-    )
-    controller.lastSnapshot = { questID = 91458, progressState = 3 }
-    controller:RefreshSoundContext(controller.lastSnapshot)
-    units.nameplate3 = {
-        guid = preyGUID,
-        name = "Razorclaw",
-        hostile = true,
-        reaction = 3,
-        dead = true,
-    }
-    controller:HandleNameplateUnitRemovedForSounds("nameplate3")
-    expectEqual("hot->final emits stage progress cue", capturedSounds[1], soundPath("Generic", "interaction.ogg"))
-    expectEqual("confirmed prey death uses kill cue", capturedSounds[2], soundPath("Generic", "kill.ogg"))
-
-    _G.Enum = previousGlobals.Enum
-    _G.C_QuestLog = previousGlobals.C_QuestLog
-    _G.GetLocale = previousGlobals.GetLocale
-    _G.GetSpellInfo = previousGlobals.GetSpellInfo
-    _G.PlaySoundFile = previousGlobals.PlaySoundFile
-    _G.GetTimePreciseSec = previousGlobals.GetTimePreciseSec
-    _G.UnitExists = previousGlobals.UnitExists
-    _G.UnitIsPlayer = previousGlobals.UnitIsPlayer
-    _G.UnitCanAttack = previousGlobals.UnitCanAttack
-    _G.UnitReaction = previousGlobals.UnitReaction
-    _G.UnitGUID = previousGlobals.UnitGUID
-    _G.UnitName = previousGlobals.UnitName
-    _G.UnitIsDeadOrGhost = previousGlobals.UnitIsDeadOrGhost
-    _G.UnitIsDead = previousGlobals.UnitIsDead
-    _G.C_Map = previousGlobals.C_Map
-    math.random = previousGlobals.MathRandom
+    _G.UnitFullName = oldUnitFullName
+    _G.UnitName = oldUnitName
+    _G.UnitGUID = oldUnitGUID
+    _G.GetRealmName = oldGetRealmName
 end
 
 local function runSettingsAndMigrationTests()
@@ -1238,7 +1097,7 @@ local function runSettingsAndMigrationTests()
     local Settings = ns.Settings
     expectNotNil("settings module", Settings)
 
-    -- Test v1 -> v5 migration: legacy offsets + orb seeding.
+    -- Test v1 -> v8 migration: legacy offsets + orb seeding.
     _G.PreybreakerDB = {
         schemaVersion = 1,
         offsetX = 42,
@@ -1256,9 +1115,9 @@ local function runSettingsAndMigrationTests()
     expectEqual("v1 orbOffsetY seeded from radial", db.orbOffsetY, -17)
     expectNil("v1 legacy offsetX removed", db.offsetX)
     expectNil("v1 legacy offsetY removed", db.offsetY)
-    expectEqual("schema version upgraded", db.schemaVersion, 5)
+    expectEqual("schema version upgraded", db.schemaVersion, 8)
 
-    -- Test v2 -> v5 migration: per-mode flattening.
+    -- Test v2 -> v8 migration: per-mode flattening.
     _G.PreybreakerDB = {
         schemaVersion = 2,
         displayMode = "bar",
@@ -1271,6 +1130,49 @@ local function runSettingsAndMigrationTests()
     db = Settings:GetDB()
     expectEqual("v2 flattened hideBlizzardWidget from bar", db.hideBlizzardWidget, true)
     expectEqual("v2 flattened showValueText from bar", db.showValueText, false)
+
+    -- Test v5 -> v8 migration: stale hunt cache reset.
+    _G.PreybreakerDB = { schemaVersion = 5 }
+    _G.PreybreakerCharDB = {
+        schemaVersion = 5,
+        huntCacheVersion = 1,
+        huntQuestCache = {
+            [90001] = { questID = 90001, name = "Stale Hunt" },
+        },
+    }
+
+    Settings:Initialize()
+    local migratedCache = Settings:GetCharacterHuntQuestCache()
+    expectNil("v8 stale hunt cache cleared", next(migratedCache))
+    expectEqual("v8 hunt cache version set", Settings:GetCharDB().huntCacheVersion, 2)
+
+    -- Test v6 -> v8 migration: Hunt OS settings are sanitized and stores are created lazily.
+    _G.PreybreakerDB = {
+        schemaVersion = 6,
+        minimap = { shown = "yes", locked = true, angle = 999 },
+        plannerPreferences = { focus = "achievement", preferredDifficulty = "mythic", rewardGoal = "gold" },
+    }
+    _G.PreybreakerCharDB = {
+        schemaVersion = 6,
+    }
+
+    Settings:Initialize()
+    db = Settings:GetDB()
+    expectEqual("v8 schema version set", db.schemaVersion, 8)
+    expectEqual("v8 minimap shown sanitized", db.minimap.shown, false)
+    expectEqual("v8 minimap lock preserved", db.minimap.locked, true)
+    expectEqual("v8 minimap angle clamped", db.minimap.angle, 360)
+    expectEqual("v8 planner focus preserved", db.plannerPreferences.focus, "achievement")
+    expectEqual("v8 planner difficulty sanitized", db.plannerPreferences.preferredDifficulty, "nightmare")
+    expectEqual("v8 console tab accepts stats", Settings:SetHuntConsoleTab("stats"), "stats")
+    expectEqual("v8 console tab rejects invalid value", Settings:SetHuntConsoleTab("invalid"), "available")
+    expectEqual("v8 planner focus accepts reward", Settings:SetPlannerFocus("reward"), "reward")
+    expectNotNil("v8 hunt history store available", Settings:GetHuntHistory())
+    expectNotNil("v8 weekly state store available", Settings:GetWeeklyState())
+    expectNotNil("v8 account roster store available", Settings:GetAccountRoster())
+    expectNotNil("v8 weekly goals store available", Settings:GetWeeklyGoals())
+    expectEqual("v8 command tab accepts goals", Settings:SetCommandCenterTab("goals"), "goals")
+    expectEqual("v8 command tab rejects invalid value", Settings:SetCommandCenterTab("invalid"), "overview")
 
     -- Test sanitizer clamping: scale out of range.
     _G.PreybreakerDB = {
@@ -1321,7 +1223,7 @@ local function runSettingsAndMigrationTests()
     Settings:Initialize()
     local charDB = Settings.charDB
     -- Character profile should have its own defaults, independent of account.
-    expectEqual("char profile gets schema version", charDB.schemaVersion, 5)
+    expectEqual("char profile gets schema version", charDB.schemaVersion, 8)
 
     -- Test reset-to-defaults preserves schema.
     _G.PreybreakerDB = { schemaVersion = 5 }
@@ -1341,6 +1243,9 @@ runHuntDataAchievementMatchTests()
 runEventRouterAchievementCacheInvalidationTests()
 runLocalePatternDifficultyTests()
 runHuntListQuickEvaluateTests()
+runHuntListLiveFirstCacheTests()
+runHuntOSDataTests()
+runCommandCenterDataTests()
 runSettingsAndMigrationTests()
 
 if #failures > 0 then

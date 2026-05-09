@@ -15,9 +15,10 @@ Preybreaker keeps the current Prey Hunt stage visible in a way that fits real ga
 - Lets you nudge the tracker with simple X/Y offsets while keeping it anchored in place.
 - Can hide the Blizzard prey widget and leave only the Preybreaker display on screen.
 - Shows optional progress text and stage labels for faster readability.
-- Can play a sound when the hunt moves into a new stage.
 - Can automatically watch, supertrack, and auto-turn-in the prey quest.
 - Can auto-purchase randomized hunts and auto-select hunt rewards based on your configured preferences.
+- Includes a Tactical Hunt Console with live available hunts, planner recommendations, completion journal, stats, diagnostics, and optional minimap entry point.
+- Adds an account-local Command Center for alt roster status, weekly goals, reward warnings, timeline history, and explained next-best-action recommendations.
 - Supports account-wide settings with optional per-character profiles.
 - Uses live widget and quest data so the tracker follows the real hunt state instead of a static guess.
 

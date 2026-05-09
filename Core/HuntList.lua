@@ -144,6 +144,19 @@ local function GetCharacterHuntQuestCache()
     return cache
 end
 
+local function IsMissionFrameShown()
+    local missionFrame = _G[MISSION_FRAME_NAME]
+    return missionFrame and type(missionFrame.IsShown) == "function" and missionFrame:IsShown() == true
+end
+
+local function GetTimeSafe()
+    if type(GetTime) == "function" then
+        return GetTime()
+    end
+
+    return 0
+end
+
 local function NormalizeFilter(filterValue)
     if type(filterValue) ~= "string" then
         return FILTER_ALL
@@ -546,6 +559,20 @@ local function RemoveHuntCacheEntry(questID)
     cache[questID] = nil
 end
 
+local function PruneHuntCacheEntries(validQuestIDs)
+    local cache = GetCharacterHuntQuestCache()
+    if type(cache) ~= "table" or type(validQuestIDs) ~= "table" then
+        return
+    end
+
+    for questID in pairs(cache) do
+        local numericQuestID = tonumber(questID)
+        if not numericQuestID or not validQuestIDs[numericQuestID] then
+            cache[questID] = nil
+        end
+    end
+end
+
 local function LoadCachedHunts(state)
     if type(state) ~= "table" then
         return
@@ -563,6 +590,10 @@ local function LoadCachedHunts(state)
             state.questIndex[hunt.questID] = hunt
             state.rewardCache[hunt.questID] = SnapshotRewards(entry.rewards)
         end
+    end
+
+    if #state.hunts > 0 then
+        state.huntsSource = "cache"
     end
 end
 
@@ -631,6 +662,10 @@ function HuntList:GetState()
             warming = false,
             stabilizeTicker = nil,
             cancelWarmup = nil,
+            huntsSource = "empty",
+            liveSnapshotReady = false,
+            liveSnapshotDirty = true,
+            lastLiveScanAt = 0,
         }
 
         LoadCachedHunts(self.state)
@@ -704,6 +739,54 @@ function HuntList:HasAnyHunts()
     return #self:GetState().hunts > 0
 end
 
+function HuntList:HasLiveHuntSnapshot()
+    local state = self:GetState()
+    return state.liveSnapshotReady == true and state.liveSnapshotDirty ~= true
+end
+
+function HuntList:GetDiagnosticsSnapshot()
+    local state = self:GetState()
+    local cache = GetCharacterHuntQuestCache()
+    local cacheCount = 0
+    if type(cache) == "table" then
+        for _ in pairs(cache) do
+            cacheCount = cacheCount + 1
+        end
+    end
+
+    local charDB = ns.Settings and ns.Settings.GetCharDB and ns.Settings:GetCharDB() or nil
+    return {
+        huntCount = #state.hunts,
+        huntsSource = state.huntsSource,
+        liveSnapshotReady = state.liveSnapshotReady == true,
+        liveSnapshotDirty = state.liveSnapshotDirty == true,
+        lastLiveScanAt = state.lastLiveScanAt,
+        scanning = state.scanning == true,
+        warming = state.warming == true,
+        mapVisible = IsMissionFrameShown(),
+        cacheCount = cacheCount,
+        cacheVersion = type(charDB) == "table" and charDB.huntCacheVersion or nil,
+        filter = state.filter,
+    }
+end
+
+function HuntList:MarkLiveSnapshotDirty(reason)
+    local state = self:GetState()
+    state.liveSnapshotDirty = true
+    LogHunts("markLiveDirty", reason or "manual", state.huntsSource)
+end
+
+function HuntList:HandleMissingLivePin(questID, reason)
+    if type(questID) ~= "number" then
+        return false
+    end
+
+    local removed = self:RemoveByQuestID(questID)
+    self:MarkLiveSnapshotDirty(reason or "missingLivePin")
+    LogHunts("missingLivePin", questID, removed and "removed" or "notCached")
+    return true
+end
+
 local function BuildRawHuntsFromPins()
     local hunts = {}
     for _, pin in ipairs(CollectActiveQuestPins()) do
@@ -757,14 +840,32 @@ function HuntList:ApplyRefreshedHunts(refreshed, sourceTag)
         state.questIndex[hunt.questID] = hunt
         PersistHuntCacheEntry(hunt, state.rewardCache[hunt.questID])
     end
+    PruneHuntCacheEntries(refreshedQuestIDs)
+
+    state.huntsSource = "live"
+    state.liveSnapshotReady = true
+    state.liveSnapshotDirty = false
+    state.lastLiveScanAt = GetTimeSafe()
+
+    if ns.HuntJournal and type(ns.HuntJournal.MarkLiveListFresh) == "function" then
+        ns.HuntJournal:MarkLiveListFresh(#state.hunts, sourceTag or "refreshPins")
+    end
 
     LogHunts(sourceTag or "refreshPins", #state.hunts, cacheWarm and "cacheWarm" or "cacheReset")
     return cacheWarm, #state.hunts
 end
 
-function HuntList:RefreshFromPins()
-    if self:HasAnyHunts() then
-        LogHunts("refreshPins", "cacheHit", #self:GetState().hunts)
+function HuntList:RefreshFromPins(options)
+    local state = self:GetState()
+    local forceLive = type(options) == "table" and options.forceLive == true
+
+    if not IsMissionFrameShown() then
+        LogHunts("refreshPins", "mapHidden", state.huntsSource)
+        return true
+    end
+
+    if not forceLive and self:HasLiveHuntSnapshot() then
+        LogHunts("refreshPins", "liveHit", #state.hunts)
         return true
     end
 
@@ -801,12 +902,10 @@ function HuntList:QuickEvaluateAvailability(options)
         return true, 1, "questContext"
     end
 
-    if allowCached and self:HasAnyHunts() then
-        return true, #self:GetState().hunts, "cached"
-    end
-
-    local missionFrame = _G[MISSION_FRAME_NAME]
-    if not (missionFrame and missionFrame:IsShown()) then
+    if not IsMissionFrameShown() then
+        if allowCached and self:HasAnyHunts() then
+            return true, #self:GetState().hunts, "cached"
+        end
         return nil, 0, "mapHidden"
     end
 
@@ -831,7 +930,7 @@ function HuntList:GetFilteredSortedHunts()
             local achievement = ns.HuntData and ns.HuntData.GetHuntAchievementStatus
                 and ns.HuntData:GetHuntAchievementStatus(hunt.name, hunt.difficulty)
                 or nil
-            output[#output + 1] = {
+            local row = {
                 questID = hunt.questID,
                 name = hunt.name,
                 description = hunt.description,
@@ -844,6 +943,13 @@ function HuntList:GetFilteredSortedHunts()
                 pin = self:FindPin(hunt.questID),
                 achievement = achievement,
             }
+            if ns.HuntJournal and type(ns.HuntJournal.GetHuntFlags) == "function" then
+                row.journal = ns.HuntJournal:GetHuntFlags(row)
+            end
+            if ns.HuntPlanner and type(ns.HuntPlanner.GetRewardPreview) == "function" then
+                row.rewardPreview = ns.HuntPlanner:GetRewardPreview(row)
+            end
+            output[#output + 1] = row
         end
     end
 
@@ -910,17 +1016,30 @@ function HuntList:ResetCachedHuntsForRescan()
     wipe(state.rewardCache)
     wipe(state.attemptCount)
     state.nextWarmupAt = 0
+    state.huntsSource = "empty"
+    state.liveSnapshotReady = false
+    state.liveSnapshotDirty = true
+    state.lastLiveScanAt = 0
 
     local cache = GetCharacterHuntQuestCache()
     if type(cache) == "table" then
         wipe(cache)
     end
 
+    if ns.HuntJournal and type(ns.HuntJournal.UpdateWeeklyState) == "function" then
+        local weekly = ns.HuntJournal:UpdateWeeklyState("manualRescan")
+        if type(weekly) == "table" then
+            weekly.liveListFresh = false
+        end
+    end
+
     LogHunts("resetCache", "cleared", 0)
 end
 
-function HuntList:BeginStabilizedScan(onReady)
+function HuntList:BeginStabilizedScan(onReady, options)
     local state = self:GetState()
+    local forceLive = type(options) == "table" and options.forceLive == true
+
     if state.stabilizeTicker then
         state.stabilizeTicker:Cancel()
         state.stabilizeTicker = nil
@@ -928,9 +1047,9 @@ function HuntList:BeginStabilizedScan(onReady)
 
     state.scanning = true
 
-    if self:HasAnyHunts() then
+    if not forceLive and self:HasLiveHuntSnapshot() then
         state.scanning = false
-        LogHunts("scanSkip", #state.hunts, "cacheHit")
+        LogHunts("scanSkip", #state.hunts, "liveHit")
         if type(onReady) == "function" then
             onReady(true, #state.hunts)
         end
@@ -960,22 +1079,22 @@ function HuntList:BeginStabilizedScan(onReady)
         end
     end
 
+    local missionFrame = _G[MISSION_FRAME_NAME]
+    if not (missionFrame and missionFrame:IsShown()) then
+        state.scanning = false
+        LogHunts("scanSkip", #state.hunts, "mapHidden")
+        if type(onReady) == "function" then
+            onReady(false, #state.hunts)
+        end
+        return
+    end
+
     if type(C_Timer) ~= "table" or type(C_Timer.NewTicker) ~= "function" then
         local cacheWarm, huntCount = self:ApplyRefreshedHunts(
             DedupeHuntsByDifficultyAndZone(BuildRawHuntsFromPins()),
             "scanImmediate"
         )
         Finish(cacheWarm, huntCount, "noTicker")
-        return
-    end
-
-    local missionFrame = _G[MISSION_FRAME_NAME]
-    if not (missionFrame and missionFrame:IsShown()) then
-        local cacheWarm, huntCount = self:ApplyRefreshedHunts(
-            DedupeHuntsByDifficultyAndZone(BuildRawHuntsFromPins()),
-            "scanMapHidden"
-        )
-        Finish(cacheWarm, huntCount, "mapHidden")
         return
     end
 
@@ -989,11 +1108,7 @@ function HuntList:BeginStabilizedScan(onReady)
 
     state.stabilizeTicker = C_Timer.NewTicker(PIN_POLL_SECONDS, function()
         if not (missionFrame and missionFrame:IsShown()) then
-            local cacheWarm, huntCount = self:ApplyRefreshedHunts(
-                DedupeHuntsByDifficultyAndZone(BuildRawHuntsFromPins()),
-                "scanMapClosed"
-            )
-            Finish(cacheWarm, huntCount, "mapClosed")
+            Finish(false, #state.hunts, "mapClosed")
             return
         end
 
@@ -1037,6 +1152,14 @@ function HuntList:WarmRewardCacheAsync(onProgress, onDone, questIDs)
 
     if state.warming then
         LogHunts("warmupSkip", "alreadyWarming", nil)
+        return
+    end
+
+    if type(questIDs) ~= "table" and (state.nextWarmupAt or 0) > GetTimeSafe() then
+        LogHunts("warmupSkip", "cooldown", string.format("next=%.2f", state.nextWarmupAt or 0))
+        if type(onDone) == "function" then
+            onDone()
+        end
         return
     end
 

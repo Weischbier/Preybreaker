@@ -46,6 +46,13 @@ local DIFF_COLORS = {
     Normal = { 0.95, 0.78, 0.25 },
 }
 
+local CONSOLE_TABS = {
+    { key = "available", label = L["Available"] },
+    { key = "planner", label = L["Planner"] },
+    { key = "journal", label = L["Journal"] },
+    { key = "stats", label = L["Stats"] },
+}
+
 ---------------------------------------------------------------------------
 -- Shared palette — derived from Constants.SettingsPanel so both Settings
 -- and HuntPanel share one visual identity.
@@ -259,6 +266,15 @@ local function IsQuestButtonEnabled(hunt)
     return hunt and hunt.available == true
 end
 
+local function ShowPanelFeedback(text)
+    if HuntPanel.frame and HuntPanel.frame.Summary then
+        HuntPanel.frame.Summary:SetText(text)
+    end
+    if ns.Util and type(ns.Util.Print) == "function" then
+        ns.Util.Print(text)
+    end
+end
+
 local function BuildQuestChoiceAnchor(panel, hunt, anchorRegion)
     if hunt and hunt.pin then return hunt.pin end
     if anchorRegion then return anchorRegion end
@@ -268,13 +284,33 @@ end
 
 local function OpenQuestChoice(hunt, anchorRegion, autoAccept)
     if not hunt then return false end
-    if type(InCombatLockdown) == "function" and InCombatLockdown() then return false end
+    if type(InCombatLockdown) == "function" and InCombatLockdown() then
+        ShowPanelFeedback(L["Quest dialog blocked in combat."])
+        return false
+    end
     local dialog = GetQuestChoiceDialog()
-    if not dialog or type(dialog.ShowWithQuest) ~= "function" then return false end
+    if not dialog or type(dialog.ShowWithQuest) ~= "function" then
+        ShowPanelFeedback(L["Quest dialog unavailable."])
+        return false
+    end
 
     local parent = _G[MISSION_FRAME_NAME] or UIParent
     local livePin = hunt.pin or (HuntList and HuntList.FindPin and HuntList:FindPin(hunt.questID)) or nil
-    if not livePin then return false end
+    if not livePin then
+        ShowPanelFeedback(L["Live pin missing; rescanning hunts."])
+        if HuntList and type(HuntList.HandleMissingLivePin) == "function" then
+            HuntList:HandleMissingLivePin(hunt.questID, "acceptMissingPin")
+            if HuntPanel.frame and HuntPanel.frame:IsShown() then
+                HuntPanel:UpdateLoading(nil, nil, L["Stabilizing map pins"])
+                HuntList:BeginStabilizedScan(function()
+                    if HuntPanel.frame and HuntPanel.frame:IsShown() then
+                        HuntPanel:Refresh()
+                    end
+                end, { forceLive = true })
+            end
+        end
+        return false
+    end
 
     local anchor = BuildQuestChoiceAnchor(HuntPanel, { pin = livePin }, anchorRegion)
     dialog:SetParent(parent)
@@ -361,6 +397,90 @@ local function UpdateFilterButtons(frame)
 end
 
 ---------------------------------------------------------------------------
+-- Console tabs
+---------------------------------------------------------------------------
+local function GetConsoleTab()
+    if ns.Settings and type(ns.Settings.GetHuntConsoleTab) == "function" then
+        return ns.Settings:GetHuntConsoleTab()
+    end
+    return "available"
+end
+
+local function SetConsoleTab(tabKey)
+    if ns.Settings and type(ns.Settings.SetHuntConsoleTab) == "function" then
+        tabKey = ns.Settings:SetHuntConsoleTab(tabKey) or "available"
+    end
+    return tabKey or "available"
+end
+
+local function CreateConsoleTabButton(parent, tab)
+    local button = CreateFrame("Button", nil, parent, "PreybreakerHuntFilterButtonTemplate")
+    ApplyInsetBackdrop(button)
+    button.Label:SetText(tab.label)
+    button.value = tab.key
+    button.Underscore:SetColorTexture(0, 0, 0, 0)
+    if button.Highlight then
+        local ac = SP().AccentColor or { 0.86, 0.66, 0.28 }
+        button.Highlight:SetColorTexture(ac[1], ac[2], ac[3], 0.12)
+    end
+    button:SetScript("OnMouseDown", function(self)
+        if self.Label then self.Label:AdjustPointsOffset(0, -1) end
+    end)
+    button:SetScript("OnMouseUp", function(self)
+        if self.Label then self.Label:AdjustPointsOffset(0, 1) end
+    end)
+    button:SetScript("OnClick", function()
+        SetConsoleTab(tab.key)
+        if tab.key == "available" and HuntList and type(HuntList.BeginStabilizedScan) == "function" then
+            HuntList:BeginStabilizedScan(function()
+                if HuntPanel.frame and HuntPanel.frame:IsShown() then
+                    HuntPanel:Refresh()
+                end
+            end, { forceLive = true })
+        end
+        HuntPanel:Refresh()
+    end)
+    return button
+end
+
+local function LayoutConsoleTabs(frame)
+    local bar = frame and frame.TabBar
+    local buttons = frame and frame.TabButtons
+    if not bar or not buttons then return end
+
+    local width = bar:GetWidth() or (frame:GetWidth() - 20)
+    local gap = 4
+    local buttonWidth = math.max(62, math.floor((width - (gap * (#buttons - 1))) / #buttons))
+    for index, button in ipairs(buttons) do
+        button:ClearAllPoints()
+        button:SetSize(buttonWidth, FILTER_BUTTON_HEIGHT)
+        if index == 1 then
+            button:SetPoint("TOPLEFT", bar, "TOPLEFT", 0, 0)
+        else
+            button:SetPoint("LEFT", buttons[index - 1], "RIGHT", gap, 0)
+        end
+    end
+end
+
+local function UpdateConsoleTabButtons(frame)
+    if not frame or not frame.TabButtons then return end
+    local selected = GetConsoleTab()
+    local p = SP()
+    local ac = p.AccentColor or { 0.86, 0.66, 0.28 }
+    for _, button in ipairs(frame.TabButtons) do
+        if button.value == selected then
+            ApplyBackdrop(button, { ac[1], ac[2], ac[3], 0.22 }, { ac[1], ac[2], ac[3], 0.95 })
+            SetTextColor(button.Label, p.TitleColor or { 0.94, 0.86, 0.72 })
+            button.Underscore:SetColorTexture(ac[1], ac[2], ac[3], 0.95)
+        else
+            ApplyInsetBackdrop(button)
+            SetTextColor(button.Label, p.MutedColor or { 0.58, 0.54, 0.49 })
+            button.Underscore:SetColorTexture(0, 0, 0, 0)
+        end
+    end
+end
+
+---------------------------------------------------------------------------
 -- Reward buttons
 ---------------------------------------------------------------------------
 local function CreateRewardButton(parent, index)
@@ -397,6 +517,11 @@ local function SetupRewardTooltip(button)
             end
         else
             GameTooltip:SetText(L["Unknown reward"])
+        end
+
+        if self.previewReason then
+            GameTooltip:AddLine(" ")
+            GameTooltip:AddLine(self.previewReason, 1, 0.82, 0.18, true)
         end
 
         GameTooltip:Show()
@@ -797,6 +922,26 @@ end
 ---------------------------------------------------------------------------
 local function LayoutPanelGeometry(frame)
     if not frame or not frame.Body then return end
+    local tab = GetConsoleTab()
+
+    frame.TabBar:ClearAllPoints()
+    frame.TabBar:SetPoint("TOPLEFT", frame.Body, "TOPLEFT", 8, -8)
+    frame.TabBar:SetPoint("TOPRIGHT", frame.Body, "TOPRIGHT", -8, -8)
+
+    frame.FilterBar:ClearAllPoints()
+    frame.Summary:ClearAllPoints()
+    if tab == "available" then
+        frame.FilterBar:SetPoint("TOPLEFT", frame.TabBar, "BOTTOMLEFT", 0, -6)
+        frame.FilterBar:SetPoint("TOPRIGHT", frame.TabBar, "BOTTOMRIGHT", 0, -6)
+        frame.FilterBar:Show()
+        frame.Summary:SetPoint("TOPLEFT", frame.FilterBar, "BOTTOMLEFT", 0, -7)
+        frame.Summary:SetPoint("TOPRIGHT", frame.FilterBar, "BOTTOMRIGHT", 0, -7)
+    else
+        frame.FilterBar:Hide()
+        frame.Summary:SetPoint("TOPLEFT", frame.TabBar, "BOTTOMLEFT", 0, -8)
+        frame.Summary:SetPoint("TOPRIGHT", frame.TabBar, "BOTTOMRIGHT", 0, -8)
+    end
+
     frame.ScrollFrame:ClearAllPoints()
     frame.ScrollFrame:SetPoint("TOPLEFT", frame.Body.Summary, "BOTTOMLEFT", 0, -8)
     frame.ScrollFrame:SetPoint("BOTTOMRIGHT", frame.Body, "BOTTOMRIGHT", -8, 4)
@@ -805,6 +950,7 @@ local function LayoutPanelGeometry(frame)
     if frame.ScrollChild then
         frame.ScrollChild:SetSize(scrollWidth, 1)
     end
+    LayoutConsoleTabs(frame)
     LayoutFilterButtons(frame)
     UpdateScrollTrack(frame)
 end
@@ -870,6 +1016,14 @@ local function SetupPanelFrame()
     SetTextColor(frame.Summary, ac)
 
     -- Filter buttons
+    frame.TabBar = CreateFrame("Frame", nil, frame.Body)
+    frame.TabBar:SetHeight(FILTER_BUTTON_HEIGHT)
+    frame.TabButtons = {}
+    for _, tab in ipairs(CONSOLE_TABS) do
+        local button = CreateConsoleTabButton(frame.TabBar, tab)
+        frame.TabButtons[#frame.TabButtons + 1] = button
+    end
+
     frame.FilterBar = frame.Body.FilterBar
     frame.FilterButtons = {}
     local filterOrder = {
@@ -1013,7 +1167,17 @@ local function UpdateRowState(row, hunt)
     row.Title:SetText(hunt.name or ("Quest " .. tostring(hunt.questID)))
     row.Difficulty:SetText(L[hunt.difficulty or "Normal"])
     SetTextColor(row.Difficulty, p.TitleColor or { 0.94, 0.86, 0.72 })
-    row.Zone:SetText(hunt.zone or L["Unknown zone"])
+    local zoneText = hunt.zone or L["Unknown zone"]
+    if hunt.journal then
+        if hunt.journal.achievementRelevant then
+            zoneText = zoneText .. " | " .. L["Achievement gap"]
+        elseif hunt.journal.neverCompleted then
+            zoneText = zoneText .. " | " .. L["Never completed"]
+        elseif hunt.journal.recent and hunt.journal.recent.completedDate then
+            zoneText = zoneText .. " | " .. L["Recent"]
+        end
+    end
+    row.Zone:SetText(zoneText)
     SetTextColor(row.Zone, p.MutedColor or { 0.58, 0.54, 0.49 })
     if row.AchievementIcon then
         if hasAchievementProgress and hunt.achievement.icon then
@@ -1041,6 +1205,11 @@ local function UpdateRowState(row, hunt)
         statusText = GetRewardSummaryText(hunt)
     else
         statusText = L["Loading"]
+    end
+    if hunt.rewardPreview and hunt.rewardPreview.status == "preferred" then
+        statusText = L["Preferred reward"]
+    elseif hunt.rewardPreview and hunt.rewardPreview.status == "fallback" then
+        statusText = L["Fallback reward"]
     end
     row.Status:SetText(statusText)
     LayoutHuntRow(row, row._layoutWidth or row:GetWidth())
@@ -1086,6 +1255,19 @@ local function UpdateRowState(row, hunt)
         local button = row.Rewards[index]
         local reward = hunt.rewards and hunt.rewards[index] or nil
         UpdateRewardButton(button, reward)
+        if button and button.Border then
+            local selectedReward = hunt.rewardPreview and hunt.rewardPreview.selectedReward or nil
+            local selected = reward and selectedReward and reward.rewardIndex == selectedReward.rewardIndex
+            if selected then
+                button.Border:SetVertexColor(1, 0.82, 0.18, 1)
+                button.Border:SetAlpha(1)
+                button.previewReason = hunt.rewardPreview and hunt.rewardPreview.reason or nil
+            else
+                button.Border:SetVertexColor(1, 1, 1, 1)
+                button.Border:SetAlpha(0.64)
+                button.previewReason = nil
+            end
+        end
     end
 
     row.AcceptButton:SetShown(IsQuestButtonEnabled(hunt) and HuntPanel.mode ~= "standalone")
@@ -1134,6 +1316,197 @@ local function HideAllZoneSeparators()
     end
 end
 
+local function HideAllRows()
+    if HuntPanel.rows then
+        for _, row in ipairs(HuntPanel.rows) do
+            row:Hide()
+            row.hunt = nil
+        end
+    end
+    HideAllZoneSeparators()
+end
+
+local INFO_CARD_HEIGHT = 68
+local INFO_CARD_SPACING = 8
+
+local function CreateInfoCard(parent)
+    local card = CreateFrame("Frame", nil, parent, BACKDROP_TEMPLATE)
+    card:SetHeight(INFO_CARD_HEIGHT)
+    ApplyCardBackdrop(card)
+
+    card.Title = CreateText(card, "OVERLAY", "GameFontHighlight")
+    card.Title:SetPoint("TOPLEFT", card, "TOPLEFT", 10, -9)
+    card.Title:SetPoint("TOPRIGHT", card, "TOPRIGHT", -10, -9)
+    card.Title:SetJustifyH("LEFT")
+
+    card.Detail = CreateText(card, "OVERLAY", "GameFontNormalSmall")
+    card.Detail:SetPoint("TOPLEFT", card.Title, "BOTTOMLEFT", 0, -4)
+    card.Detail:SetPoint("TOPRIGHT", card.Title, "BOTTOMRIGHT", 0, -4)
+    card.Detail:SetJustifyH("LEFT")
+    card.Detail:SetWordWrap(true)
+
+    card.Meta = CreateText(card, "OVERLAY", "GameFontDisableSmall")
+    card.Meta:SetPoint("BOTTOMLEFT", card, "BOTTOMLEFT", 10, 8)
+    card.Meta:SetPoint("BOTTOMRIGHT", card, "BOTTOMRIGHT", -10, 8)
+    card.Meta:SetJustifyH("LEFT")
+
+    return card
+end
+
+local function AcquireInfoCards(parent, count)
+    HuntPanel.infoCards = HuntPanel.infoCards or {}
+    for index = #HuntPanel.infoCards + 1, count do
+        HuntPanel.infoCards[index] = CreateInfoCard(parent)
+    end
+    return HuntPanel.infoCards
+end
+
+local function HideInfoCards(fromIndex)
+    if not HuntPanel.infoCards then return end
+    for index = fromIndex or 1, #HuntPanel.infoCards do
+        HuntPanel.infoCards[index]:Hide()
+    end
+end
+
+local function LayoutInfoCards(frame, cards)
+    local scrollChild = frame.ScrollChild
+    if scrollChild then
+        local bodyWidth = frame.Body and frame.Body:GetWidth() or frame:GetWidth()
+        scrollChild:SetWidth(math.max(1, (bodyWidth or frame:GetWidth() or PANEL_WIDTH) - 24))
+    end
+
+    HideAllRows()
+    local cardPool = AcquireInfoCards(scrollChild, math.max(1, #cards))
+    local y = 0
+    local p = SP()
+
+    for index, spec in ipairs(cards) do
+        local card = cardPool[index]
+        card:SetParent(scrollChild)
+        card:SetHeight(spec.height or INFO_CARD_HEIGHT)
+        card:ClearAllPoints()
+        card:SetPoint("TOPLEFT", scrollChild, "TOPLEFT", 0, -y)
+        card:SetPoint("TOPRIGHT", scrollChild, "TOPRIGHT", 0, -y)
+        card.Title:SetText(spec.title or "")
+        card.Detail:SetText(spec.detail or "")
+        card.Meta:SetText(spec.meta or "")
+        SetTextColor(card.Title, spec.titleColor or p.TitleColor or { 0.94, 0.86, 0.72 })
+        SetTextColor(card.Detail, spec.detailColor or p.BodyColor or { 0.77, 0.72, 0.66 })
+        SetTextColor(card.Meta, spec.metaColor or p.MutedColor or { 0.58, 0.54, 0.49 })
+        card:Show()
+        y = y + (spec.height or INFO_CARD_HEIGHT) + INFO_CARD_SPACING
+    end
+
+    HideInfoCards(#cards + 1)
+    scrollChild:SetHeight(math.max(1, y))
+    frame.EmptyState:SetShown(#cards == 0)
+    if frame.EmptyIcon then
+        frame.EmptyIcon:SetShown(#cards == 0)
+    end
+    UpdateScrollTrack(frame)
+end
+
+local function GetAllConsoleHunts()
+    if not HuntList then
+        return {}
+    end
+
+    local previousFilter = HuntList.GetDifficultyFilter and HuntList:GetDifficultyFilter() or nil
+    if HuntList.SetDifficultyFilter then
+        HuntList:SetDifficultyFilter("All")
+    end
+    local hunts = HuntList.GetFilteredSortedHunts and HuntList:GetFilteredSortedHunts() or {}
+    if previousFilter and HuntList.SetDifficultyFilter then
+        HuntList:SetDifficultyFilter(previousFilter)
+    end
+    return hunts
+end
+
+local function BuildPlannerCards()
+    local hunts = GetAllConsoleHunts()
+    local history = ns.HuntJournal and ns.HuntJournal.GetEntries and ns.HuntJournal:GetEntries("all") or {}
+    local recommendations = ns.HuntPlanner and ns.HuntPlanner.GetRecommendations
+        and ns.HuntPlanner:GetRecommendations(hunts, history, ns.Settings and ns.Settings.GetPlannerPreferences and ns.Settings:GetPlannerPreferences() or nil)
+        or {}
+    local cards = {}
+
+    if #recommendations == 0 then
+        cards[#cards + 1] = {
+            title = L["No recommendations yet"],
+            detail = L["Open the Adventure Map to build a live hunt list."],
+            meta = L["Planner uses live pins, journal history, rewards, and achievement gaps."],
+        }
+        return cards
+    end
+
+    for index, recommendation in ipairs(recommendations) do
+        if index > 8 then break end
+        local preview = recommendation.rewardPreview or {}
+        cards[#cards + 1] = {
+            title = string.format("%d. %s", index, recommendation.name or L["Unknown prey"]),
+            detail = string.format("%s | %s | %s", recommendation.reason or L["Recommended"], recommendation.difficulty or L["Unknown difficulty"], recommendation.zone or L["Unknown zone"]),
+            meta = string.format("%s: %s", L["Reward"], preview.reason or L["Rewards pending"]),
+        }
+    end
+
+    return cards
+end
+
+local function BuildJournalCards()
+    local filter = ns.Settings and ns.Settings.GetHuntJournalFilter and ns.Settings:GetHuntJournalFilter() or "all"
+    local entries = ns.HuntJournal and ns.HuntJournal.GetEntries and ns.HuntJournal:GetEntries(filter) or {}
+    local cards = {}
+
+    if #entries == 0 then
+        cards[#cards + 1] = {
+            title = L["No journal entries yet"],
+            detail = L["Completed hunts will appear here after turn-in."],
+            meta = L["History is character-scoped and survives weekly resets."],
+        }
+        return cards
+    end
+
+    for index, entry in ipairs(entries) do
+        if index > 10 then break end
+        local reward = entry.reward and (entry.reward.rewardName or entry.reward.rewardType) or L["No reward recorded"]
+        cards[#cards + 1] = {
+            title = entry.name or L["Unknown prey"],
+            detail = string.format("%s | %s | %s", entry.difficulty or L["Unknown difficulty"], entry.zone or L["Unknown zone"], reward),
+            meta = entry.completedDate or tostring(entry.completedAt or ""),
+        }
+    end
+
+    return cards
+end
+
+local function BuildStatsCards()
+    local summary = ns.HuntStats and ns.HuntStats.GetSummary and ns.HuntStats:GetSummary("all") or { total = 0, currentWeek = 0 }
+    local cards = {
+        {
+            title = L["Hunt history"],
+            detail = string.format(L["%d completed hunts recorded."], summary.total or 0),
+            meta = string.format(L["%d completed this week."], summary.currentWeek or 0),
+        },
+    }
+
+    local function AddBucket(title, bucket)
+        local parts = {}
+        for key, count in pairs(bucket or {}) do
+            parts[#parts + 1] = string.format("%s %d", tostring(key), count)
+        end
+        table.sort(parts)
+        cards[#cards + 1] = {
+            title = title,
+            detail = #parts > 0 and table.concat(parts, " | ") or L["No data recorded yet."],
+            meta = L["Journal-backed summary"],
+        }
+    end
+
+    AddBucket(L["By difficulty"], summary.byDifficulty)
+    AddBucket(L["By reward"], summary.byReward)
+    return cards
+end
+
 local function LayoutRows(frame, hunts)
     local scrollChild = frame.ScrollChild
     if scrollChild and frame then
@@ -1151,6 +1524,7 @@ local function LayoutRows(frame, hunts)
     local ac = p.AccentColor or { 0.86, 0.66, 0.28 }
 
     HideAllZoneSeparators()
+    HideInfoCards()
 
     for index, hunt in ipairs(hunts) do
         -- Insert zone separator when zone changes in "All" mode
@@ -1250,10 +1624,23 @@ function HuntPanel:UpdateSummary()
     local frame = self.frame
     if not frame then return end
 
-    local hunts = HuntList and HuntList:GetFilteredSortedHunts() or {}
-    local inProgress, available = GetRowCountHint(hunts)
-    local filter = HuntList and HuntList:GetDifficultyFilter() or "All"
-    frame.Summary:SetText(string.format(L["Band %s | Active %d | Ready %d"], L[filter], inProgress, available))
+    local tab = GetConsoleTab()
+    if tab == "planner" then
+        local hunts = GetAllConsoleHunts()
+        local recommendations = ns.HuntPlanner and ns.HuntPlanner.GetRecommendations and ns.HuntPlanner:GetRecommendations(hunts) or {}
+        frame.Summary:SetText(string.format(L["Planner | %d recommendations | %d live hunts"], #recommendations, #hunts))
+    elseif tab == "journal" then
+        local entries = ns.HuntJournal and ns.HuntJournal.GetEntries and ns.HuntJournal:GetEntries(ns.Settings and ns.Settings.GetHuntJournalFilter and ns.Settings:GetHuntJournalFilter() or "all") or {}
+        frame.Summary:SetText(string.format(L["Journal | %d entries"], #entries))
+    elseif tab == "stats" then
+        local summary = ns.HuntStats and ns.HuntStats.GetSummary and ns.HuntStats:GetSummary("all") or { total = 0, currentWeek = 0 }
+        frame.Summary:SetText(string.format(L["Stats | %d total | %d this week"], summary.total or 0, summary.currentWeek or 0))
+    else
+        local hunts = HuntList and HuntList:GetFilteredSortedHunts() or {}
+        local inProgress, available = GetRowCountHint(hunts)
+        local filter = HuntList and HuntList:GetDifficultyFilter() or "All"
+        frame.Summary:SetText(string.format(L["Band %s | Active %d | Ready %d"], L[filter], inProgress, available))
+    end
     if frame.AnguishText then
         frame.AnguishText:SetText(GetAnguishText())
     end
@@ -1412,7 +1799,7 @@ function HuntPanel:Refresh()
 
     -- During warmup, ShowWithQuest triggers QUEST_LOG_UPDATE on each quest.
     -- Avoid full refresh; the warmup progress callback handles row/summary updates.
-    if HuntList and HuntList.IsWarmupActive and HuntList:IsWarmupActive() then
+    if GetConsoleTab() == "available" and HuntList and HuntList.IsWarmupActive and HuntList:IsWarmupActive() then
         self:UpdateSummary()
         LogHuntPanel("refresh", "skip", "warmupActive")
         return
@@ -1425,9 +1812,19 @@ function HuntPanel:Refresh()
         HuntList:RefreshFromPins()
     end
 
-    local hunts = HuntList and HuntList:GetFilteredSortedHunts() or {}
-    LayoutRows(frame, hunts)
-    UpdateFilterButtons(frame)
+    local tab = GetConsoleTab()
+    if tab == "planner" then
+        LayoutInfoCards(frame, BuildPlannerCards())
+    elseif tab == "journal" then
+        LayoutInfoCards(frame, BuildJournalCards())
+    elseif tab == "stats" then
+        LayoutInfoCards(frame, BuildStatsCards())
+    else
+        local hunts = HuntList and HuntList:GetFilteredSortedHunts() or {}
+        LayoutRows(frame, hunts)
+        UpdateFilterButtons(frame)
+    end
+    UpdateConsoleTabButtons(frame)
     ApplyAccentButtonStyle(frame.ModeButton, self.mode == "attached" and L["Detach"] or L["Dock"])
     self:UpdateSummary()
     self:UpdateLoading(nil, nil, nil)
@@ -1437,7 +1834,9 @@ function HuntPanel:Refresh()
         return
     end
 
-    self:RequestWarmup()
+    if tab == "available" then
+        self:RequestWarmup()
+    end
 end
 
 function HuntPanel:ShowAttached(skipScan)
@@ -1473,7 +1872,7 @@ function HuntPanel:ShowAttached(skipScan)
             if HuntPanel.frame and HuntPanel.frame:IsShown() then
                 HuntPanel:Refresh()
             end
-        end)
+        end, { forceLive = true })
     end
     self:Refresh()
     return true
@@ -1506,7 +1905,7 @@ function HuntPanel:ShowStandalone()
             if HuntPanel.frame and HuntPanel.frame:IsShown() then
                 HuntPanel:Refresh()
             end
-        end)
+        end, { forceLive = true })
     end
     self:Refresh()
     return true
@@ -1581,6 +1980,23 @@ function HuntPanel:OpenQuestChoiceByQuestID(questID, anchorRegion, autoAccept)
     local hunt = HuntList:GetHuntByQuestID(questID)
     if not hunt then return false end
     return OpenQuestChoice(hunt, anchorRegion, autoAccept == true)
+end
+
+function HuntPanel:GetConsoleTab()
+    return GetConsoleTab()
+end
+
+function HuntPanel:SetConsoleTab(tabKey)
+    local selected = SetConsoleTab(tabKey)
+    if self.frame and self.frame:IsShown() then
+        self:Refresh()
+    end
+    return selected
+end
+
+function HuntPanel:ShowStandaloneTab(tabKey)
+    SetConsoleTab(tabKey)
+    return self:ShowStandalone()
 end
 
 function HuntPanel:RefreshLoading()

@@ -136,7 +136,6 @@ ns.Constants = {
 
     Media = {
         RadialProgress = "Interface\\AddOns\\Preybreaker\\Media\\Assets\\ProgressBar-Radial-WarWithin",
-        StageBadge = "Interface\\AddOns\\Preybreaker\\Media\\Assets\\uiwowlabsactionbar",
         AddonIcon = "Interface\\AddOns\\Preybreaker\\Media\\Assets\\Preybreaker-Icon",
         PreyWidgetTexture = "Interface\\Prey\\UIPrey2x",
         -- Atlases verified against Blizzard's widget status bar set via TextureAtlasViewer.
@@ -187,12 +186,6 @@ ns.Constants = {
                 top = 0.654296875,
                 bottom = 0.923828125,
             },
-        },
-        StageBadgeTexCoord = {
-            left = 1038 / 2048,
-            right = 1236 / 2048,
-            top = 1481 / 2048,
-            bottom = 1559 / 2048,
         },
     },
 

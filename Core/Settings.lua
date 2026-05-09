@@ -17,11 +17,16 @@ local DISPLAY_MODE_TEXT = "text"
 -- v2: per-mode offsets, MigrateLegacyOffsets
 -- v3: flattened per-mode settings, MigrateV2PerModeSettings
 -- v4, v5: additive only — new defaults, no migration needed
-local SCHEMA_VERSION = 5
+-- v6: live-first hunt cache reset and removal of stale sound settings
+-- v7: Hunt OS data stores (history, weekly state, planner preferences, minimap)
+-- v8: Account Command Center stores (roster, weekly goals, goal preferences, dashboard state)
+local SCHEMA_VERSION = 8
+local HUNT_CACHE_VERSION = 2
 local DEFAULT_SCALE = 1
 local DEFAULT_TEXT_FONT_VALUE = (ns.TextStyle and ns.TextStyle:GetDefaultFontValue()) or "builtin:standard"
 local DEFAULTS = {
     schemaVersion = SCHEMA_VERSION,
+    huntCacheVersion = HUNT_CACHE_VERSION,
     enabled = true,
     displayMode = DISPLAY_MODE_RADIAL,
     hideBlizzardWidget = false,
@@ -57,6 +62,20 @@ local DEFAULTS = {
     huntPanelFilter = "all",
     huntPanelOffsetX = 0,
     huntPanelOffsetY = 0,
+    huntConsoleTab = "available",
+    huntJournalFilter = "all",
+    trackerContextLine = false,
+    trackerTooltip = true,
+    plannerPreferences = {
+        focus = "all",
+        preferredDifficulty = "nightmare",
+        rewardGoal = "preferred",
+    },
+    minimap = {
+        shown = false,
+        locked = false,
+        angle = 220,
+    },
 }
 
 local SCALE_MIN = 0.50
@@ -73,6 +92,8 @@ local PANEL_OFFSET_MAX = 1200
 local THRESHOLD_MIN = 0
 local THRESHOLD_MAX = 2500
 local THRESHOLD_STEP = 50
+local MINIMAP_ANGLE_MIN = 0
+local MINIMAP_ANGLE_MAX = 360
 
 ns.Settings = {}
 
@@ -151,6 +172,64 @@ local function SanitizeRemnantThreshold(value)
     return ClampNumber(snapped, THRESHOLD_MIN, THRESHOLD_MAX, 0)
 end
 
+local function SanitizeMinimapAngle(value)
+    return ns.Util.RoundNearest(ClampNumber(value, MINIMAP_ANGLE_MIN, MINIMAP_ANGLE_MAX, DEFAULTS.minimap.angle))
+end
+
+local function SanitizeHuntConsoleTab(value)
+    return SanitizeChoice(value, { "available", "planner", "journal", "stats" }, "available")
+end
+
+local function SanitizePlannerFocus(value)
+    return SanitizeChoice(value, { "all", "nightmare", "achievement", "reward", "active" }, "all")
+end
+
+local function SanitizeRewardGoal(value)
+    return SanitizeChoice(value, { "preferred", "dawncrest", "remnant", "gold", "marl" }, "preferred")
+end
+
+local function SanitizePlannerPreferences(value)
+    local source = type(value) == "table" and value or {}
+    return {
+        focus = SanitizePlannerFocus(source.focus),
+        preferredDifficulty = SanitizeChoice(source.preferredDifficulty, { "nightmare", "hard", "normal" }, "nightmare"),
+        rewardGoal = SanitizeRewardGoal(source.rewardGoal),
+    }
+end
+
+local function SanitizeMinimap(value)
+    local source = type(value) == "table" and value or {}
+    return {
+        shown = SanitizeBoolean(source.shown, DEFAULTS.minimap.shown),
+        locked = SanitizeBoolean(source.locked, DEFAULTS.minimap.locked),
+        angle = SanitizeMinimapAngle(source.angle),
+    }
+end
+
+local function SanitizeGoalPreferences(value)
+    local source = type(value) == "table" and value or {}
+    return {
+        focus = SanitizeChoice(source.focus, { "balanced", "achievements", "rewards", "alts", "nightmare" }, "balanced"),
+        preferredDifficulty = SanitizeChoice(source.preferredDifficulty, { "nightmare", "hard", "normal" }, "nightmare"),
+        rewardGoal = SanitizeRewardGoal(source.rewardGoal),
+        achievementWeight = ClampNumber(source.achievementWeight, 0, 200, 70),
+        rewardWeight = ClampNumber(source.rewardWeight, 0, 200, 28),
+        difficultyWeight = ClampNumber(source.difficultyWeight, 0, 200, 20),
+        altStaleWeight = ClampNumber(source.altStaleWeight, 0, 200, 35),
+        timeBudgetMinutes = ClampNumber(source.timeBudgetMinutes, 5, 240, 45),
+    }
+end
+
+local function SanitizeDashboardState(value)
+    local source = type(value) == "table" and value or {}
+    return {
+        tab = SanitizeChoice(source.tab, { "overview", "roster", "goals", "rewards", "timeline", "diagnostics" }, "overview"),
+        sort = SanitizeChoice(source.sort, { "priority", "name", "recent" }, "priority"),
+        filter = SanitizeChoice(source.filter, { "all", "stale", "active", "goals" }, "all"),
+        hiddenAlerts = type(source.hiddenAlerts) == "table" and source.hiddenAlerts or {},
+    }
+end
+
 local function GetOffsetKey(axisSuffix, mode)
     local resolvedMode = SanitizeDisplayMode(mode)
     if resolvedMode == DISPLAY_MODE_BAR then
@@ -167,6 +246,7 @@ end
 
 local SANITIZERS = {
     schemaVersion = function() return SCHEMA_VERSION end,
+    huntCacheVersion = function() return HUNT_CACHE_VERSION end,
     enabled = function(value) return SanitizeBoolean(value, DEFAULTS.enabled) end,
     displayMode = SanitizeDisplayMode,
     hideBlizzardWidget = function(value) return SanitizeBoolean(value, false) end,
@@ -212,7 +292,7 @@ local SANITIZERS = {
         return SanitizeChoice(value, { "dawncrest", "remnant", "gold", "marl" }, "gold")
     end,
     settingsTab = function(value)
-        return SanitizeChoice(value, { "settings", "changelog", "social", "roadmap" }, "settings")
+        return SanitizeChoice(value, { "settings", "diagnostics", "changelog", "social", "roadmap" }, "settings")
     end,
     enableHuntPanel = function(value) return SanitizeBoolean(value, true) end,
     huntPanelStandalone = function(value)
@@ -223,6 +303,14 @@ local SANITIZERS = {
     end,
     huntPanelOffsetX = SanitizePanelOffset,
     huntPanelOffsetY = SanitizePanelOffset,
+    huntConsoleTab = SanitizeHuntConsoleTab,
+    huntJournalFilter = function(value)
+        return SanitizeChoice(value, { "all", "week", "nightmare", "hard", "normal", "reward" }, "all")
+    end,
+    trackerContextLine = function(value) return SanitizeBoolean(value, false) end,
+    trackerTooltip = function(value) return SanitizeBoolean(value, true) end,
+    plannerPreferences = SanitizePlannerPreferences,
+    minimap = SanitizeMinimap,
 }
 
 -- v2 per-display-mode keys that were flattened in schema version 3.
@@ -308,7 +396,7 @@ local function HasCustomProfileValues(db)
     end
 
     for key, defaultValue in pairs(DEFAULTS) do
-        if key ~= "schemaVersion" and key ~= "useCharacterProfile" and db[key] ~= defaultValue then
+        if key ~= "schemaVersion" and key ~= "useCharacterProfile" and type(defaultValue) ~= "table" and db[key] ~= defaultValue then
             return true
         end
     end
@@ -323,7 +411,8 @@ local function CopyProfileValues(sourceDB, destinationDB)
 
     for key in pairs(DEFAULTS) do
         if key ~= "useCharacterProfile" then
-            destinationDB[key] = sourceDB[key]
+            local sanitizer = SANITIZERS[key]
+            destinationDB[key] = sanitizer and sanitizer(sourceDB[key]) or sourceDB[key]
         end
     end
 end
@@ -337,6 +426,10 @@ local function ApplyDefaults(db)
 
     if existingVersion < 3 then
         MigrateV2PerModeSettings(db)
+    end
+
+    if existingVersion < 6 then
+        db.huntQuestCache = nil
     end
 
     for key, defaultValue in pairs(DEFAULTS) do
@@ -378,6 +471,8 @@ function ns.Settings:Initialize()
         self.db = accountDB
     end
 
+    self:EnsureAccountCommandData()
+
     return self.db
 end
 
@@ -399,11 +494,111 @@ function ns.Settings:GetCharacterHuntQuestCache()
         return nil
     end
 
+    if charDB.huntCacheVersion ~= HUNT_CACHE_VERSION then
+        charDB.huntQuestCache = {}
+        charDB.huntCacheVersion = HUNT_CACHE_VERSION
+    end
+
     if type(charDB.huntQuestCache) ~= "table" then
         charDB.huntQuestCache = {}
     end
 
     return charDB.huntQuestCache
+end
+
+function ns.Settings:GetHuntHistory()
+    local charDB = self:GetCharDB()
+    if type(charDB) ~= "table" then
+        return nil
+    end
+
+    if type(charDB.huntHistory) ~= "table" then
+        charDB.huntHistory = {}
+    end
+
+    return charDB.huntHistory
+end
+
+function ns.Settings:GetWeeklyState()
+    local charDB = self:GetCharDB()
+    if type(charDB) ~= "table" then
+        return nil
+    end
+
+    if type(charDB.weeklyState) ~= "table" then
+        charDB.weeklyState = {}
+    end
+
+    return charDB.weeklyState
+end
+
+function ns.Settings:EnsureAccountCommandData()
+    local accountDB = self:GetAccountDB()
+    if type(accountDB) ~= "table" then
+        return nil
+    end
+
+    if type(accountDB.accountRoster) ~= "table" then
+        accountDB.accountRoster = {}
+    end
+    if type(accountDB.weeklyGoals) ~= "table" then
+        accountDB.weeklyGoals = {}
+    end
+    if type(accountDB.weeklyGoals.pinned) ~= "table" then
+        accountDB.weeklyGoals.pinned = {}
+    end
+    if type(accountDB.weeklyGoals.ignored) ~= "table" then
+        accountDB.weeklyGoals.ignored = {}
+    end
+    if type(accountDB.weeklyGoals.completed) ~= "table" then
+        accountDB.weeklyGoals.completed = {}
+    end
+    if type(accountDB.weeklyGoals.goals) ~= "table" then
+        accountDB.weeklyGoals.goals = {}
+    end
+    if type(accountDB.weeklyGoals.staleCharacters) ~= "table" then
+        accountDB.weeklyGoals.staleCharacters = {}
+    end
+    if accountDB.weeklyGoals.resetMarker == nil then
+        local charDB = self:GetCharDB()
+        local weeklyState = type(charDB) == "table" and charDB.weeklyState or nil
+        accountDB.weeklyGoals.resetMarker = type(weeklyState) == "table" and weeklyState.currentWeekKey or "unknown"
+    end
+
+    accountDB.goalPreferences = SanitizeGoalPreferences(accountDB.goalPreferences)
+    accountDB.dashboardState = SanitizeDashboardState(accountDB.dashboardState)
+    accountDB.commandCenterVersion = SCHEMA_VERSION
+    return accountDB
+end
+
+function ns.Settings:GetAccountRoster()
+    local accountDB = self:EnsureAccountCommandData()
+    return accountDB and accountDB.accountRoster or nil
+end
+
+function ns.Settings:GetWeeklyGoals()
+    local accountDB = self:EnsureAccountCommandData()
+    return accountDB and accountDB.weeklyGoals or nil
+end
+
+function ns.Settings:GetGoalPreferences()
+    local accountDB = self:EnsureAccountCommandData()
+    return accountDB and accountDB.goalPreferences or SanitizeGoalPreferences(nil)
+end
+
+function ns.Settings:GetDashboardState()
+    local accountDB = self:EnsureAccountCommandData()
+    return accountDB and accountDB.dashboardState or SanitizeDashboardState(nil)
+end
+
+function ns.Settings:GetCommandCenterTab()
+    return self:GetDashboardState().tab or "overview"
+end
+
+function ns.Settings:SetCommandCenterTab(value)
+    local dashboardState = self:GetDashboardState()
+    dashboardState.tab = SanitizeDashboardState({ tab = value }).tab
+    return dashboardState.tab
 end
 
 function ns.Settings:GetValue(key)
@@ -430,7 +625,8 @@ function ns.Settings:ResetToDefaults()
     local preserveCharProfile = self:ShouldUseCharacterProfile()
 
     for key, defaultValue in pairs(DEFAULTS) do
-        db[key] = defaultValue
+        local sanitizer = SANITIZERS[key]
+        db[key] = sanitizer and sanitizer(defaultValue) or defaultValue
     end
 
     local accountDB = self:GetAccountDB()
@@ -706,4 +902,90 @@ end
 
 function ns.Settings:SetHuntPanelOffsetY(value)
     return self:SetValue("huntPanelOffsetY", value)
+end
+
+function ns.Settings:GetHuntConsoleTab()
+    return self:GetValue("huntConsoleTab") or "available"
+end
+
+function ns.Settings:SetHuntConsoleTab(value)
+    return self:SetValue("huntConsoleTab", value)
+end
+
+function ns.Settings:GetHuntJournalFilter()
+    return self:GetValue("huntJournalFilter") or "all"
+end
+
+function ns.Settings:SetHuntJournalFilter(value)
+    return self:SetValue("huntJournalFilter", value)
+end
+
+function ns.Settings:ShouldShowTrackerContextLine()
+    return self:GetValue("trackerContextLine") == true
+end
+
+function ns.Settings:SetTrackerContextLine(enabled)
+    return self:SetValue("trackerContextLine", enabled)
+end
+
+function ns.Settings:ShouldShowTrackerTooltip()
+    return self:GetValue("trackerTooltip") ~= false
+end
+
+function ns.Settings:SetTrackerTooltip(enabled)
+    return self:SetValue("trackerTooltip", enabled)
+end
+
+function ns.Settings:GetPlannerPreferences()
+    local db = self:GetDB()
+    db.plannerPreferences = SanitizePlannerPreferences(db.plannerPreferences)
+    return db.plannerPreferences
+end
+
+function ns.Settings:GetPlannerFocus()
+    local preferences = self:GetPlannerPreferences()
+    return preferences.focus or "all"
+end
+
+function ns.Settings:SetPlannerFocus(value)
+    local db = self:GetDB()
+    db.plannerPreferences = SanitizePlannerPreferences(db.plannerPreferences)
+    db.plannerPreferences.focus = SanitizePlannerFocus(value)
+    return db.plannerPreferences.focus
+end
+
+function ns.Settings:GetMinimapState()
+    local db = self:GetDB()
+    db.minimap = SanitizeMinimap(db.minimap)
+    return db.minimap
+end
+
+function ns.Settings:ShouldShowMinimapButton()
+    return self:GetMinimapState().shown == true
+end
+
+function ns.Settings:SetMinimapButtonShown(enabled)
+    local minimap = self:GetMinimapState()
+    minimap.shown = SanitizeBoolean(enabled, false)
+    return minimap.shown
+end
+
+function ns.Settings:IsMinimapLocked()
+    return self:GetMinimapState().locked == true
+end
+
+function ns.Settings:SetMinimapLocked(enabled)
+    local minimap = self:GetMinimapState()
+    minimap.locked = SanitizeBoolean(enabled, false)
+    return minimap.locked
+end
+
+function ns.Settings:GetMinimapAngle()
+    return self:GetMinimapState().angle or DEFAULTS.minimap.angle
+end
+
+function ns.Settings:SetMinimapAngle(value)
+    local minimap = self:GetMinimapState()
+    minimap.angle = SanitizeMinimapAngle(value)
+    return minimap.angle
 end

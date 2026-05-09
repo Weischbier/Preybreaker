@@ -36,7 +36,18 @@ Preybreaker:SetScript("OnEvent", function(self, event, arg1, ...)
         if ns.HuntData and type(ns.HuntData.InvalidateAchievementCache) == "function" then
             ns.HuntData:InvalidateAchievementCache()
         end
-        if ns.HuntList and ns.HuntList.GetHuntByQuestID and ns.HuntList:GetHuntByQuestID(arg1) then
+        local completedHunt = ns.HuntList and ns.HuntList.GetHuntByQuestID and ns.HuntList:GetHuntByQuestID(arg1) or nil
+        local trackingState = ns.QuestTracking and ns.QuestTracking.GetState and ns.QuestTracking:GetState() or nil
+        local wasTrackedHunt = trackingState and (
+            trackingState.lastRelevantQuestID == arg1
+            or trackingState.pendingCompletionQuestID == arg1
+            or trackingState.pendingRewardQuestID == arg1
+            or trackingState.pendingAutoTurnIn == arg1
+        )
+        if (completedHunt or wasTrackedHunt) and ns.HuntJournal and type(ns.HuntJournal.RecordCompletion) == "function" then
+            ns.HuntJournal:RecordCompletion(completedHunt or { questID = arg1 }, { source = "QUEST_TURNED_IN" })
+        end
+        if completedHunt then
             ns.HuntList:RemoveByQuestID(arg1)
         end
     end
@@ -45,6 +56,10 @@ Preybreaker:SetScript("OnEvent", function(self, event, arg1, ...)
         if ns.HuntList and ns.HuntList.GetHuntByQuestID and ns.HuntList:GetHuntByQuestID(arg1) then
             ns.HuntList:RemoveByQuestID(arg1)
         end
+    end
+
+    if event == "ADVENTURE_MAP_QUEST_UPDATE" and ns.HuntList and ns.HuntList.MarkLiveSnapshotDirty then
+        ns.HuntList:MarkLiveSnapshotDirty(event)
     end
 
     if event == "QUEST_AUTOCOMPLETE" then

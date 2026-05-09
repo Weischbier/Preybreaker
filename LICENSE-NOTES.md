@@ -17,7 +17,6 @@ This file clarifies the practical licensing boundaries in this repository. It is
 
 - `Media/Assets/Preybreaker-Icon.tga`
 - `Media/Assets/ProgressBar-Radial-WarWithin.tga`
-- `Media/Assets/uiwowlabsactionbar.blp`
 
 These packaged art assets have been reviewed and approved for inclusion in Preybreaker distributions.
 

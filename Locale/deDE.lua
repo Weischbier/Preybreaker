@@ -11,7 +11,6 @@ ns._activeTranslation = {
     ["Readout"] = "Anzeige",
     ["Text style"] = "Textstil",
     ["Quest help"] = "Questhilfe",
-    ["Audio & feedback"] = "Audio & Feedback",
     ["Profile"] = "Profil",
 
     -- Section descriptions
@@ -20,7 +19,6 @@ ns._activeTranslation = {
     ["Choose which cues appear around the tracker while you hunt."] = "Wähle, welche Hinweise während der Jagd um den Tracker erscheinen.",
     ["Adjust tracker text styling without adding a hard dependency. LibSharedMedia fonts appear automatically when the library is installed."] = "Passe die Textstile des Trackers an, ohne eine feste Abhängigkeit hinzuzufügen. LibSharedMedia-Schriften erscheinen automatisch, wenn die Bibliothek installiert ist.",
     ["Keep the active prey quest easy to spot while the hunt is running."] = "Halte die aktive Beutequest während der Jagd gut sichtbar.",
-    ["Control sound cues that fire when your hunt phase changes."] = "Steuere Tonhinweise, die beim Phasenwechsel ertönen.",
     ["Choose whether this character uses its own settings or the account-wide defaults."] = "Wähle, ob dieser Charakter eigene Einstellungen oder die kontoweiten Standardwerte nutzt.",
 
     -- Field titles
@@ -40,9 +38,6 @@ ns._activeTranslation = {
     ["Add prey quest to tracker"] = "Beutequest zum Tracker hinzufügen",
     ["Focus the prey quest"] = "Beutequest fokussieren",
     ["Auto turn-in prey quest"] = "Beutequest automatisch abgeben",
-    ["Play sound on phase change"] = "Ton bei Phasenwechsel abspielen",
-    ["Sound theme"] = "Klangthema",
-    ["Death cue during hunt"] = "Todessignal während der Jagd",
     ["Use character profile"] = "Charakterprofil verwenden",
 
     -- Field descriptions
@@ -61,9 +56,6 @@ ns._activeTranslation = {
     ["Automatically place the active prey quest in your watch list."] = "Die aktive Beutequest automatisch in deine Beobachtungsliste setzen.",
     ["Keep the active prey quest selected for your objective arrow."] = "Die aktive Beutequest für deinen Zielpfeil ausgewählt lassen.",
     ["Automatically complete the prey quest when it pops up, unless a reward choice is required."] = "Die Beutequest automatisch abschließen, wenn sie erscheint, es sei denn, eine Belohnungsauswahl ist erforderlich.",
-    ["Hear an audio cue when the prey hunt moves to a new stage."] = "Einen Ton hören, wenn die Beutejagd in eine neue Phase wechselt.",
-    ["Select the active sound pack used for prey hunt audio cues."] = "Das aktive Soundpaket für Beutejagd-Audiosignale auswählen.",
-    ["Play a death cue when you die during an active prey hunt in the hunt zone."] = "Ein Todessignal abspielen, wenn du während einer aktiven Beutejagd im Jagdgebiet stirbst.",
     ["Store a separate set of settings for this character."] = "Einen eigenen Satz Einstellungen für diesen Charakter speichern.",
     ["Nudge the tracker left or right around the prey icon."] = "Den Tracker um das Beutesymbol nach links oder rechts verschieben.",
     ["Nudge the tracker up or down around the prey icon."] = "Den Tracker um das Beutesymbol nach oben oder unten verschieben.",
@@ -74,14 +66,6 @@ ns._activeTranslation = {
     ["Bar"] = "Balken",
     ["Text"] = "Text",
 
-    -- Sound theme labels
-    ["Among Us"] = "Among Us",
-    ["Generic"] = "Allgemein",
-    ["Jurassic Park"] = "Jurassic Park",
-    ["Pokemon"] = "Pokémon",
-    ["Predator"] = "Predator",
-    ["Stranger Things"] = "Stranger Things",
-    ["Random"] = "Zufällig",
 
     -- Stage labels
     ["COLD"] = "KALT",

@@ -11,7 +11,6 @@ ns._activeTranslation = {
     ["Readout"] = "Affichage",
     ["Text style"] = "Style de texte",
     ["Quest help"] = "Aide aux quêtes",
-    ["Audio & feedback"] = "Audio et retour",
     ["Profile"] = "Profil",
 
     -- Section descriptions
@@ -20,7 +19,6 @@ ns._activeTranslation = {
     ["Choose which cues appear around the tracker while you hunt."] = "Choisissez les indicateurs qui apparaissent autour du traqueur pendant la chasse.",
     ["Adjust tracker text styling without adding a hard dependency. LibSharedMedia fonts appear automatically when the library is installed."] = "Ajustez le style du texte du traqueur sans ajouter de dépendance obligatoire. Les polices LibSharedMedia apparaissent automatiquement lorsque la bibliothèque est installée.",
     ["Keep the active prey quest easy to spot while the hunt is running."] = "Gardez la quête de proie active bien visible pendant la chasse.",
-    ["Control sound cues that fire when your hunt phase changes."] = "Contrôlez les signaux sonores émis lors du changement de phase de chasse.",
     ["Choose whether this character uses its own settings or the account-wide defaults."] = "Choisissez si ce personnage utilise ses propres paramètres ou les valeurs par défaut du compte.",
 
     -- Field titles
@@ -40,9 +38,6 @@ ns._activeTranslation = {
     ["Add prey quest to tracker"] = "Ajouter la quête de proie au suivi",
     ["Focus the prey quest"] = "Cibler la quête de proie",
     ["Auto turn-in prey quest"] = "Rendre la quête de proie automatiquement",
-    ["Play sound on phase change"] = "Jouer un son au changement de phase",
-    ["Sound theme"] = "Thème sonore",
-    ["Death cue during hunt"] = "Signal de mort pendant la chasse",
     ["Use character profile"] = "Utiliser le profil du personnage",
 
     -- Field descriptions
@@ -61,9 +56,6 @@ ns._activeTranslation = {
     ["Automatically place the active prey quest in your watch list."] = "Placer automatiquement la quête de proie active dans votre liste de suivi.",
     ["Keep the active prey quest selected for your objective arrow."] = "Garder la quête de proie active sélectionnée pour votre flèche d'objectif.",
     ["Automatically complete the prey quest when it pops up, unless a reward choice is required."] = "Rendre automatiquement la quête de proie lorsqu'elle apparaît, sauf si un choix de récompense est requis.",
-    ["Hear an audio cue when the prey hunt moves to a new stage."] = "Entendre un signal sonore quand la chasse passe à une nouvelle étape.",
-    ["Select the active sound pack used for prey hunt audio cues."] = "Sélectionner le pack sonore actif pour les signaux de chasse.",
-    ["Play a death cue when you die during an active prey hunt in the hunt zone."] = "Jouer un signal de mort quand vous mourez pendant une chasse active dans la zone de chasse.",
     ["Store a separate set of settings for this character."] = "Enregistrer un jeu de paramètres séparé pour ce personnage.",
     ["Nudge the tracker left or right around the prey icon."] = "Décaler le traqueur à gauche ou à droite autour de l'icône de proie.",
     ["Nudge the tracker up or down around the prey icon."] = "Décaler le traqueur vers le haut ou le bas autour de l'icône de proie.",
@@ -74,14 +66,6 @@ ns._activeTranslation = {
     ["Bar"] = "Barre",
     ["Text"] = "Texte",
 
-    -- Sound theme labels
-    ["Among Us"] = "Among Us",
-    ["Generic"] = "Générique",
-    ["Jurassic Park"] = "Jurassic Park",
-    ["Pokemon"] = "Pokémon",
-    ["Predator"] = "Predator",
-    ["Stranger Things"] = "Stranger Things",
-    ["Random"] = "Aléatoire",
 
     -- Stage labels
     ["COLD"] = "FROID",

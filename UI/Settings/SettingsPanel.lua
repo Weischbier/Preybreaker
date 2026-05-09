@@ -47,13 +47,14 @@ local function ApplyPreviewTextStyles(preview)
 end
 
 local TAB_SETTINGS = "settings"
+local TAB_DIAGNOSTICS = "diagnostics"
 local TAB_CHANGELOG = "changelog"
 local TAB_SOCIAL = "social"
 local TAB_ROADMAP = "roadmap"
 local SETTINGS_TAB_KEY = "settingsTab"
 
 local function IsValidTab(tabKey)
-    return tabKey == TAB_SETTINGS or tabKey == TAB_CHANGELOG or tabKey == TAB_SOCIAL or tabKey == TAB_ROADMAP
+    return tabKey == TAB_SETTINGS or tabKey == TAB_DIAGNOSTICS or tabKey == TAB_CHANGELOG or tabKey == TAB_SOCIAL or tabKey == TAB_ROADMAP
 end
 
 local function NormalizeTab(tabKey)
@@ -298,6 +299,11 @@ function ns.SettingsPanel:RefreshVisibleTab()
         return
     end
 
+    if selectedTab == TAB_DIAGNOSTICS and self.diagnosticsContent and type(self.diagnosticsContent.Refresh) == "function" then
+        self.diagnosticsContent:Refresh(true)
+        return
+    end
+
     if selectedTab == TAB_CHANGELOG and self.changelogContent and type(self.changelogContent.Refresh) == "function" then
         self.changelogContent:Refresh()
         return
@@ -326,6 +332,9 @@ function ns.SettingsPanel:SelectTab(tabKey, persist)
     end
     if self.changelogPage then
         self.changelogPage:SetShown(tabKey == TAB_CHANGELOG)
+    end
+    if self.diagnosticsPage then
+        self.diagnosticsPage:SetShown(tabKey == TAB_DIAGNOSTICS)
     end
     if self.socialPage then
         self.socialPage:SetShown(tabKey == TAB_SOCIAL)
@@ -393,8 +402,10 @@ function ns.SettingsPanel:Create()
 
     local settingsTab = SP.CreateTabButton(tabBar, L["Settings"])
     settingsTab:SetPoint("LEFT", tabBar, "LEFT", 0, 0)
+    local diagnosticsTab = SP.CreateTabButton(tabBar, L["Diagnostics"])
+    diagnosticsTab:SetPoint("LEFT", settingsTab, "RIGHT", 8, 0)
     local changelogTab = SP.CreateTabButton(tabBar, L["Changelog"])
-    changelogTab:SetPoint("LEFT", settingsTab, "RIGHT", 8, 0)
+    changelogTab:SetPoint("LEFT", diagnosticsTab, "RIGHT", 8, 0)
     local socialTab = SP.CreateTabButton(tabBar, L["Social"])
     socialTab:SetPoint("LEFT", changelogTab, "RIGHT", 8, 0)
     local roadmapTab = SP.CreateTabButton(tabBar, L["Roadmap"])
@@ -406,6 +417,8 @@ function ns.SettingsPanel:Create()
 
     local settingsPage = CreateFrame("Frame", nil, pageHost)
     settingsPage:SetAllPoints(pageHost)
+    local diagnosticsPage = CreateFrame("Frame", nil, pageHost)
+    diagnosticsPage:SetAllPoints(pageHost)
     local changelogPage = CreateFrame("Frame", nil, pageHost)
     changelogPage:SetAllPoints(pageHost)
     local socialPage = CreateFrame("Frame", nil, pageHost)
@@ -414,21 +427,25 @@ function ns.SettingsPanel:Create()
     roadmapPage:SetAllPoints(pageHost)
 
     self.settingsPage = settingsPage
+    self.diagnosticsPage = diagnosticsPage
     self.changelogPage = changelogPage
     self.socialPage = socialPage
     self.roadmapPage = roadmapPage
 
     local settingsContent = SP.CreateSections(settingsPage)
+    local diagnosticsContent = SP.CreateDiagnosticsPage(diagnosticsPage)
     local changelogContent = SP.CreateChangelogPage(changelogPage)
     local socialContent = SP.CreateSocialPage(socialPage)
     local roadmapContent = SP.CreateRoadmapPage(roadmapPage)
     self.settingsContent = settingsContent
+    self.diagnosticsContent = diagnosticsContent
     self.changelogContent = changelogContent
     self.socialContent = socialContent
     self.roadmapContent = roadmapContent
 
     self.tabButtons = {
         [TAB_SETTINGS] = settingsTab,
+        [TAB_DIAGNOSTICS] = diagnosticsTab,
         [TAB_CHANGELOG] = changelogTab,
         [TAB_SOCIAL] = socialTab,
         [TAB_ROADMAP] = roadmapTab,
@@ -436,6 +453,9 @@ function ns.SettingsPanel:Create()
 
     settingsTab:SetScript("OnClick", function()
         ns.SettingsPanel:SelectTab(TAB_SETTINGS)
+    end)
+    diagnosticsTab:SetScript("OnClick", function()
+        ns.SettingsPanel:SelectTab(TAB_DIAGNOSTICS)
     end)
     changelogTab:SetScript("OnClick", function()
         ns.SettingsPanel:SelectTab(TAB_CHANGELOG)

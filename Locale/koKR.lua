@@ -11,7 +11,6 @@ ns._activeTranslation = {
     ["Readout"] = "표시",
     ["Text style"] = "텍스트 스타일",
     ["Quest help"] = "퀘스트 도움",
-    ["Audio & feedback"] = "소리 및 피드백",
     ["Profile"] = "프로필",
 
     -- Section descriptions
@@ -20,7 +19,6 @@ ns._activeTranslation = {
     ["Choose which cues appear around the tracker while you hunt."] = "사냥 중 추적기 주변에 표시할 단서를 선택하세요.",
     ["Adjust tracker text styling without adding a hard dependency. LibSharedMedia fonts appear automatically when the library is installed."] = "추적기 텍스트 스타일을 하드 의존성 없이 조정합니다. LibSharedMedia 글꼴은 라이브러리 설치 시 자동으로 표시됩니다.",
     ["Keep the active prey quest easy to spot while the hunt is running."] = "사냥 중 활성 먹이 퀘스트를 쉽게 볼 수 있도록 유지합니다.",
-    ["Control sound cues that fire when your hunt phase changes."] = "사냥 단계 변경 시 재생되는 소리 신호를 제어합니다.",
     ["Choose whether this character uses its own settings or the account-wide defaults."] = "이 캐릭터가 자체 설정을 사용할지 계정 기본값을 사용할지 선택하세요.",
 
     -- Field titles
@@ -40,9 +38,6 @@ ns._activeTranslation = {
     ["Add prey quest to tracker"] = "먹이 퀘스트를 추적에 추가",
     ["Focus the prey quest"] = "먹이 퀘스트 집중",
     ["Auto turn-in prey quest"] = "먹이 퀘스트 자동 완료",
-    ["Play sound on phase change"] = "단계 변경 시 소리 재생",
-    ["Sound theme"] = "소리 테마",
-    ["Death cue during hunt"] = "사냥 중 사망 신호",
     ["Use character profile"] = "캐릭터 프로필 사용",
 
     -- Field descriptions
@@ -61,9 +56,6 @@ ns._activeTranslation = {
     ["Automatically place the active prey quest in your watch list."] = "활성 먹이 퀘스트를 자동으로 감시 목록에 추가합니다.",
     ["Keep the active prey quest selected for your objective arrow."] = "활성 먹이 퀘스트를 목표 화살표에 선택된 상태로 유지합니다.",
     ["Automatically complete the prey quest when it pops up, unless a reward choice is required."] = "보상 선택이 필요하지 않은 한, 먹이 퀘스트가 나타나면 자동으로 완료합니다.",
-    ["Hear an audio cue when the prey hunt moves to a new stage."] = "먹이 사냥이 새 단계로 이동할 때 소리 신호를 듣습니다.",
-    ["Select the active sound pack used for prey hunt audio cues."] = "먹이 사냥 소리 신호에 사용되는 활성 사운드 팩을 선택합니다.",
-    ["Play a death cue when you die during an active prey hunt in the hunt zone."] = "사냥 구역에서 활성 먹이 사냥 중 사망 시 사망 신호를 재생합니다.",
     ["Store a separate set of settings for this character."] = "이 캐릭터에 대한 별도의 설정을 저장합니다.",
     ["Nudge the tracker left or right around the prey icon."] = "먹이 아이콘 주변에서 추적기를 좌우로 이동합니다.",
     ["Nudge the tracker up or down around the prey icon."] = "먹이 아이콘 주변에서 추적기를 상하로 이동합니다.",
@@ -74,14 +66,6 @@ ns._activeTranslation = {
     ["Bar"] = "바",
     ["Text"] = "텍스트",
 
-    -- Sound theme labels
-    ["Among Us"] = "Among Us",
-    ["Generic"] = "일반",
-    ["Jurassic Park"] = "Jurassic Park",
-    ["Pokemon"] = "Pokémon",
-    ["Predator"] = "Predator",
-    ["Stranger Things"] = "Stranger Things",
-    ["Random"] = "무작위",
 
     -- Stage labels
     ["COLD"] = "차가움",

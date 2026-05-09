@@ -12,7 +12,7 @@ local function OpenSettings()
 end
 
 local function PrintHelp()
-    ns.Util.Print(L["Commands: /pb, /pb settings, /pb toggle, /pb refresh, /pb hunts, /pb reset, /pb debug, /pb diag, /pb mapdump"])
+    ns.Util.Print(L["Commands: /pb, /pb settings, /pb toggle, /pb refresh, /pb hunts, /pb command, /pb goals, /pb roster, /pb journal, /pb planner, /pb stats, /pb reset, /pb debug, /pb diag, /pb mapdump"])
 end
 
 SLASH_PREYBREAKER1 = "/preybreaker"
@@ -51,7 +51,7 @@ SlashCmdList.PREYBREAKER = function(message)
                 elseif ns.Controller then
                     ns.Controller:Refresh("slash:huntrescan")
                 end
-            end)
+            end, { forceLive = true })
         elseif ns.Controller then
             ns.Controller:Refresh("slash:huntrescan")
         end
@@ -101,37 +101,35 @@ SlashCmdList.PREYBREAKER = function(message)
         return
     end
 
+    if command == "journal" or command == "planner" or command == "stats" then
+        if ns.Settings and not ns.Settings:IsHuntPanelEnabled() then
+            ns.Util.Print(L["Hunt panel disabled."])
+            return
+        end
+        if ns.HuntPanel then
+            ns.HuntPanel:ShowStandaloneTab(command)
+        end
+        return
+    end
+
+    if command == "command" or command == "commandcenter" or command == "center" then
+        if ns.HuntCommandCenter then
+            ns.HuntCommandCenter:Open("overview")
+        end
+        return
+    end
+
+    if command == "goals" or command == "roster" then
+        if ns.HuntCommandCenter then
+            ns.HuntCommandCenter:Open(command)
+        end
+        return
+    end
+
     if command == "diagnostic" or command == "diag" then
-        if ns.HuntList then
-            ns.Util.Print(L["=== Prey Hunt Badge Diagnostic ==="])
-            ns.HuntList:RefreshFromPins()
-
-            local previousFilter = ns.HuntList.GetDifficultyFilter and ns.HuntList:GetDifficultyFilter() or nil
-            if ns.HuntList.SetDifficultyFilter then
-                ns.HuntList:SetDifficultyFilter("All")
-            end
-
-            local hunts = ns.HuntList:GetFilteredSortedHunts() or {}
-
-            if previousFilter and ns.HuntList.SetDifficultyFilter then
-                ns.HuntList:SetDifficultyFilter(previousFilter)
-            end
-
-            if #hunts == 0 then
-                ns.Util.Print(L["No active hunt pins found."])
-                return
-            end
-
-            for _, hunt in ipairs(hunts) do
-                ns.Util.Print(string.format(
-                    "%s [%s, %s]: %s (%s)",
-                    hunt.name or L["Unknown prey"],
-                    hunt.difficulty or L["Unknown difficulty"],
-                    hunt.zone or L["Unknown zone"],
-                    hunt.achievement and L["show icon"] or L["hide icon"],
-                    hunt.achievement and hunt.achievement.source or L["none"]
-                ))
-            end
+        if ns.SettingsPanel then
+            ns.SettingsPanel:Open()
+            ns.SettingsPanel:SelectTab("diagnostics")
         end
         return
     end

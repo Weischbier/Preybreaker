@@ -656,7 +656,22 @@ function ns.QuestTracking:TryResolvePendingRewardSelection(reason)
     local rewardIndex = self:ResolvePreferredRewardChoice(choices, settings:GetPreferredHuntReward(), settings:GetFallbackHuntReward())
 
     if rewardIndex then
-        LogTracking("autoSelect:reward", questID, rewardIndex)
+        local reward = choices and choices[rewardIndex] or nil
+        local rewardType = ns.HuntPlanner and type(ns.HuntPlanner.ClassifyReward) == "function"
+            and ns.HuntPlanner:ClassifyReward(reward)
+            or nil
+        LogTracking("autoSelect:reward", questID, string.format("index=%s,type=%s", tostring(rewardIndex), tostring(rewardType or "unknown")))
+        if ns.HuntJournal and type(ns.HuntJournal.RecordRewardSelection) == "function" then
+            ns.HuntJournal:RecordRewardSelection(questID, {
+                reward = reward,
+                rewardType = rewardType,
+                rewardName = reward and (reward.name or reward.itemName or reward.currencyName) or nil,
+                rewardIndex = rewardIndex,
+                source = "autoSelect",
+                reason = reason or "questComplete",
+                autoSelected = true,
+            })
+        end
         if type(GetQuestReward) == "function" then
             Util.SafeCall(GetQuestReward, rewardIndex)
         end
@@ -744,6 +759,15 @@ function ns.QuestTracking:HandleQuestComplete()
 
     local rewardIndex = numChoices == 1 and 1 or 0
     LogTracking("autoTurnIn:complete", questID, rewardIndex)
+
+    if ns.HuntJournal and type(ns.HuntJournal.RecordRewardSelection) == "function" then
+        ns.HuntJournal:RecordRewardSelection(questID, {
+            rewardIndex = rewardIndex,
+            source = "autoTurnIn",
+            reason = "singleReward",
+            autoSelected = false,
+        })
+    end
 
     if type(GetQuestReward) == "function" then
         Util.SafeCall(GetQuestReward, rewardIndex)

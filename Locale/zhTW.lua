@@ -11,7 +11,6 @@ ns._activeTranslation = {
     ["Readout"] = "讀數",
     ["Text style"] = "文字樣式",
     ["Quest help"] = "任務幫助",
-    ["Audio & feedback"] = "音效與回饋",
     ["Profile"] = "設定檔",
 
     -- Section descriptions
@@ -20,7 +19,6 @@ ns._activeTranslation = {
     ["Choose which cues appear around the tracker while you hunt."] = "選擇狩獵期間追蹤器周圍顯示的提示。",
     ["Adjust tracker text styling without adding a hard dependency. LibSharedMedia fonts appear automatically when the library is installed."] = "調整追蹤器文字樣式而不新增硬依賴。安裝 LibSharedMedia 函式庫後字型會自動顯示。",
     ["Keep the active prey quest easy to spot while the hunt is running."] = "狩獵期間保持活躍獵物任務易於發現。",
-    ["Control sound cues that fire when your hunt phase changes."] = "控制狩獵階段變化時播放的音效提示。",
     ["Choose whether this character uses its own settings or the account-wide defaults."] = "選擇此角色使用自身設定還是帳號預設值。",
 
     -- Field titles
@@ -40,9 +38,6 @@ ns._activeTranslation = {
     ["Add prey quest to tracker"] = "將獵物任務加入追蹤",
     ["Focus the prey quest"] = "聚焦獵物任務",
     ["Auto turn-in prey quest"] = "自動繳交獵物任務",
-    ["Play sound on phase change"] = "階段變化時播放音效",
-    ["Sound theme"] = "音效主題",
-    ["Death cue during hunt"] = "狩獵中死亡提示",
     ["Use character profile"] = "使用角色設定檔",
 
     -- Field descriptions
@@ -61,9 +56,6 @@ ns._activeTranslation = {
     ["Automatically place the active prey quest in your watch list."] = "自動將活躍獵物任務加入監視清單。",
     ["Keep the active prey quest selected for your objective arrow."] = "保持活躍獵物任務為目標箭頭的選取狀態。",
     ["Automatically complete the prey quest when it pops up, unless a reward choice is required."] = "獵物任務彈出時自動完成，除非需要選擇獎勵。",
-    ["Hear an audio cue when the prey hunt moves to a new stage."] = "獵物狩獵進入新階段時聽到音效提示。",
-    ["Select the active sound pack used for prey hunt audio cues."] = "選擇用於獵物狩獵音效提示的活躍音效包。",
-    ["Play a death cue when you die during an active prey hunt in the hunt zone."] = "在狩獵區域活躍獵物狩獵期間死亡時播放死亡提示。",
     ["Store a separate set of settings for this character."] = "為此角色儲存一套單獨的設定。",
     ["Nudge the tracker left or right around the prey icon."] = "在獵物圖示周圍左右微調追蹤器。",
     ["Nudge the tracker up or down around the prey icon."] = "在獵物圖示周圍上下微調追蹤器。",
@@ -74,14 +66,6 @@ ns._activeTranslation = {
     ["Bar"] = "條形",
     ["Text"] = "文字",
 
-    -- Sound theme labels
-    ["Among Us"] = "Among Us",
-    ["Generic"] = "通用",
-    ["Jurassic Park"] = "Jurassic Park",
-    ["Pokemon"] = "Pokémon",
-    ["Predator"] = "Predator",
-    ["Stranger Things"] = "Stranger Things",
-    ["Random"] = "隨機",
 
     -- Stage labels
     ["COLD"] = "冷",

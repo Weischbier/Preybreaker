@@ -5,13 +5,13 @@ local _, ns = ...
 
 ns.RoadmapData = ns.RoadmapData or {
     KnownIssues = {
-        "Sound cues may play incorrectly or double-fire in some hunt transitions. A fix is coming soon.",
+        "Combat lockdown can still prevent opening Blizzard quest dialogs; the Hunt Console now reports this instead of silently failing.",
+        "Roster data is local-only and only updates after each character is seen by the addon.",
     },
     PlannedFeatures = {
-        "Minimap button as an alternative to the addon compartment icon.",
-        "Hunt history log showing recent completions and rewards earned.",
-        "Custom sound pack support so you can drop in your own audio files.",
-        "Tooltip preview on tracker hover showing current hunt details.",
+        "More account dashboard filters once Blizzard exposes richer reward metadata in live hunt dialogs.",
+        "Optional export of Hunt OS history for players who want external farming logs after v4.",
+        "Expanded Goal Engine scoring as new Midnight hunt achievements and rewards are discovered.",
     },
 }
 

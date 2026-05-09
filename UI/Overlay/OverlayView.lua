@@ -20,6 +20,13 @@ local ResolveHostFrame = AnchorResolver.ResolveHostFrame
 ns.OverlayView = ns.OverlayView or {}
 
 local OVERLAY_NAME = "PreybreakerOverlayFrame"
+local BACKDROP_TEMPLATE = BackdropTemplateMixin and "BackdropTemplate" or nil
+local STAGE_BADGE_BACKDROP = {
+    bgFile = "Interface\\Buttons\\WHITE8X8",
+    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+    edgeSize = 8,
+    insets = { left = 2, right = 2, top = 2, bottom = 2 },
+}
 
 local function GetSettings()
     return ns.Settings
@@ -48,6 +55,16 @@ end
 local function ShouldHideBlizzardWidget()
     local settings = GetSettings()
     return settings and settings:ShouldHideBlizzardWidget() or false
+end
+
+local function ShouldShowTrackerTooltip()
+    local settings = GetSettings()
+    return settings and settings:ShouldShowTrackerTooltip() or false
+end
+
+local function ShouldShowContextLine()
+    local settings = GetSettings()
+    return settings and settings:ShouldShowTrackerContextLine() or false
 end
 
 local function GetAnchorOffsetX()
@@ -97,16 +114,111 @@ local function OpenPreyQuestMap()
     end
 end
 
+local function ResolveSnapshotQuestID(snapshot)
+    if type(snapshot) ~= "table" then
+        return nil
+    end
+
+    local questID = snapshot.questID or snapshot.worldQuestID or snapshot.activeQuestID
+    return type(questID) == "number" and questID or nil
+end
+
+local function BuildHuntContext(snapshot)
+    local questID = ResolveSnapshotQuestID(snapshot)
+    local hunt = questID and ns.HuntList and ns.HuntList.GetHuntByQuestID and ns.HuntList:GetHuntByQuestID(questID) or nil
+    local recent = questID and ns.HuntJournal and ns.HuntJournal.GetRecentByQuestID and ns.HuntJournal:GetRecentByQuestID(questID) or nil
+    local rewardPreview = hunt and ns.HuntPlanner and ns.HuntPlanner.GetRewardPreview and ns.HuntPlanner:GetRewardPreview(hunt) or nil
+
+    return {
+        questID = questID,
+        hunt = hunt,
+        recent = recent,
+        rewardPreview = rewardPreview,
+    }
+end
+
+local function GetContextLineText(snapshot)
+    local context = BuildHuntContext(snapshot)
+    local hunt = context.hunt
+    if hunt and hunt.name then
+        return string.format("%s | %s", hunt.name, hunt.zone or "Unknown zone")
+    end
+    if context.questID then
+        return string.format("Quest %d", context.questID)
+    end
+    return nil
+end
+
+local function ShowTrackerTooltip(owner)
+    if not owner or not GameTooltip or not ShouldShowTrackerTooltip() then
+        return
+    end
+
+    local snapshot = ns.OverlayView.currentSnapshot or (ns.Controller and ns.Controller.lastSnapshot) or nil
+    if not snapshot or not snapshot.active then
+        return
+    end
+
+    local context = BuildHuntContext(snapshot)
+    local hunt = context.hunt
+    local stageLabel = Constants.StageLabelByState[snapshot.progressState] or "ACTIVE"
+
+    GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
+    GameTooltip:ClearLines()
+    GameTooltip:AddLine(hunt and hunt.name or "Prey Hunt", 1, 1, 1)
+    GameTooltip:AddLine(string.format("%s %d%%", stageLabel, snapshot.percent or 0), 1, 0.82, 0.18)
+
+    if hunt then
+        GameTooltip:AddLine(string.format("%s | %s", hunt.difficulty or "Unknown difficulty", hunt.zone or "Unknown zone"), 0.85, 0.82, 0.72, true)
+    elseif context.questID then
+        GameTooltip:AddLine(string.format("Quest %d", context.questID), 0.85, 0.82, 0.72, true)
+    end
+
+    if context.rewardPreview and context.rewardPreview.reason then
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine(context.rewardPreview.reason, 0.95, 0.76, 0.25, true)
+    end
+
+    if hunt and hunt.achievement and hunt.achievement.isIncomplete then
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine(hunt.achievement.markerText or "Achievement progress available.", 0.82, 0.90, 0.63, true)
+    end
+
+    if context.recent and context.recent.completedDate then
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine("Last completed: " .. context.recent.completedDate, 0.65, 0.85, 1, true)
+    end
+
+    if ns.OverlayView:ShouldHandleFinalClick() then
+        GameTooltip:AddLine(" ")
+        if type(InCombatLockdown) == "function" and InCombatLockdown() then
+            GameTooltip:AddLine("Map click is blocked in combat.", 1, 0.25, 0.2, true)
+        else
+            GameTooltip:AddLine("Left-click: open objective map.", 0.65, 0.85, 1, true)
+        end
+    end
+
+    GameTooltip:Show()
+end
+
+local function ApplyStageBadgeStyle(frame)
+    if not frame or type(frame.SetBackdrop) ~= "function" then
+        return
+    end
+
+    frame:SetBackdrop(STAGE_BADGE_BACKDROP)
+    frame:SetBackdropColor(0.08, 0.06, 0.04, 0.92)
+    frame:SetBackdropBorderColor(0.84, 0.64, 0.28, 0.90)
+end
+
 local function CreateStageBadge(parent, relativeTo)
     local layout = Constants.Layout
-    local media = Constants.Media
-    local texCoord = media.StageBadgeTexCoord
 
-    local badge = parent:CreateTexture(nil, "OVERLAY", nil, 1)
+    local badge = CreateFrame("Frame", nil, parent, BACKDROP_TEMPLATE)
     badge:SetSize(layout.StageBadgeWidth, layout.StageBadgeHeight)
     badge:SetPoint("TOP", relativeTo, "BOTTOM", layout.StageBadgeOffsetX, layout.StageBadgeOffsetY)
-    badge:SetTexture(media.StageBadge)
-    badge:SetTexCoord(texCoord.left, texCoord.right, texCoord.top, texCoord.bottom)
+    badge:SetFrameLevel(parent:GetFrameLevel() + 2)
+    ApplyStageBadgeStyle(badge)
 
     local text = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     text:SetJustifyH("CENTER")
@@ -201,6 +313,14 @@ function ns.OverlayView:Create()
     overlay:SetScript("OnMouseUp", function(_, button)
         ns.OverlayView:HandleMouseUp(button)
     end)
+    overlay:SetScript("OnEnter", function(self)
+        ShowTrackerTooltip(self)
+    end)
+    overlay:SetScript("OnLeave", function()
+        if GameTooltip then
+            GameTooltip:Hide()
+        end
+    end)
     overlay:Hide()
 
     local progress = ns.CreateRadialProgressBar(overlay, true)
@@ -229,6 +349,12 @@ function ns.OverlayView:Create()
     local stageBadge, stageText = CreateStageBadge(overlay, progress.ValueText)
     UpdateStageBadgeAnchor(stageBadge, progress, progress.ValueText, true)
 
+    local contextText = overlay:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    contextText:SetJustifyH("CENTER")
+    contextText:SetWidth(Constants.Layout.BarWidth or Constants.Layout.RingSize)
+    contextText:SetText("")
+    contextText:Hide()
+
     if progress.SetSwipeColor then
         progress:SetSwipeColor(0.82, 0.82, 0.86, 0.97)
     end
@@ -242,6 +368,7 @@ function ns.OverlayView:Create()
     self.barProgress = barProgress
     self.stageBadge = stageBadge
     self.stageText = stageText
+    self.contextText = contextText
 
     ApplyOverlayTextStyles(self, true)
 
@@ -280,7 +407,7 @@ function ns.OverlayView:UpdateInteractivity()
         return
     end
 
-    local mouseEnabled = self:ShouldHandleFinalClick()
+    local mouseEnabled = self:ShouldHandleFinalClick() or ShouldShowTrackerTooltip()
     self.frame:SetMovable(false)
     self.frame:SetClampedToScreen(true)
     self.frame:EnableMouse(mouseEnabled)
@@ -436,6 +563,30 @@ function ns.OverlayView:RenderTextOnly(snapshot)
     self.stageText:Hide()
 end
 
+function ns.OverlayView:UpdateContextLine(snapshot, anchor)
+    if not self.contextText then
+        return
+    end
+
+    if not ShouldShowContextLine() or not snapshot.active then
+        self.contextText:Hide()
+        self.contextText:SetText("")
+        return
+    end
+
+    local text = GetContextLineText(snapshot)
+    if not text or text == "" then
+        self.contextText:Hide()
+        return
+    end
+
+    self.contextText:ClearAllPoints()
+    self.contextText:SetPoint("TOP", anchor or self.frame, "BOTTOM", 0, -4)
+    self.contextText:SetText(text)
+    self.contextText:SetTextColor(0.85, 0.82, 0.72, 0.95)
+    self.contextText:Show()
+end
+
 function ns.OverlayView:Render(snapshot)
     self:Create()
     self.currentSnapshot = snapshot
@@ -443,6 +594,7 @@ function ns.OverlayView:Render(snapshot)
     if not snapshot.active then
         ApplyOverlayTextStyles(self)
         ResetInactiveVisuals(self)
+        self:UpdateContextLine(snapshot)
         local shouldRestoreVisibility = not (ns.Settings and ns.Settings:IsEnabled() and ShouldHideBlizzardWidget())
         self:RestoreHiddenWidget(shouldRestoreVisibility)
         self.frame:Hide()
@@ -461,6 +613,7 @@ function ns.OverlayView:Render(snapshot)
         self:RenderTextOnly(snapshot)
         local resolution = self:Anchor()
         self:SyncWidgetVisibility(snapshot, resolution)
+        self:UpdateContextLine(snapshot, self.textDisplay or self.frame)
         self.frame:Show()
         return
     end
@@ -496,5 +649,7 @@ function ns.OverlayView:Render(snapshot)
 
     local resolution = self:Anchor()
     self:SyncWidgetVisibility(snapshot, resolution)
+    local contextAnchor = (self.stageBadge and self.stageBadge:IsShown() and self.stageBadge) or activeProgress
+    self:UpdateContextLine(snapshot, contextAnchor)
     self.frame:Show()
 end

@@ -44,6 +44,9 @@ function Preybreaker:Bootstrap(event, detail)
         if ns.HuntPanel and type(ns.HuntPanel.Ensure) == "function" then
             ns.HuntPanel:Ensure()
         end
+        if ns.MinimapButton and type(ns.MinimapButton.Refresh) == "function" then
+            ns.MinimapButton:Refresh()
+        end
     end
 
     if event == "ADDON_LOADED" and (detail == "Blizzard_UIWidgets" or detail == ADDON_NAME) then
