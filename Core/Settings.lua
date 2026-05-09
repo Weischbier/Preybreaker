@@ -601,6 +601,26 @@ function ns.Settings:SetCommandCenterTab(value)
     return dashboardState.tab
 end
 
+function ns.Settings:GetCommandCenterFilter()
+    return self:GetDashboardState().filter or "all"
+end
+
+function ns.Settings:SetCommandCenterFilter(value)
+    local dashboardState = self:GetDashboardState()
+    dashboardState.filter = SanitizeDashboardState({ filter = value }).filter
+    return dashboardState.filter
+end
+
+function ns.Settings:GetCommandCenterSort()
+    return self:GetDashboardState().sort or "priority"
+end
+
+function ns.Settings:SetCommandCenterSort(value)
+    local dashboardState = self:GetDashboardState()
+    dashboardState.sort = SanitizeDashboardState({ sort = value }).sort
+    return dashboardState.sort
+end
+
 function ns.Settings:GetValue(key)
     local db = self:GetDB()
     if DEFAULTS[key] == nil then

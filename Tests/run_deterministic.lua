@@ -979,8 +979,19 @@ local function runCommandCenterDataTests()
     expectEqual("roster stores current guid", current and current.guid, "Player-1-0001")
     expectEqual("roster stores active quest snapshot", current and current.activeHunt and current.activeHunt.questID, 501)
     expectEqual("roster history count follows journal", current and current.historyTotal, 1)
+    ns.HuntRoster:UpdateCurrentCharacter(nil, { preserveWhenEmpty = true })
+    current = ns.Settings:GetAccountRoster()["MoonGuard:Aelwyn"]
+    expectEqual("roster preserves active hunt on empty command center refresh", current and current.activeHunt and current.activeHunt.questID, 501)
     ns.HuntRoster:UpdateCurrentCharacter({ active = true, questID = 501, percent = 43 })
     expectEqual("roster dedupes same character key", #ns.HuntRoster:GetCharacters(), 1)
+
+    _G.UnitFullName = function() return "Aelwynx", "MoonGuard" end
+    _G.UnitName = function() return "Aelwynx", "MoonGuard" end
+    _G.UnitGUID = function() return "Player-1-0001" end
+    local renamed = ns.HuntRoster:UpdateCurrentCharacter({ active = false })
+    expectEqual("roster uses renamed key after guid merge", renamed and renamed.key, "MoonGuard:Aelwynx")
+    expectNil("roster removes old key after guid merge", ns.Settings:GetAccountRoster()["MoonGuard:Aelwyn"])
+    expectEqual("roster still has one profile after guid merge", #ns.HuntRoster:GetCharacters(), 1)
 
     _G.UnitFullName = function() return "NoGuid", "MoonGuard" end
     _G.UnitName = function() return "NoGuid", "MoonGuard" end
@@ -1063,6 +1074,27 @@ local function runCommandCenterDataTests()
         end
     end
     expectTrue("goal engine hides ignored goals", ignoredStillVisible == false)
+    expectEqual("goal engine clear ignored count", ns.HuntGoalEngine:ClearIgnored(), 1)
+    plan = ns.HuntGoalEngine:GetWeeklyPlan(characters, liveHunts, preferences)
+    local restoredIgnoredGoal = false
+    for _, goal in ipairs(plan) do
+        if goal.id == "hunt:602" then
+            restoredIgnoredGoal = true
+        end
+    end
+    expectTrue("clear ignored restores hidden goal", restoredIgnoredGoal == true)
+
+    local weeklyGoals = ns.Settings:GetWeeklyGoals()
+    weeklyGoals.resetMarker = "old-week"
+    weeklyGoals.staleCharacters["OldRealm:Oldalt"] = true
+    ns.HuntGoalEngine:SetIgnored("hunt:601", true)
+    ns.HuntGoalEngine:SetCompleted("hunt:601", true)
+    ns.HuntGoalEngine:RefreshWeeklyState("new-week")
+    expectEqual("weekly reset updates goal marker", weeklyGoals.resetMarker, "new-week")
+    expectTrue("weekly reset preserves pinned goals", weeklyGoals.pinned["hunt:602"] == true)
+    expectNil("weekly reset clears ignored goals", weeklyGoals.ignored["hunt:601"])
+    expectNil("weekly reset clears completed goals", weeklyGoals.completed["hunt:601"])
+    expectNil("weekly reset clears stale character markers", weeklyGoals.staleCharacters["OldRealm:Oldalt"])
 
     local alerts = ns.HuntAlerts:BuildAlerts(characters, { liveListFresh = false }, liveHunts)
     expectTrue("alerts include account status", #alerts >= 2)
@@ -1070,6 +1102,8 @@ local function runCommandCenterDataTests()
     local report = ns.HuntDiagnostics:BuildReport()
     expectEqual("diagnostics exposes roster count", report.roster and report.roster.characterCount, #ns.HuntRoster:GetCharacters())
     expectEqual("diagnostics exposes v8 command data version", accountDB.commandCenterVersion, 8)
+    expectNotNil("diagnostics exposes weekly goal counts", report.weeklyGoalCounts)
+    expectTrue("diagnostics exposes roster merge count", (accountDB.rosterMergeCount or 0) > 0)
 
     _G.UnitFullName = oldUnitFullName
     _G.UnitName = oldUnitName
@@ -1173,6 +1207,10 @@ local function runSettingsAndMigrationTests()
     expectNotNil("v8 weekly goals store available", Settings:GetWeeklyGoals())
     expectEqual("v8 command tab accepts goals", Settings:SetCommandCenterTab("goals"), "goals")
     expectEqual("v8 command tab rejects invalid value", Settings:SetCommandCenterTab("invalid"), "overview")
+    expectEqual("v8 command filter accepts active", Settings:SetCommandCenterFilter("active"), "active")
+    expectEqual("v8 command filter rejects invalid value", Settings:SetCommandCenterFilter("invalid"), "all")
+    expectEqual("v8 command sort accepts recent", Settings:SetCommandCenterSort("recent"), "recent")
+    expectEqual("v8 command sort rejects invalid value", Settings:SetCommandCenterSort("invalid"), "priority")
 
     -- Test sanitizer clamping: scale out of range.
     _G.PreybreakerDB = {

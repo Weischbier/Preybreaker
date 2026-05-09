@@ -41,6 +41,8 @@ function HuntDiagnostics:BuildReport()
     local weekly = GetWeeklyState() or {}
     local rosterSummary = ns.HuntRoster and ns.HuntRoster.GetSummary and ns.HuntRoster:GetSummary() or {}
     local preferences = ns.Settings and ns.Settings.GetGoalPreferences and ns.Settings:GetGoalPreferences() or {}
+    local dashboard = ns.Settings and ns.Settings.GetDashboardState and ns.Settings:GetDashboardState() or {}
+    local goalCounts = ns.HuntGoalEngine and ns.HuntGoalEngine.GetWeeklyGoalCounts and ns.HuntGoalEngine:GetWeeklyGoalCounts() or {}
     local accountDB = ns.Settings and ns.Settings.GetAccountDB and ns.Settings:GetAccountDB() or nil
     local lines = {
         "Preybreaker Hunt OS diagnostics",
@@ -58,11 +60,19 @@ function HuntDiagnostics:BuildReport()
         string.format("Map visible: %s", BoolText(hunt.mapVisible)),
         string.format("Last live scan: %s", tostring(hunt.lastLiveScanAt or "none")),
         string.format("Weekly key: %s", tostring(weekly.currentWeekKey or "unknown")),
+        string.format("Weekly goal key: %s", tostring(goalCounts.resetMarker or "unknown")),
         string.format("Last reset check: %s", tostring(weekly.lastResetCheckAt or "none")),
         string.format("Weekly live list fresh: %s", BoolText(weekly.liveListFresh)),
         string.format("Roster characters: %d", tonumber(rosterSummary.characterCount) or 0),
         string.format("Roster stale characters: %d", tonumber(rosterSummary.staleCount) or 0),
         string.format("Roster active hunts: %d", tonumber(rosterSummary.activeCount) or 0),
+        string.format("Roster GUID merges: %d", tonumber(accountDB and accountDB.rosterMergeCount) or 0),
+        string.format("Weekly goals pinned: %d", tonumber(goalCounts.pinned) or 0),
+        string.format("Weekly goals ignored: %d", tonumber(goalCounts.ignored) or 0),
+        string.format("Weekly goals completed: %d", tonumber(goalCounts.completed) or 0),
+        string.format("Dashboard filter: %s", tostring(dashboard.filter or "all")),
+        string.format("Dashboard sort: %s", tostring(dashboard.sort or "priority")),
+        string.format("Command Center refresh: %s", tostring(ns.HuntCommandCenter and ns.HuntCommandCenter.lastRefreshSource or "none")),
         string.format("Goal focus: %s", tostring(preferences.focus or "balanced")),
         string.format("Goal preferred difficulty: %s", tostring(preferences.preferredDifficulty or "nightmare")),
     }
@@ -73,6 +83,8 @@ function HuntDiagnostics:BuildReport()
         weekly = weekly,
         roster = rosterSummary,
         goalPreferences = preferences,
+        dashboard = dashboard,
+        weeklyGoalCounts = goalCounts,
         lines = lines,
     }
 end

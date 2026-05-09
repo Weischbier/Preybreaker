@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v4.1.0] - 2026-05-09
+
+### Changed
+
+- Hardened Account Command Center roster updates so opening the panel without a fresh live snapshot no longer clears active-hunt context.
+- Added dashboard filter and sort controls for roster, goals, rewards, and timeline views.
+- Reduced Command Center refresh churn by building one shared context per refresh.
+
+### Fixed
+
+- Added GUID-based roster dedupe for characters whose `realm:name` key changes.
+- Weekly goal reset maintenance now clears ignored and completed goals while preserving pinned goals.
+- Diagnostics now report weekly goal counts, dashboard filter/sort, roster merge count, and last Command Center refresh source.
+
 ## [v4.0.0] - 2026-05-08
 
 ### Added

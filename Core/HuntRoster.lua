@@ -92,6 +92,20 @@ local function CopySnapshot(snapshot)
     }
 end
 
+local function SnapshotHasSignal(snapshot)
+    if type(snapshot) ~= "table" then
+        return false
+    end
+    return snapshot.active == true
+        or snapshot.questID ~= nil
+        or snapshot.activeQuestID ~= nil
+        or snapshot.worldQuestID ~= nil
+        or snapshot.progressState ~= nil
+        or snapshot.progress ~= nil
+        or snapshot.percent ~= nil
+        or snapshot.mapID ~= nil
+end
+
 local function CopyRecentCompletions()
     if not (ns.HuntJournal and type(ns.HuntJournal.GetEntries) == "function") then
         return {}
@@ -168,11 +182,93 @@ local function IsEntryStale(entry, now, currentWeekKey)
     return lastSeenAt <= 0 or ((now or GetNow()) - lastSeenAt) > STALE_AFTER_SECONDS
 end
 
+local function MergeEntryData(primary, secondary)
+    if type(primary) ~= "table" or type(secondary) ~= "table" then
+        return primary
+    end
+
+    local primarySeen = tonumber(primary.lastSeenAt) or 0
+    local secondarySeen = tonumber(secondary.lastSeenAt) or 0
+    if secondarySeen > primarySeen then
+        primary.lastSeenAt = secondary.lastSeenAt
+        primary.lastSeenDate = secondary.lastSeenDate
+        primary.weekKey = secondary.weekKey or primary.weekKey
+    end
+    local primaryLogin = tonumber(primary.lastLoginAt) or primarySeen
+    local secondaryLogin = tonumber(secondary.lastLoginAt) or secondarySeen
+    if primaryLogin > 0 and secondaryLogin > 0 then
+        primary.lastLoginAt = math.min(primaryLogin, secondaryLogin)
+    else
+        primary.lastLoginAt = math.max(primaryLogin, secondaryLogin)
+    end
+    primary.guid = primary.guid or secondary.guid
+    primary.lastSnapshot = primary.lastSnapshot or secondary.lastSnapshot
+    if not primary.activeHunt and secondary.activeHunt then
+        primary.activeHunt = secondary.activeHunt
+    end
+    primary.completedThisWeek = math.max(tonumber(primary.completedThisWeek) or 0, tonumber(secondary.completedThisWeek) or 0)
+    primary.historyTotal = math.max(tonumber(primary.historyTotal) or 0, tonumber(secondary.historyTotal) or 0)
+    if type(primary.recentCompletions) ~= "table" or #primary.recentCompletions == 0 then
+        primary.recentCompletions = secondary.recentCompletions
+    end
+    return primary
+end
+
+local function RecordMergeCount(count)
+    if count <= 0 then
+        return
+    end
+    local accountDB = ns.Settings and ns.Settings.GetAccountDB and ns.Settings:GetAccountDB() or nil
+    if type(accountDB) == "table" then
+        accountDB.rosterMergeCount = (tonumber(accountDB.rosterMergeCount) or 0) + count
+        accountDB.lastRosterMergeCount = count
+    end
+end
+
 function HuntRoster:GetCurrentCharacterKey()
     return GetPlayerIdentity().key
 end
 
-function HuntRoster:UpdateCurrentCharacter(snapshot)
+function HuntRoster:MergeDuplicateCharacters()
+    local roster = ns.Settings and ns.Settings.GetAccountRoster and ns.Settings:GetAccountRoster() or nil
+    if type(roster) ~= "table" then
+        return 0
+    end
+
+    local guidToKey = {}
+    local mergeCount = 0
+    for key, entry in pairs(roster) do
+        if type(entry) == "table" then
+            entry.key = entry.key or key
+            if type(entry.guid) == "string" and entry.guid ~= "" then
+                local existingKey = guidToKey[entry.guid]
+                if existingKey and existingKey ~= key and type(roster[existingKey]) == "table" then
+                    local keepKey = existingKey
+                    local removeKey = key
+                    local keepSeen = tonumber(roster[keepKey].lastSeenAt) or 0
+                    local removeSeen = tonumber(entry.lastSeenAt) or 0
+                    if removeSeen > keepSeen then
+                        keepKey = key
+                        removeKey = existingKey
+                    end
+                    MergeEntryData(roster[keepKey], roster[removeKey])
+                    roster[keepKey].key = keepKey
+                    roster[removeKey] = nil
+                    guidToKey[entry.guid] = keepKey
+                    mergeCount = mergeCount + 1
+                else
+                    guidToKey[entry.guid] = key
+                end
+            end
+        end
+    end
+
+    self.lastGuidMergeCount = mergeCount
+    RecordMergeCount(mergeCount)
+    return mergeCount
+end
+
+function HuntRoster:UpdateCurrentCharacter(snapshot, options)
     if not (ns.Settings and type(ns.Settings.GetAccountRoster) == "function") then
         return nil
     end
@@ -184,6 +280,27 @@ function HuntRoster:UpdateCurrentCharacter(snapshot)
 
     local now = GetNow()
     local identity = GetPlayerIdentity()
+    local preserveWhenEmpty = type(options) == "table" and options.preserveWhenEmpty == true
+    local hasSnapshotSignal = SnapshotHasSignal(snapshot)
+    if identity.guid then
+        for key, existing in pairs(roster) do
+            if key ~= identity.key and type(existing) == "table" and existing.guid == identity.guid then
+                local current = roster[identity.key]
+                if type(current) == "table" then
+                    MergeEntryData(current, existing)
+                else
+                    roster[identity.key] = existing
+                    current = existing
+                end
+                current.key = identity.key
+                roster[key] = nil
+                self.lastGuidMergeCount = (tonumber(self.lastGuidMergeCount) or 0) + 1
+                RecordMergeCount(1)
+                break
+            end
+        end
+    end
+
     local snapshotCopy = CopySnapshot(snapshot)
     local entry = roster[identity.key]
     if type(entry) ~= "table" then
@@ -199,8 +316,10 @@ function HuntRoster:UpdateCurrentCharacter(snapshot)
     entry.lastSeenAt = now
     entry.lastSeenDate = FormatDate(now)
     entry.weekKey = GetCurrentWeekKey()
-    entry.lastSnapshot = snapshotCopy
-    entry.activeHunt = GetActiveHunt(snapshotCopy)
+    if hasSnapshotSignal or not (preserveWhenEmpty and entry.lastSnapshot) then
+        entry.lastSnapshot = snapshotCopy
+        entry.activeHunt = GetActiveHunt(snapshotCopy)
+    end
     entry.completedThisWeek = CountCurrentWeekCompletions()
     entry.historyTotal = CountHistory()
     entry.recentCompletions = CopyRecentCompletions()
@@ -215,11 +334,15 @@ function HuntRoster:GetCharacters()
         return {}
     end
 
+    self:MergeDuplicateCharacters()
     local now = GetNow()
     local currentWeekKey = GetCurrentWeekKey()
     local weeklyGoals = ns.Settings and ns.Settings.GetWeeklyGoals and ns.Settings:GetWeeklyGoals() or nil
+    if ns.HuntGoalEngine and type(ns.HuntGoalEngine.RefreshWeeklyState) == "function" then
+        ns.HuntGoalEngine:RefreshWeeklyState(currentWeekKey)
+    end
     if type(weeklyGoals) == "table" then
-        weeklyGoals.resetMarker = currentWeekKey
+        weeklyGoals.resetMarker = weeklyGoals.resetMarker or currentWeekKey
         if type(weeklyGoals.staleCharacters) ~= "table" then
             weeklyGoals.staleCharacters = {}
         end

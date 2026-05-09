@@ -24,7 +24,26 @@ local function GetWeeklyGoals()
     if ns.Settings and type(ns.Settings.GetWeeklyGoals) == "function" then
         return ns.Settings:GetWeeklyGoals()
     end
-    return { pinned = {}, ignored = {}, completed = {} }
+    return { pinned = {}, ignored = {}, completed = {}, staleCharacters = {}, goals = {} }
+end
+
+local function GetCurrentWeekKey()
+    if ns.HuntJournal and type(ns.HuntJournal.GetCurrentWeekKey) == "function" then
+        return ns.HuntJournal:GetCurrentWeekKey()
+    end
+    return "unknown"
+end
+
+local function CountMap(map)
+    local count = 0
+    if type(map) == "table" then
+        for _, value in pairs(map) do
+            if value ~= nil and value ~= false then
+                count = count + 1
+            end
+        end
+    end
+    return count
 end
 
 local function GetPreferences(preferences)
@@ -217,7 +236,53 @@ function HuntGoalEngine:SetCompleted(goalID, completed)
     goals.completed[goalID] = completed == true or nil
 end
 
+function HuntGoalEngine:RefreshWeeklyState(currentWeekKey)
+    local goals = GetWeeklyGoals()
+    currentWeekKey = currentWeekKey or GetCurrentWeekKey()
+    if type(goals) ~= "table" then
+        return nil
+    end
+    if not currentWeekKey or currentWeekKey == "" then
+        currentWeekKey = "unknown"
+    end
+
+    if goals.resetMarker ~= currentWeekKey then
+        goals.previousResetMarker = goals.resetMarker
+        goals.resetMarker = currentWeekKey
+        goals.completed = {}
+        goals.ignored = {}
+        goals.staleCharacters = {}
+        goals.goals = {}
+        if type(time) == "function" then
+            goals.lastMaintenanceAt = time()
+        elseif os and type(os.time) == "function" then
+            goals.lastMaintenanceAt = os.time()
+        end
+    end
+
+    return goals
+end
+
+function HuntGoalEngine:ClearIgnored()
+    local goals = GetWeeklyGoals()
+    local count = CountMap(goals.ignored)
+    goals.ignored = {}
+    return count
+end
+
+function HuntGoalEngine:GetWeeklyGoalCounts()
+    local goals = GetWeeklyGoals()
+    return {
+        pinned = CountMap(goals.pinned),
+        ignored = CountMap(goals.ignored),
+        completed = CountMap(goals.completed),
+        staleCharacters = CountMap(goals.staleCharacters),
+        resetMarker = goals.resetMarker,
+    }
+end
+
 function HuntGoalEngine:GetWeeklyPlan(roster, liveHunts, preferences)
+    self:RefreshWeeklyState()
     preferences = GetPreferences(preferences)
     roster = type(roster) == "table" and roster or {}
     liveHunts = type(liveHunts) == "table" and liveHunts or {}

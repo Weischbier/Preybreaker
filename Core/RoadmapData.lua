@@ -9,7 +9,7 @@ ns.RoadmapData = ns.RoadmapData or {
         "Roster data is local-only and only updates after each character is seen by the addon.",
     },
     PlannedFeatures = {
-        "More account dashboard filters once Blizzard exposes richer reward metadata in live hunt dialogs.",
+        "Richer account dashboard filters once Blizzard exposes more reward and completion metadata in live hunt dialogs.",
         "Optional export of Hunt OS history for players who want external farming logs after v4.",
         "Expanded Goal Engine scoring as new Midnight hunt achievements and rewards are discovered.",
     },
